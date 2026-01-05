@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>ForgeDesk - Inventory Management</title>
-  <link href="https://unpkg.com/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet">
-<link href="https://unpkg.com/@tabler/icons@latest/iconfont/tabler-icons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
 <style>
     .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
     .table-actions { white-space: nowrap; }
@@ -19,6 +19,36 @@
     #loginPage { display: none; }
     #loginPage.active { display: flex; }
     .loading { text-align: center; padding: 2rem; }
+
+    /* Theme switcher styles */
+    [data-bs-theme="dark"] .hide-theme-dark {
+      display: none;
+    }
+    [data-bs-theme="light"] .hide-theme-light {
+      display: none;
+    }
+
+    /* Modal improvements */
+    .modal-body .form-label.required:after {
+      content: " *";
+      color: #d63939;
+    }
+
+    /* Toast notifications */
+    .alert.position-fixed {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -51,13 +81,72 @@
           <a href="#">ForgeDesk</a>
         </h1>
         <div class="navbar-nav flex-row order-md-last">
+          <div class="nav-item dropdown d-none d-md-flex me-3">
+            <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
+              <i class="ti ti-bell icon"></i>
+              <span class="badge bg-red"></span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Notifications</h3>
+                </div>
+                <div class="list-group list-group-flush list-group-hoverable">
+                  <div class="list-group-item">
+                    <div class="text-truncate">
+                      <div class="text-muted">No new notifications</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="nav-item dropdown d-none d-md-flex me-3">
+            <a href="#" class="nav-link px-0 hide-theme-dark" title="Enable dark mode" data-bs-toggle="tooltip" data-bs-placement="bottom" id="theme-toggle-light">
+              <i class="ti ti-moon icon"></i>
+            </a>
+            <a href="#" class="nav-link px-0 hide-theme-light" title="Enable light mode" data-bs-toggle="tooltip" data-bs-placement="bottom" id="theme-toggle-dark">
+              <i class="ti ti-sun icon"></i>
+            </a>
+          </div>
           <div class="nav-item dropdown">
-            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
+            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
               <span class="avatar avatar-sm" id="userAvatar">A</span>
+              <div class="d-none d-xl-block ps-2">
+                <div id="userName">Admin</div>
+                <div class="mt-1 small text-muted" id="userEmail">admin@forgedesk.local</div>
+              </div>
             </a>
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
               <a href="#" class="dropdown-item" id="logoutBtn">Logout</a>
             </div>
+          </div>
+        </div>
+        <div class="collapse navbar-collapse" id="navbar-menu">
+          <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="ti ti-home icon"></i>
+                  </span>
+                  <span class="nav-link-title">Dashboard</span>
+                </a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="ti ti-package icon"></i>
+                  </span>
+                  <span class="nav-link-title">Inventory</span>
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="#">All Products</a>
+                  <a class="dropdown-item" href="#">Low Stock</a>
+                  <a class="dropdown-item" href="#">Critical Stock</a>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -180,7 +269,160 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+  <!-- Add Product Modal -->
+  <div class="modal modal-blur fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Product</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="addProductForm">
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">SKU</label>
+                  <input type="text" class="form-control" name="sku" id="productSku" placeholder="Enter SKU" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Description</label>
+                  <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Long Description</label>
+              <textarea class="form-control" name="long_description" id="productLongDescription" rows="3" placeholder="Detailed product description"></textarea>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Category</label>
+                  <input type="text" class="form-control" name="category" id="productCategory" placeholder="e.g., Hardware, Electronics">
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Location</label>
+                  <input type="text" class="form-control" name="location" id="productLocation" placeholder="e.g., A-12-03">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Unit Cost</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
+                  </div>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Unit Price</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
+                  </div>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Quantity on Hand</label>
+                  <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Minimum Quantity</label>
+                  <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">Maximum Quantity</label>
+                  <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Unit of Measure</label>
+                  <select class="form-select" name="unit_of_measure" id="productUOM" required>
+                    <option value="EA">Each (EA)</option>
+                    <option value="BOX">Box</option>
+                    <option value="CASE">Case</option>
+                    <option value="GAL">Gallon (GAL)</option>
+                    <option value="LB">Pound (LB)</option>
+                    <option value="FT">Foot (FT)</option>
+                    <option value="ROLL">Roll</option>
+                    <option value="SET">Set</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-lg-8">
+                <div class="mb-3">
+                  <label class="form-label">Supplier</label>
+                  <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Supplier SKU</label>
+                  <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's product code">
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Lead Time (Days)</label>
+                  <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="productIsActive" checked>
+                <span class="form-check-label">Active Product</span>
+              </label>
+            </div>
+
+            <div id="formError" class="alert alert-danger" style="display: none;"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary ms-auto" id="saveProductBtn">
+              <i class="ti ti-device-floppy icon"></i>
+              Save Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
   <script>
     const API_BASE = '/api/v1';
     let authToken = localStorage.getItem('authToken');
@@ -355,7 +597,123 @@
     }
 
     function viewProduct(id) { alert('View product: ' + id); }
-    function showAddProductModal() { alert('Add product modal - coming soon!'); }
+
+    function showAddProductModal() {
+      const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+      document.getElementById('addProductForm').reset();
+      document.getElementById('formError').style.display = 'none';
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+      modal.show();
+    }
+
+    // Add Product Form Submission
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {};
+
+      formData.forEach((value, key) => {
+        if (key === 'is_active') {
+          data[key] = document.getElementById('productIsActive').checked;
+        } else if (value !== '') {
+          data[key] = value;
+        }
+      });
+
+      // Clear previous errors
+      document.getElementById('formError').style.display = 'none';
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+      try {
+        const saveBtn = document.getElementById('saveProductBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        const response = await apiCall('/products', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+          modal.hide();
+          showNotification('Product created successfully!', 'success');
+          loadDashboard();
+        } else {
+          const error = await response.json();
+          if (error.errors) {
+            // Display field-specific errors
+            Object.keys(error.errors).forEach(field => {
+              const input = document.querySelector(`[name="${field}"]`);
+              if (input) {
+                input.classList.add('is-invalid');
+                const feedback = input.parentElement.querySelector('.invalid-feedback') ||
+                                input.closest('.mb-3').querySelector('.invalid-feedback');
+                if (feedback) {
+                  feedback.textContent = error.errors[field][0];
+                  feedback.style.display = 'block';
+                }
+              }
+            });
+          } else {
+            document.getElementById('formError').textContent = error.message || 'Failed to create product';
+            document.getElementById('formError').style.display = 'block';
+          }
+        }
+      } catch (error) {
+        document.getElementById('formError').textContent = 'Error: ' + error.message;
+        document.getElementById('formError').style.display = 'block';
+      } finally {
+        const saveBtn = document.getElementById('saveProductBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-device-floppy icon"></i> Save Product';
+      }
+    });
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `alert alert-${type} alert-dismissible position-fixed top-0 end-0 m-3`;
+      toast.style.zIndex = '9999';
+      toast.style.minWidth = '300px';
+      toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('fade');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Theme Switcher
+    const themeToggleLight = document.getElementById('theme-toggle-light');
+    const themeToggleDark = document.getElementById('theme-toggle-dark');
+
+    function setTheme(theme) {
+      document.body.setAttribute('data-bs-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
+
+    function getTheme() {
+      return localStorage.getItem('theme') || 'light';
+    }
+
+    // Initialize theme
+    setTheme(getTheme());
+
+    themeToggleLight.addEventListener('click', (e) => {
+      e.preventDefault();
+      setTheme('dark');
+    });
+
+    themeToggleDark.addEventListener('click', (e) => {
+      e.preventDefault();
+      setTheme('light');
+    });
 
     if (authToken) {
       showApp();
