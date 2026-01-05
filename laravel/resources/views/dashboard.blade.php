@@ -20,14 +20,6 @@
     #loginPage.active { display: flex; }
     .loading { text-align: center; padding: 2rem; }
 
-    /* Theme switcher styles */
-    [data-bs-theme="dark"] .hide-theme-dark {
-      display: none;
-    }
-    [data-bs-theme="light"] .hide-theme-light {
-      display: none;
-    }
-
     /* Modal improvements */
     .modal-body .form-label.required:after {
       content: " *";
@@ -101,12 +93,9 @@
               </div>
             </div>
           </div>
-          <div class="nav-item dropdown d-none d-md-flex me-3">
-            <a href="#" class="nav-link px-0 hide-theme-dark" title="Enable dark mode" data-bs-toggle="tooltip" data-bs-placement="bottom" id="theme-toggle-light">
-              <i class="ti ti-moon icon"></i>
-            </a>
-            <a href="#" class="nav-link px-0 hide-theme-light" title="Enable light mode" data-bs-toggle="tooltip" data-bs-placement="bottom" id="theme-toggle-dark">
-              <i class="ti ti-sun icon"></i>
+          <div class="nav-item d-none d-md-flex me-3">
+            <a href="#" class="nav-link px-0" title="Theme settings" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTheme" aria-controls="offcanvasTheme">
+              <i class="ti ti-palette icon"></i>
             </a>
           </div>
           <div class="nav-item dropdown">
@@ -422,6 +411,311 @@
     </div>
   </div>
 
+  <!-- Theme Settings Offcanvas -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasTheme" aria-labelledby="offcanvasThemeLabel">
+    <div class="offcanvas-header">
+      <h2 class="offcanvas-title" id="offcanvasThemeLabel">Theme Settings</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <!-- Theme Mode -->
+      <div class="mb-4">
+        <h3 class="mb-3">Theme</h3>
+        <div class="row g-2">
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="light" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Light</span>
+                  <span class="d-block text-muted">Best for daylight</span>
+                </span>
+              </span>
+            </label>
+          </div>
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="dark" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Dark</span>
+                  <span class="d-block text-muted">Reduce eye strain</span>
+                </span>
+              </span>
+            </label>
+          </div>
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="auto" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Auto</span>
+                  <span class="d-block text-muted">Follow system</span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Color Scheme -->
+      <div class="mb-4">
+        <h3 class="mb-3">Color Scheme</h3>
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="blue" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-blue d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Blue</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="azure" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-azure d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Azure</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="indigo" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-indigo d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Indigo</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="purple" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-purple d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Purple</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="pink" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-pink d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Pink</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="red" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-red d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Red</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="orange" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-orange d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Orange</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="yellow" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-yellow d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Yellow</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="lime" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-lime d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Lime</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="green" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-green d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Green</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="teal" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-teal d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Teal</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="cyan" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-cyan d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Cyan</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Font -->
+      <div class="mb-4">
+        <h3 class="mb-3">Font</h3>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="inter" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: 'Inter', sans-serif;">Inter (Default)</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="system" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">System UI</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="georgia" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: Georgia, serif;">Georgia (Serif)</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="mono" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: 'Courier New', monospace;">Monospace</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Border Radius -->
+      <div class="mb-4">
+        <h3 class="mb-3">Border Radius</h3>
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="default" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 4px;"></span>
+                <span class="d-block text-center small mt-2">Default</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="smooth" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 12px;"></span>
+                <span class="d-block text-center small mt-2">Smooth</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="sharp" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 0;"></span>
+                <span class="d-block text-center small mt-2">Sharp</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Button -->
+      <div class="d-grid">
+        <button class="btn btn-outline-secondary" id="resetThemeBtn">
+          <i class="ti ti-refresh icon"></i>
+          Reset to Defaults
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
   <script>
     const API_BASE = '/api/v1';
@@ -689,31 +983,157 @@
       }, 3000);
     }
 
-    // Theme Switcher
-    const themeToggleLight = document.getElementById('theme-toggle-light');
-    const themeToggleDark = document.getElementById('theme-toggle-dark');
+    // Theme Settings Manager
+    const themeSettings = {
+      mode: localStorage.getItem('theme-mode') || 'light',
+      color: localStorage.getItem('theme-color') || 'blue',
+      font: localStorage.getItem('theme-font') || 'inter',
+      radius: localStorage.getItem('theme-radius') || 'default'
+    };
 
-    function setTheme(theme) {
-      document.body.setAttribute('data-bs-theme', theme);
-      localStorage.setItem('theme', theme);
+    const colorSchemes = {
+      blue: { primary: '#0054a6', 'primary-rgb': '0, 84, 166' },
+      azure: { primary: '#4299e1', 'primary-rgb': '66, 153, 225' },
+      indigo: { primary: '#4263eb', 'primary-rgb': '66, 99, 235' },
+      purple: { primary: '#ae3ec9', 'primary-rgb': '174, 62, 201' },
+      pink: { primary: '#d6336c', 'primary-rgb': '214, 51, 108' },
+      red: { primary: '#d63939', 'primary-rgb': '214, 57, 57' },
+      orange: { primary: '#f76707', 'primary-rgb': '247, 103, 7' },
+      yellow: { primary: '#f59f00', 'primary-rgb': '245, 159, 0' },
+      lime: { primary: '#74b816', 'primary-rgb': '116, 184, 22' },
+      green: { primary: '#2fb344', 'primary-rgb': '47, 179, 68' },
+      teal: { primary: '#0ca678', 'primary-rgb': '12, 166, 120' },
+      cyan: { primary: '#17a2b8', 'primary-rgb': '23, 162, 184' }
+    };
+
+    const fonts = {
+      inter: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", sans-serif',
+      system: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+      georgia: 'Georgia, "Times New Roman", Times, serif',
+      mono: '"Courier New", Courier, monospace'
+    };
+
+    const radiusValues = {
+      default: '4px',
+      smooth: '12px',
+      sharp: '0px'
+    };
+
+    function applyThemeMode(mode) {
+      if (mode === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        document.body.setAttribute('data-bs-theme', mode);
+      }
     }
 
-    function getTheme() {
-      return localStorage.getItem('theme') || 'light';
+    function applyColorScheme(color) {
+      const scheme = colorSchemes[color];
+      if (scheme) {
+        document.documentElement.style.setProperty('--tblr-primary', scheme.primary);
+        document.documentElement.style.setProperty('--tblr-primary-rgb', scheme['primary-rgb']);
+      }
     }
 
-    // Initialize theme
-    setTheme(getTheme());
+    function applyFont(font) {
+      const fontFamily = fonts[font];
+      if (fontFamily) {
+        document.body.style.fontFamily = fontFamily;
+      }
+    }
 
-    themeToggleLight.addEventListener('click', (e) => {
-      e.preventDefault();
-      setTheme('dark');
+    function applyBorderRadius(radius) {
+      const value = radiusValues[radius];
+      if (value) {
+        document.documentElement.style.setProperty('--tblr-border-radius', value);
+        document.documentElement.style.setProperty('--tblr-border-radius-sm', value === '0px' ? '0px' : (parseFloat(value) * 0.75 + 'px'));
+        document.documentElement.style.setProperty('--tblr-border-radius-lg', value === '0px' ? '0px' : (parseFloat(value) * 1.5 + 'px'));
+      }
+    }
+
+    function applyThemeSettings() {
+      applyThemeMode(themeSettings.mode);
+      applyColorScheme(themeSettings.color);
+      applyFont(themeSettings.font);
+      applyBorderRadius(themeSettings.radius);
+    }
+
+    function saveThemeSetting(key, value) {
+      themeSettings[key] = value;
+      localStorage.setItem(`theme-${key}`, value);
+      applyThemeSettings();
+    }
+
+    function loadThemeSettings() {
+      // Set radio button states
+      document.querySelector(`input[name="theme-mode"][value="${themeSettings.mode}"]`).checked = true;
+      document.querySelector(`input[name="theme-color"][value="${themeSettings.color}"]`).checked = true;
+      document.querySelector(`input[name="theme-font"][value="${themeSettings.font}"]`).checked = true;
+      document.querySelector(`input[name="theme-radius"][value="${themeSettings.radius}"]`).checked = true;
+    }
+
+    function resetThemeSettings() {
+      themeSettings.mode = 'light';
+      themeSettings.color = 'blue';
+      themeSettings.font = 'inter';
+      themeSettings.radius = 'default';
+
+      localStorage.removeItem('theme-mode');
+      localStorage.removeItem('theme-color');
+      localStorage.removeItem('theme-font');
+      localStorage.removeItem('theme-radius');
+
+      loadThemeSettings();
+      applyThemeSettings();
+      showNotification('Theme reset to defaults', 'info');
+    }
+
+    // Event listeners for theme settings
+    document.querySelectorAll('input[name="theme-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('mode', e.target.value);
+        }
+      });
     });
 
-    themeToggleDark.addEventListener('click', (e) => {
-      e.preventDefault();
-      setTheme('light');
+    document.querySelectorAll('input[name="theme-color"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('color', e.target.value);
+        }
+      });
     });
+
+    document.querySelectorAll('input[name="theme-font"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('font', e.target.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('input[name="theme-radius"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('radius', e.target.value);
+        }
+      });
+    });
+
+    document.getElementById('resetThemeBtn').addEventListener('click', resetThemeSettings);
+
+    // Listen for system theme changes when in auto mode
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (themeSettings.mode === 'auto') {
+        applyThemeMode('auto');
+      }
+    });
+
+    // Initialize theme on page load
+    loadThemeSettings();
+    applyThemeSettings();
 
     if (authToken) {
       showApp();
