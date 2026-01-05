@@ -9,6 +9,7 @@ class CommittedInventory extends Model
 {
     use HasFactory;
 
+    protected $table = 'committed_inventory';
     protected $fillable = [
         'product_id', 'order_id', 'order_item_id', 'quantity_committed',
         'committed_date', 'expected_release_date',
