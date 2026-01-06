@@ -6,8 +6,16 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>ForgeDesk - Inventory Management</title>
   <link href="{{ asset('assets/tabler/css/tabler.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-flags.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-socials.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-payments.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-vendors.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-marketing.min.css') }}" rel="stylesheet">
   <link href="{{ asset('assets/tabler/css/tabler-themes.min.css') }}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+  <style>
+    @import url("https://rsms.me/inter/inter.css");
+  </style>
 <style>
     .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
     .table-actions { white-space: nowrap; }
@@ -62,6 +70,7 @@
   </style>
 </head>
 <body>
+  <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
   <!-- Login Page -->
   <div id="loginPage" class="login-container">
     <div class="card" style="width: 100%; max-width: 400px;">
@@ -85,26 +94,37 @@
 
   <!-- Main Application -->
   <div id="app" class="page">
-    <header class="navbar navbar-expand-md navbar-light d-print-none">
+    <a href="#content" class="visually-hidden skip-link">Skip to main content</a>
+    <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
-        <h1 class="navbar-brand d-none-navbar-horizontal pe-0 pe-md-3">
-          <a href="#">ForgeDesk</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
+          <a href="#">
+            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="32" viewBox="0 0 232 68" class="navbar-brand-image">
+              <text x="10" y="50" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="var(--tblr-primary, #066fd1)">FD</text>
+            </svg>
+          </a>
         </h1>
         <div class="navbar-nav flex-row order-md-last">
           <div class="nav-item dropdown d-none d-md-flex me-3">
             <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
-              <i class="ti ti-bell icon"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
               <span class="badge bg-red"></span>
             </a>
             <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card">
               <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex">
                   <h3 class="card-title">Notifications</h3>
+                  <div class="btn-close ms-auto" data-bs-dismiss="dropdown"></div>
                 </div>
                 <div class="list-group list-group-flush list-group-hoverable">
                   <div class="list-group-item">
-                    <div class="text-truncate">
-                      <div class="text-muted">No new notifications</div>
+                    <div class="row align-items-center">
+                      <div class="col text-truncate">
+                        <div class="text-muted">No new notifications</div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -113,66 +133,91 @@
           </div>
           <div class="nav-item d-none d-md-flex me-3">
             <a href="#" class="nav-link px-0" title="Theme settings" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTheme" aria-controls="offcanvasTheme">
-              <i class="ti ti-palette icon"></i>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25" /><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
             </a>
           </div>
           <div class="nav-item dropdown">
-            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
+            <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
               <span class="avatar avatar-sm" id="userAvatar">A</span>
               <div class="d-none d-xl-block ps-2">
                 <div id="userName">Admin</div>
-                <div class="mt-1 small text-muted" id="userEmail">admin@forgedesk.local</div>
+                <div class="mt-1 small text-secondary" id="userEmail">admin@forgedesk.local</div>
               </div>
             </a>
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+              <a href="#" class="dropdown-item">Status</a>
+              <a href="#" class="dropdown-item">Profile</a>
+              <div class="dropdown-divider"></div>
+              <a href="#" class="dropdown-item">Settings</a>
               <a href="#" class="dropdown-item" id="logoutBtn">Logout</a>
             </div>
           </div>
         </div>
-        <div class="collapse navbar-collapse" id="navbar-menu">
-          <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
-            <ul class="navbar-nav">
-              <li class="nav-item">
-                <a class="nav-link" href="#">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <i class="ti ti-home icon"></i>
-                  </span>
-                  <span class="nav-link-title">Dashboard</span>
-                </a>
-              </li>
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
-                  <span class="nav-link-icon d-md-none d-lg-inline-block">
-                    <i class="ti ti-package icon"></i>
-                  </span>
-                  <span class="nav-link-title">Inventory</span>
-                </a>
-                <div class="dropdown-menu">
-                  <a class="dropdown-item" href="#">All Products</a>
-                  <a class="dropdown-item" href="#">Low Stock</a>
-                  <a class="dropdown-item" href="#">Critical Stock</a>
-                </div>
-              </li>
-            </ul>
+      </div>
+    </header>
+    <div class="navbar-expand-md">
+      <div class="collapse navbar-collapse" id="navbar-menu">
+        <div class="navbar">
+          <div class="container-xl">
+            <div class="row flex-column flex-md-row flex-fill align-items-center">
+              <div class="col">
+                <nav aria-label="Primary">
+                  <ul class="navbar-nav">
+                    <li class="nav-item active">
+                      <a class="nav-link" href="#" aria-current="page">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
+                        </span>
+                        <span class="nav-link-title">Dashboard</span>
+                      </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#navbar-inventory" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                        <span class="nav-link-icon d-md-none d-lg-inline-block">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
+                        </span>
+                        <span class="nav-link-title">Inventory</span>
+                      </a>
+                      <div class="dropdown-menu">
+                        <a class="dropdown-item" href="#">All Products</a>
+                        <a class="dropdown-item" href="#">Low Stock</a>
+                        <a class="dropdown-item" href="#">Critical Stock</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#">Categories</a>
+                        <a class="dropdown-item" href="#">Suppliers</a>
+                      </div>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </header>
+    </div>
 
     <div class="page-wrapper">
       <div class="page-header d-print-none">
         <div class="container-xl">
           <div class="row g-2 align-items-center">
             <div class="col">
-              <h2 class="page-title">Inventory Dashboard</h2>
+              <div class="page-pretitle">Overview</div>
+              <h1 class="page-title">Inventory Dashboard</h1>
             </div>
             <div class="col-auto ms-auto d-print-none">
               <div class="btn-list">
-                <button class="btn btn-outline-primary" onclick="exportProducts()">
-                  <i class="ti ti-download"></i> Export
+                <span class="d-none d-sm-inline">
+                  <button class="btn" onclick="exportProducts()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
+                    Export
+                  </button>
+                </span>
+                <button class="btn btn-primary d-none d-sm-inline-block" onclick="showAddProductModal()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                  Add Product
                 </button>
-                <button class="btn btn-primary" onclick="showAddProductModal()">
-                  <i class="ti ti-plus"></i> Add Product
+                <button class="btn btn-primary d-sm-none btn-icon" onclick="showAddProductModal()" aria-label="Add product">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
                 </button>
               </div>
             </div>
@@ -180,7 +225,7 @@
         </div>
       </div>
 
-      <div class="page-body">
+      <main id="content" class="page-body">
         <div class="container-xl">
           <!-- Stats Cards -->
           <div class="row row-deck row-cards mb-3">
@@ -272,7 +317,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   </div>
 
@@ -1020,7 +1065,7 @@
       radius: normalizeRadius(localStorage.getItem('tabler-theme-radius'))
     };
 
-    // Map UI values to Tabler radius values
+    // Map UI values to Tabler's data-bs-theme-radius attribute values
     const radiusMapping = {
       'default': '1',
       'smooth': '2',
@@ -1047,7 +1092,7 @@
     }
 
     function applyBorderRadius(radius) {
-      const tablerRadius = radiusMapping[radius] || radius;
+      const tablerRadius = radiusMapping[radius] || '1';
       document.documentElement.setAttribute('data-bs-theme-radius', tablerRadius);
     }
 
@@ -1068,7 +1113,9 @@
       } else if (key === 'font') {
         localStorage.setItem('tabler-theme-font', value);
       } else if (key === 'radius') {
-        localStorage.setItem('tabler-theme-radius', value);
+        // Convert UI value to Tabler value before saving
+        const tablerRadius = radiusMapping[value] || '1';
+        localStorage.setItem('tabler-theme-radius', tablerRadius);
       }
       applyThemeSettings();
     }
