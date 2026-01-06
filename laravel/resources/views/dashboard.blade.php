@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>ForgeDesk - Inventory Management</title>
-  <link href="https://unpkg.com/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet">
-<link href="https://unpkg.com/@tabler/icons@latest/iconfont/tabler-icons.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
 <style>
     .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
     .table-actions { white-space: nowrap; }
@@ -19,6 +19,28 @@
     #loginPage { display: none; }
     #loginPage.active { display: flex; }
     .loading { text-align: center; padding: 2rem; }
+
+    /* Modal improvements */
+    .modal-body .form-label.required:after {
+      content: " *";
+      color: #d63939;
+    }
+
+    /* Toast notifications */
+    .alert.position-fixed {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 <body>
@@ -51,13 +73,69 @@
           <a href="#">ForgeDesk</a>
         </h1>
         <div class="navbar-nav flex-row order-md-last">
+          <div class="nav-item dropdown d-none d-md-flex me-3">
+            <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
+              <i class="ti ti-bell icon"></i>
+              <span class="badge bg-red"></span>
+            </a>
+            <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Notifications</h3>
+                </div>
+                <div class="list-group list-group-flush list-group-hoverable">
+                  <div class="list-group-item">
+                    <div class="text-truncate">
+                      <div class="text-muted">No new notifications</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="nav-item d-none d-md-flex me-3">
+            <a href="#" class="nav-link px-0" title="Theme settings" data-bs-toggle="offcanvas" data-bs-target="#offcanvasTheme" aria-controls="offcanvasTheme">
+              <i class="ti ti-palette icon"></i>
+            </a>
+          </div>
           <div class="nav-item dropdown">
-            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown">
+            <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
               <span class="avatar avatar-sm" id="userAvatar">A</span>
+              <div class="d-none d-xl-block ps-2">
+                <div id="userName">Admin</div>
+                <div class="mt-1 small text-muted" id="userEmail">admin@forgedesk.local</div>
+              </div>
             </a>
             <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
               <a href="#" class="dropdown-item" id="logoutBtn">Logout</a>
             </div>
+          </div>
+        </div>
+        <div class="collapse navbar-collapse" id="navbar-menu">
+          <div class="d-flex flex-column flex-md-row flex-fill align-items-stretch align-items-md-center">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="ti ti-home icon"></i>
+                  </span>
+                  <span class="nav-link-title">Dashboard</span>
+                </a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                  <span class="nav-link-icon d-md-none d-lg-inline-block">
+                    <i class="ti ti-package icon"></i>
+                  </span>
+                  <span class="nav-link-title">Inventory</span>
+                </a>
+                <div class="dropdown-menu">
+                  <a class="dropdown-item" href="#">All Products</a>
+                  <a class="dropdown-item" href="#">Low Stock</a>
+                  <a class="dropdown-item" href="#">Critical Stock</a>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -180,7 +258,465 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+  <!-- Add Product Modal -->
+  <div class="modal modal-blur fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Product</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="addProductForm">
+          <div class="modal-body">
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">SKU</label>
+                  <input type="text" class="form-control" name="sku" id="productSku" placeholder="Enter SKU" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Description</label>
+                  <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Long Description</label>
+              <textarea class="form-control" name="long_description" id="productLongDescription" rows="3" placeholder="Detailed product description"></textarea>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Category</label>
+                  <input type="text" class="form-control" name="category" id="productCategory" placeholder="e.g., Hardware, Electronics">
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Location</label>
+                  <input type="text" class="form-control" name="location" id="productLocation" placeholder="e.g., A-12-03">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Unit Cost</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
+                  </div>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label required">Unit Price</label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
+                  </div>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Quantity on Hand</label>
+                  <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Minimum Quantity</label>
+                  <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
+                  <div class="invalid-feedback"></div>
+                </div>
+              </div>
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label">Maximum Quantity</label>
+                  <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-4">
+                <div class="mb-3">
+                  <label class="form-label required">Unit of Measure</label>
+                  <select class="form-select" name="unit_of_measure" id="productUOM" required>
+                    <option value="EA">Each (EA)</option>
+                    <option value="BOX">Box</option>
+                    <option value="CASE">Case</option>
+                    <option value="GAL">Gallon (GAL)</option>
+                    <option value="LB">Pound (LB)</option>
+                    <option value="FT">Foot (FT)</option>
+                    <option value="ROLL">Roll</option>
+                    <option value="SET">Set</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-lg-8">
+                <div class="mb-3">
+                  <label class="form-label">Supplier</label>
+                  <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Supplier SKU</label>
+                  <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's product code">
+                </div>
+              </div>
+              <div class="col-lg-6">
+                <div class="mb-3">
+                  <label class="form-label">Lead Time (Days)</label>
+                  <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="productIsActive" checked>
+                <span class="form-check-label">Active Product</span>
+              </label>
+            </div>
+
+            <div id="formError" class="alert alert-danger" style="display: none;"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary ms-auto" id="saveProductBtn">
+              <i class="ti ti-device-floppy icon"></i>
+              Save Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Settings Offcanvas -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasTheme" aria-labelledby="offcanvasThemeLabel">
+    <div class="offcanvas-header">
+      <h2 class="offcanvas-title" id="offcanvasThemeLabel">Theme Settings</h2>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <!-- Theme Mode -->
+      <div class="mb-4">
+        <h3 class="mb-3">Theme</h3>
+        <div class="row g-2">
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="light" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Light</span>
+                  <span class="d-block text-muted">Best for daylight</span>
+                </span>
+              </span>
+            </label>
+          </div>
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="dark" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Dark</span>
+                  <span class="d-block text-muted">Reduce eye strain</span>
+                </span>
+              </span>
+            </label>
+          </div>
+          <div class="col-6 col-sm-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-mode" value="auto" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span class="form-selectgroup-label-content">
+                  <span class="form-selectgroup-title strong mb-1">Auto</span>
+                  <span class="d-block text-muted">Follow system</span>
+                </span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Color Scheme -->
+      <div class="mb-4">
+        <h3 class="mb-3">Color Scheme</h3>
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="blue" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-blue d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Blue</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="azure" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-azure d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Azure</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="indigo" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-indigo d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Indigo</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="purple" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-purple d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Purple</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="pink" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-pink d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Pink</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="red" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-red d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Red</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="orange" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-orange d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Orange</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="yellow" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-yellow d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Yellow</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="lime" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-lime d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Lime</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="green" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-green d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Green</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="teal" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-teal d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Teal</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-color" value="cyan" class="form-selectgroup-input">
+              <span class="form-selectgroup-label">
+                <span class="d-block p-3">
+                  <span class="form-selectgroup-check"></span>
+                  <span class="bg-cyan d-block rounded" style="height: 2rem;"></span>
+                </span>
+                <span class="d-block text-center small">Cyan</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Font -->
+      <div class="mb-4">
+        <h3 class="mb-3">Font</h3>
+        <div class="row g-2">
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="inter" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: 'Inter', sans-serif;">Inter (Default)</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="system" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">System UI</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="georgia" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: Georgia, serif;">Georgia (Serif)</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-12">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-font" value="mono" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex align-items-center p-3">
+                <span class="me-3">
+                  <span class="form-selectgroup-check"></span>
+                </span>
+                <span style="font-family: 'Courier New', monospace;">Monospace</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Border Radius -->
+      <div class="mb-4">
+        <h3 class="mb-3">Border Radius</h3>
+        <div class="row g-2">
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="default" class="form-selectgroup-input" checked>
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 4px;"></span>
+                <span class="d-block text-center small mt-2">Default</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="smooth" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 12px;"></span>
+                <span class="d-block text-center small mt-2">Smooth</span>
+              </span>
+            </label>
+          </div>
+          <div class="col-4">
+            <label class="form-selectgroup-item">
+              <input type="radio" name="theme-radius" value="sharp" class="form-selectgroup-input">
+              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
+                <span class="form-selectgroup-check mb-2"></span>
+                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 0;"></span>
+                <span class="d-block text-center small mt-2">Sharp</span>
+              </span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset Button -->
+      <div class="d-grid">
+        <button class="btn btn-outline-secondary" id="resetThemeBtn">
+          <i class="ti ti-refresh icon"></i>
+          Reset to Defaults
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
   <script>
     const API_BASE = '/api/v1';
     let authToken = localStorage.getItem('authToken');
@@ -355,7 +891,249 @@
     }
 
     function viewProduct(id) { alert('View product: ' + id); }
-    function showAddProductModal() { alert('Add product modal - coming soon!'); }
+
+    function showAddProductModal() {
+      const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+      document.getElementById('addProductForm').reset();
+      document.getElementById('formError').style.display = 'none';
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+      modal.show();
+    }
+
+    // Add Product Form Submission
+    document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {};
+
+      formData.forEach((value, key) => {
+        if (key === 'is_active') {
+          data[key] = document.getElementById('productIsActive').checked;
+        } else if (value !== '') {
+          data[key] = value;
+        }
+      });
+
+      // Clear previous errors
+      document.getElementById('formError').style.display = 'none';
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+      try {
+        const saveBtn = document.getElementById('saveProductBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        const response = await apiCall('/products', {
+          method: 'POST',
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+          modal.hide();
+          showNotification('Product created successfully!', 'success');
+          loadDashboard();
+        } else {
+          const error = await response.json();
+          if (error.errors) {
+            // Display field-specific errors
+            Object.keys(error.errors).forEach(field => {
+              const input = document.querySelector(`[name="${field}"]`);
+              if (input) {
+                input.classList.add('is-invalid');
+                const feedback = input.parentElement.querySelector('.invalid-feedback') ||
+                                input.closest('.mb-3').querySelector('.invalid-feedback');
+                if (feedback) {
+                  feedback.textContent = error.errors[field][0];
+                  feedback.style.display = 'block';
+                }
+              }
+            });
+          } else {
+            document.getElementById('formError').textContent = error.message || 'Failed to create product';
+            document.getElementById('formError').style.display = 'block';
+          }
+        }
+      } catch (error) {
+        document.getElementById('formError').textContent = 'Error: ' + error.message;
+        document.getElementById('formError').style.display = 'block';
+      } finally {
+        const saveBtn = document.getElementById('saveProductBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-device-floppy icon"></i> Save Product';
+      }
+    });
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.className = `alert alert-${type} alert-dismissible position-fixed top-0 end-0 m-3`;
+      toast.style.zIndex = '9999';
+      toast.style.minWidth = '300px';
+      toast.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.add('fade');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Theme Settings Manager
+    const themeSettings = {
+      mode: localStorage.getItem('theme-mode') || 'light',
+      color: localStorage.getItem('theme-color') || 'blue',
+      font: localStorage.getItem('theme-font') || 'inter',
+      radius: localStorage.getItem('theme-radius') || 'default'
+    };
+
+    const colorSchemes = {
+      blue: { primary: '#0054a6', 'primary-rgb': '0, 84, 166' },
+      azure: { primary: '#4299e1', 'primary-rgb': '66, 153, 225' },
+      indigo: { primary: '#4263eb', 'primary-rgb': '66, 99, 235' },
+      purple: { primary: '#ae3ec9', 'primary-rgb': '174, 62, 201' },
+      pink: { primary: '#d6336c', 'primary-rgb': '214, 51, 108' },
+      red: { primary: '#d63939', 'primary-rgb': '214, 57, 57' },
+      orange: { primary: '#f76707', 'primary-rgb': '247, 103, 7' },
+      yellow: { primary: '#f59f00', 'primary-rgb': '245, 159, 0' },
+      lime: { primary: '#74b816', 'primary-rgb': '116, 184, 22' },
+      green: { primary: '#2fb344', 'primary-rgb': '47, 179, 68' },
+      teal: { primary: '#0ca678', 'primary-rgb': '12, 166, 120' },
+      cyan: { primary: '#17a2b8', 'primary-rgb': '23, 162, 184' }
+    };
+
+    const fonts = {
+      inter: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", sans-serif',
+      system: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
+      georgia: 'Georgia, "Times New Roman", Times, serif',
+      mono: '"Courier New", Courier, monospace'
+    };
+
+    const radiusValues = {
+      default: '4px',
+      smooth: '12px',
+      sharp: '0px'
+    };
+
+    function applyThemeMode(mode) {
+      if (mode === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        document.body.setAttribute('data-bs-theme', mode);
+      }
+    }
+
+    function applyColorScheme(color) {
+      const scheme = colorSchemes[color];
+      if (scheme) {
+        document.documentElement.style.setProperty('--tblr-primary', scheme.primary);
+        document.documentElement.style.setProperty('--tblr-primary-rgb', scheme['primary-rgb']);
+      }
+    }
+
+    function applyFont(font) {
+      const fontFamily = fonts[font];
+      if (fontFamily) {
+        document.body.style.fontFamily = fontFamily;
+      }
+    }
+
+    function applyBorderRadius(radius) {
+      const value = radiusValues[radius];
+      if (value) {
+        document.documentElement.style.setProperty('--tblr-border-radius', value);
+        document.documentElement.style.setProperty('--tblr-border-radius-sm', value === '0px' ? '0px' : (parseFloat(value) * 0.75 + 'px'));
+        document.documentElement.style.setProperty('--tblr-border-radius-lg', value === '0px' ? '0px' : (parseFloat(value) * 1.5 + 'px'));
+      }
+    }
+
+    function applyThemeSettings() {
+      applyThemeMode(themeSettings.mode);
+      applyColorScheme(themeSettings.color);
+      applyFont(themeSettings.font);
+      applyBorderRadius(themeSettings.radius);
+    }
+
+    function saveThemeSetting(key, value) {
+      themeSettings[key] = value;
+      localStorage.setItem(`theme-${key}`, value);
+      applyThemeSettings();
+    }
+
+    function loadThemeSettings() {
+      // Set radio button states
+      document.querySelector(`input[name="theme-mode"][value="${themeSettings.mode}"]`).checked = true;
+      document.querySelector(`input[name="theme-color"][value="${themeSettings.color}"]`).checked = true;
+      document.querySelector(`input[name="theme-font"][value="${themeSettings.font}"]`).checked = true;
+      document.querySelector(`input[name="theme-radius"][value="${themeSettings.radius}"]`).checked = true;
+    }
+
+    function resetThemeSettings() {
+      themeSettings.mode = 'light';
+      themeSettings.color = 'blue';
+      themeSettings.font = 'inter';
+      themeSettings.radius = 'default';
+
+      localStorage.removeItem('theme-mode');
+      localStorage.removeItem('theme-color');
+      localStorage.removeItem('theme-font');
+      localStorage.removeItem('theme-radius');
+
+      loadThemeSettings();
+      applyThemeSettings();
+      showNotification('Theme reset to defaults', 'info');
+    }
+
+    // Event listeners for theme settings
+    document.querySelectorAll('input[name="theme-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('mode', e.target.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('input[name="theme-color"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('color', e.target.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('input[name="theme-font"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('font', e.target.value);
+        }
+      });
+    });
+
+    document.querySelectorAll('input[name="theme-radius"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          saveThemeSetting('radius', e.target.value);
+        }
+      });
+    });
+
+    document.getElementById('resetThemeBtn').addEventListener('click', resetThemeSettings);
+
+    // Listen for system theme changes when in auto mode
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (themeSettings.mode === 'auto') {
+        applyThemeMode('auto');
+      }
+    });
+
+    // Initialize theme on page load
+    loadThemeSettings();
+    applyThemeSettings();
 
     if (authToken) {
       showApp();
