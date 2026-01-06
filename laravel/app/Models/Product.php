@@ -11,16 +11,27 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'sku', 'description', 'long_description', 'category', 'location',
+        'sku', 'part_number', 'finish', 'description', 'long_description',
+        'category', 'category_id', 'location',
         'unit_cost', 'unit_price', 'quantity_on_hand', 'quantity_committed',
-        'minimum_quantity', 'maximum_quantity', 'unit_of_measure',
-        'supplier', 'supplier_sku', 'lead_time_days', 'is_active', 'status',
+        'minimum_quantity', 'reorder_point', 'safety_stock', 'average_daily_use',
+        'on_order_qty', 'maximum_quantity', 'unit_of_measure',
+        'pack_size', 'purchase_uom', 'stock_uom', 'min_order_qty', 'order_multiple',
+        'supplier', 'supplier_id', 'supplier_sku', 'supplier_contact', 'lead_time_days',
+        'is_active', 'is_discontinued', 'status',
+        'configurator_available', 'configurator_type', 'configurator_use_path',
+        'dimension_height', 'dimension_depth',
     ];
 
     protected $casts = [
         'unit_cost' => 'decimal:2',
         'unit_price' => 'decimal:2',
+        'average_daily_use' => 'decimal:2',
+        'dimension_height' => 'decimal:2',
+        'dimension_depth' => 'decimal:2',
         'is_active' => 'boolean',
+        'is_discontinued' => 'boolean',
+        'configurator_available' => 'boolean',
     ];
 
     protected $appends = ['quantity_available'];
@@ -38,6 +49,41 @@ class Product extends Model
     public function committedInventory()
     {
         return $this->hasMany(CommittedInventory::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function inventoryLocations()
+    {
+        return $this->hasMany(InventoryLocation::class);
+    }
+
+    public function jobReservations()
+    {
+        return $this->hasMany(JobReservation::class);
+    }
+
+    public function activeReservations()
+    {
+        return $this->jobReservations()->where('status', 'active');
+    }
+
+    public function requiredParts()
+    {
+        return $this->hasMany(RequiredPart::class, 'parent_product_id');
+    }
+
+    public function usedInProducts()
+    {
+        return $this->hasMany(RequiredPart::class, 'required_product_id');
     }
 
     public function getQuantityAvailableAttribute()

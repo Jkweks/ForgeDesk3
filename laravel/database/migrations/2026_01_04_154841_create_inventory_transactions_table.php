@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('inventory_transactions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->enum('type', ['receipt', 'shipment', 'adjustment', 'transfer', 'return']);
+            $table->enum('type', ['receipt', 'shipment', 'adjustment', 'transfer', 'return', 'cycle_count']);
             $table->integer('quantity');
             $table->integer('quantity_before');
             $table->integer('quantity_after');
