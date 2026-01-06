@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>ForgeDesk - Inventory Management</title>
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/css/tabler.min.css" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler.min.css') }}" rel="stylesheet">
+  <link href="{{ asset('assets/tabler/css/tabler-themes.min.css') }}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
 <style>
     .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
@@ -40,6 +41,23 @@
         transform: translateX(0);
         opacity: 1;
       }
+    }
+
+    /* Custom font themes */
+    [data-theme-font="inter"] {
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", sans-serif;
+    }
+
+    [data-theme-font="system"] {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    [data-theme-font="georgia"] {
+      font-family: Georgia, "Times New Roman", Times, serif;
+    }
+
+    [data-theme-font="mono"] {
+      font-family: "Courier New", Courier, monospace;
     }
   </style>
 </head>
@@ -716,7 +734,8 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta20/dist/js/tabler.min.js"></script>
+  <script src="{{ asset('assets/tabler/js/tabler.min.js') }}"></script>
+  <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
   <script>
     const API_BASE = '/api/v1';
     let authToken = localStorage.getItem('authToken');
@@ -983,73 +1002,53 @@
       }, 3000);
     }
 
-    // Theme Settings Manager
+    // Helper to normalize radius value from localStorage
+    function normalizeRadius(value) {
+      const radiusReverseMapping = {
+        '1': 'default',
+        '2': 'smooth',
+        '0': 'sharp'
+      };
+      return radiusReverseMapping[value] || value || 'default';
+    }
+
+    // Theme Settings Manager - Using Tabler's built-in theme system
     const themeSettings = {
-      mode: localStorage.getItem('theme-mode') || 'light',
-      color: localStorage.getItem('theme-color') || 'blue',
-      font: localStorage.getItem('theme-font') || 'inter',
-      radius: localStorage.getItem('theme-radius') || 'default'
+      mode: localStorage.getItem('tabler-theme') || 'light',
+      color: localStorage.getItem('tabler-theme-primary') || 'blue',
+      font: localStorage.getItem('tabler-theme-font') || 'inter',
+      radius: normalizeRadius(localStorage.getItem('tabler-theme-radius'))
     };
 
-    const colorSchemes = {
-      blue: { primary: '#0054a6', 'primary-rgb': '0, 84, 166' },
-      azure: { primary: '#4299e1', 'primary-rgb': '66, 153, 225' },
-      indigo: { primary: '#4263eb', 'primary-rgb': '66, 99, 235' },
-      purple: { primary: '#ae3ec9', 'primary-rgb': '174, 62, 201' },
-      pink: { primary: '#d6336c', 'primary-rgb': '214, 51, 108' },
-      red: { primary: '#d63939', 'primary-rgb': '214, 57, 57' },
-      orange: { primary: '#f76707', 'primary-rgb': '247, 103, 7' },
-      yellow: { primary: '#f59f00', 'primary-rgb': '245, 159, 0' },
-      lime: { primary: '#74b816', 'primary-rgb': '116, 184, 22' },
-      green: { primary: '#2fb344', 'primary-rgb': '47, 179, 68' },
-      teal: { primary: '#0ca678', 'primary-rgb': '12, 166, 120' },
-      cyan: { primary: '#17a2b8', 'primary-rgb': '23, 162, 184' }
-    };
-
-    const fonts = {
-      inter: '-apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", sans-serif',
-      system: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
-      georgia: 'Georgia, "Times New Roman", Times, serif',
-      mono: '"Courier New", Courier, monospace'
-    };
-
-    const radiusValues = {
-      default: '4px',
-      smooth: '12px',
-      sharp: '0px'
+    // Map UI values to Tabler radius values
+    const radiusMapping = {
+      'default': '1',
+      'smooth': '2',
+      'sharp': '0'
     };
 
     function applyThemeMode(mode) {
       if (mode === 'auto') {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.body.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
       } else {
-        document.body.setAttribute('data-bs-theme', mode);
+        document.documentElement.setAttribute('data-bs-theme', mode);
       }
     }
 
     function applyColorScheme(color) {
-      const scheme = colorSchemes[color];
-      if (scheme) {
-        document.documentElement.style.setProperty('--tblr-primary', scheme.primary);
-        document.documentElement.style.setProperty('--tblr-primary-rgb', scheme['primary-rgb']);
-      }
+      // Use Tabler's data-bs-theme-primary attribute system
+      document.documentElement.setAttribute('data-bs-theme-primary', color);
     }
 
     function applyFont(font) {
-      const fontFamily = fonts[font];
-      if (fontFamily) {
-        document.body.style.fontFamily = fontFamily;
-      }
+      // Use custom data-theme-font attribute (matches our CSS)
+      document.documentElement.setAttribute('data-theme-font', font);
     }
 
     function applyBorderRadius(radius) {
-      const value = radiusValues[radius];
-      if (value) {
-        document.documentElement.style.setProperty('--tblr-border-radius', value);
-        document.documentElement.style.setProperty('--tblr-border-radius-sm', value === '0px' ? '0px' : (parseFloat(value) * 0.75 + 'px'));
-        document.documentElement.style.setProperty('--tblr-border-radius-lg', value === '0px' ? '0px' : (parseFloat(value) * 1.5 + 'px'));
-      }
+      const tablerRadius = radiusMapping[radius] || radius;
+      document.documentElement.setAttribute('data-bs-theme-radius', tablerRadius);
     }
 
     function applyThemeSettings() {
@@ -1061,16 +1060,30 @@
 
     function saveThemeSetting(key, value) {
       themeSettings[key] = value;
-      localStorage.setItem(`theme-${key}`, value);
+      // Save using Tabler's localStorage convention
+      if (key === 'mode') {
+        localStorage.setItem('tabler-theme', value);
+      } else if (key === 'color') {
+        localStorage.setItem('tabler-theme-primary', value);
+      } else if (key === 'font') {
+        localStorage.setItem('tabler-theme-font', value);
+      } else if (key === 'radius') {
+        localStorage.setItem('tabler-theme-radius', value);
+      }
       applyThemeSettings();
     }
 
     function loadThemeSettings() {
       // Set radio button states
-      document.querySelector(`input[name="theme-mode"][value="${themeSettings.mode}"]`).checked = true;
-      document.querySelector(`input[name="theme-color"][value="${themeSettings.color}"]`).checked = true;
-      document.querySelector(`input[name="theme-font"][value="${themeSettings.font}"]`).checked = true;
-      document.querySelector(`input[name="theme-radius"][value="${themeSettings.radius}"]`).checked = true;
+      const modeRadio = document.querySelector(`input[name="theme-mode"][value="${themeSettings.mode}"]`);
+      const colorRadio = document.querySelector(`input[name="theme-color"][value="${themeSettings.color}"]`);
+      const fontRadio = document.querySelector(`input[name="theme-font"][value="${themeSettings.font}"]`);
+      const radiusRadio = document.querySelector(`input[name="theme-radius"][value="${themeSettings.radius}"]`);
+
+      if (modeRadio) modeRadio.checked = true;
+      if (colorRadio) colorRadio.checked = true;
+      if (fontRadio) fontRadio.checked = true;
+      if (radiusRadio) radiusRadio.checked = true;
     }
 
     function resetThemeSettings() {
@@ -1079,10 +1092,10 @@
       themeSettings.font = 'inter';
       themeSettings.radius = 'default';
 
-      localStorage.removeItem('theme-mode');
-      localStorage.removeItem('theme-color');
-      localStorage.removeItem('theme-font');
-      localStorage.removeItem('theme-radius');
+      localStorage.removeItem('tabler-theme');
+      localStorage.removeItem('tabler-theme-primary');
+      localStorage.removeItem('tabler-theme-font');
+      localStorage.removeItem('tabler-theme-radius');
 
       loadThemeSettings();
       applyThemeSettings();
