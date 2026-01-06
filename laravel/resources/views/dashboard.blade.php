@@ -51,22 +51,6 @@
       }
     }
 
-    /* Custom font themes */
-    [data-theme-font="inter"] {
-      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", sans-serif;
-    }
-
-    [data-theme-font="system"] {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
-    }
-
-    [data-theme-font="georgia"] {
-      font-family: Georgia, "Times New Roman", Times, serif;
-    }
-
-    [data-theme-font="mono"] {
-      font-family: "Courier New", Courier, monospace;
-    }
   </style>
 </head>
 <body>
@@ -475,309 +459,219 @@
   </div>
 
   <!-- Theme Settings Offcanvas -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasTheme" aria-labelledby="offcanvasThemeLabel">
+  <form class="offcanvas offcanvas-start offcanvas-narrow" tabindex="-1" id="offcanvasTheme" role="dialog" aria-modal="true" aria-labelledby="offcanvasThemeLabel">
     <div class="offcanvas-header">
       <h2 class="offcanvas-title" id="offcanvasThemeLabel">Theme Settings</h2>
       <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
-    <div class="offcanvas-body">
-      <!-- Theme Mode -->
-      <div class="mb-4">
-        <h3 class="mb-3">Theme</h3>
-        <div class="row g-2">
-          <div class="col-6 col-sm-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-mode" value="light" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span class="form-selectgroup-label-content">
-                  <span class="form-selectgroup-title strong mb-1">Light</span>
-                  <span class="d-block text-muted">Best for daylight</span>
-                </span>
-              </span>
+    <div class="offcanvas-body d-flex flex-column">
+      <div>
+        <div class="mb-4">
+          <label class="form-label">Color mode</label>
+          <p class="form-hint">Choose the color mode for your app.</p>
+          <label class="form-check">
+            <div class="form-selectgroup-item">
+              <input type="radio" name="theme" value="light" class="form-check-input" checked />
+              <div class="form-check-label">Light</div>
+            </div>
+          </label>
+          <label class="form-check">
+            <div class="form-selectgroup-item">
+              <input type="radio" name="theme" value="dark" class="form-check-input" />
+              <div class="form-check-label">Dark</div>
+            </div>
+          </label>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Color scheme</label>
+          <p class="form-hint">The perfect color mode for your app.</p>
+          <div class="row g-2">
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="blue" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-blue"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="azure" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-azure"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="indigo" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-indigo"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="purple" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-purple"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="pink" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-pink"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="red" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-red"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="orange" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-orange"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="yellow" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-yellow"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="lime" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-lime"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="green" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-green"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="teal" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-teal"></span>
+              </label>
+            </div>
+            <div class="col-auto">
+              <label class="form-colorinput">
+                <input name="theme-primary" type="radio" value="cyan" class="form-colorinput-input" />
+                <span class="form-colorinput-color bg-cyan"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Font family</label>
+          <p class="form-hint">Choose the font family that fits your app.</p>
+          <div>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-font" value="sans-serif" class="form-check-input" checked />
+                <div class="form-check-label">Sans-serif</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-font" value="serif" class="form-check-input" />
+                <div class="form-check-label">Serif</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-font" value="monospace" class="form-check-input" />
+                <div class="form-check-label">Monospace</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-font" value="comic" class="form-check-input" />
+                <div class="form-check-label">Comic</div>
+              </div>
             </label>
           </div>
-          <div class="col-6 col-sm-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-mode" value="dark" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span class="form-selectgroup-label-content">
-                  <span class="form-selectgroup-title strong mb-1">Dark</span>
-                  <span class="d-block text-muted">Reduce eye strain</span>
-                </span>
-              </span>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Theme base</label>
+          <p class="form-hint">Choose the gray shade for your app.</p>
+          <div>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-base" value="slate" class="form-check-input" />
+                <div class="form-check-label">Slate</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-base" value="gray" class="form-check-input" checked />
+                <div class="form-check-label">Gray</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-base" value="zinc" class="form-check-input" />
+                <div class="form-check-label">Zinc</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-base" value="neutral" class="form-check-input" />
+                <div class="form-check-label">Neutral</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-base" value="stone" class="form-check-input" />
+                <div class="form-check-label">Stone</div>
+              </div>
             </label>
           </div>
-          <div class="col-6 col-sm-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-mode" value="auto" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span class="form-selectgroup-label-content">
-                  <span class="form-selectgroup-title strong mb-1">Auto</span>
-                  <span class="d-block text-muted">Follow system</span>
-                </span>
-              </span>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Corner Radius</label>
+          <p class="form-hint">Choose the border radius factor for your app.</p>
+          <div>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-radius" value="0" class="form-check-input" />
+                <div class="form-check-label">0</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-radius" value="0.5" class="form-check-input" />
+                <div class="form-check-label">0.5</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-radius" value="1" class="form-check-input" checked />
+                <div class="form-check-label">1</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-radius" value="1.5" class="form-check-input" />
+                <div class="form-check-label">1.5</div>
+              </div>
+            </label>
+            <label class="form-check">
+              <div class="form-selectgroup-item">
+                <input type="radio" name="theme-radius" value="2" class="form-check-input" />
+                <div class="form-check-label">2</div>
+              </div>
             </label>
           </div>
         </div>
       </div>
-
-      <!-- Color Scheme -->
-      <div class="mb-4">
-        <h3 class="mb-3">Color Scheme</h3>
-        <div class="row g-2">
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="blue" class="form-selectgroup-input" checked>
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-blue d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Blue</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="azure" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-azure d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Azure</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="indigo" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-indigo d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Indigo</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="purple" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-purple d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Purple</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="pink" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-pink d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Pink</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="red" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-red d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Red</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="orange" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-orange d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Orange</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="yellow" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-yellow d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Yellow</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="lime" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-lime d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Lime</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="green" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-green d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Green</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="teal" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-teal d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Teal</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-color" value="cyan" class="form-selectgroup-input">
-              <span class="form-selectgroup-label">
-                <span class="d-block p-3">
-                  <span class="form-selectgroup-check"></span>
-                  <span class="bg-cyan d-block rounded" style="height: 2rem;"></span>
-                </span>
-                <span class="d-block text-center small">Cyan</span>
-              </span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Font -->
-      <div class="mb-4">
-        <h3 class="mb-3">Font</h3>
-        <div class="row g-2">
-          <div class="col-12">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-font" value="inter" class="form-selectgroup-input" checked>
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span style="font-family: 'Inter', sans-serif;">Inter (Default)</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-12">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-font" value="system" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">System UI</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-12">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-font" value="georgia" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span style="font-family: Georgia, serif;">Georgia (Serif)</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-12">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-font" value="mono" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex align-items-center p-3">
-                <span class="me-3">
-                  <span class="form-selectgroup-check"></span>
-                </span>
-                <span style="font-family: 'Courier New', monospace;">Monospace</span>
-              </span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Border Radius -->
-      <div class="mb-4">
-        <h3 class="mb-3">Border Radius</h3>
-        <div class="row g-2">
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-radius" value="default" class="form-selectgroup-input" checked>
-              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
-                <span class="form-selectgroup-check mb-2"></span>
-                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 4px;"></span>
-                <span class="d-block text-center small mt-2">Default</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-radius" value="smooth" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
-                <span class="form-selectgroup-check mb-2"></span>
-                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 12px;"></span>
-                <span class="d-block text-center small mt-2">Smooth</span>
-              </span>
-            </label>
-          </div>
-          <div class="col-4">
-            <label class="form-selectgroup-item">
-              <input type="radio" name="theme-radius" value="sharp" class="form-selectgroup-input">
-              <span class="form-selectgroup-label d-flex flex-column align-items-center p-3">
-                <span class="form-selectgroup-check mb-2"></span>
-                <span class="bg-primary" style="width: 3rem; height: 3rem; border-radius: 0;"></span>
-                <span class="d-block text-center small mt-2">Sharp</span>
-              </span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reset Button -->
-      <div class="d-grid">
-        <button class="btn btn-outline-secondary" id="resetThemeBtn">
-          <i class="ti ti-refresh icon"></i>
-          Reset to Defaults
+      <div class="mt-auto space-y">
+        <button type="button" class="btn w-100" id="resetThemeBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M19.95 11a8 8 0 1 0 -.5 4m.5 5v-5h-5" /></svg>
+          Reset changes
         </button>
+        <a href="#" class="btn btn-primary w-100" data-bs-dismiss="offcanvas">Save</a>
       </div>
     </div>
-  </div>
+  </form>
 
   <script src="{{ asset('assets/tabler/js/tabler.min.js') }}"></script>
   <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
@@ -1047,153 +941,54 @@
       }, 3000);
     }
 
-    // Helper to normalize radius value from localStorage
-    function normalizeRadius(value) {
-      const radiusReverseMapping = {
-        '1': 'default',
-        '2': 'smooth',
-        '0': 'sharp'
-      };
-      return radiusReverseMapping[value] || value || 'default';
-    }
+    // Theme settings from Tabler demo
+    var themeConfig = {
+      'theme': 'light',
+      'theme-base': 'gray',
+      'theme-font': 'sans-serif',
+      'theme-primary': 'blue',
+      'theme-radius': '1'
+    };
+    var form = document.getElementById('offcanvasTheme');
+    var resetButton = document.getElementById('resetThemeBtn');
 
-    // Theme Settings Manager - Using Tabler's built-in theme system
-    const themeSettings = {
-      mode: localStorage.getItem('tabler-theme') || 'light',
-      color: localStorage.getItem('tabler-theme-primary') || 'blue',
-      font: localStorage.getItem('tabler-theme-font') || 'inter',
-      radius: normalizeRadius(localStorage.getItem('tabler-theme-radius'))
+    var checkItems = function() {
+      for (var key in themeConfig) {
+        var value = window.localStorage['tabler-' + key] || themeConfig[key];
+        if (!!value) {
+          var radios = form.querySelectorAll(`[name="${key}"]`);
+          if (!!radios) {
+            radios.forEach((radio) => {
+              radio.checked = radio.value === value;
+            });
+          }
+        }
+      }
     };
 
-    // Map UI values to Tabler's data-bs-theme-radius attribute values
-    const radiusMapping = {
-      'default': '1',
-      'smooth': '2',
-      'sharp': '0'
-    };
-
-    function applyThemeMode(mode) {
-      if (mode === 'auto') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        document.documentElement.setAttribute('data-bs-theme', prefersDark ? 'dark' : 'light');
-      } else {
-        document.documentElement.setAttribute('data-bs-theme', mode);
+    form.addEventListener('change', function(event) {
+      var target = event.target;
+      var name = target.name;
+      var value = target.value;
+      for (var key in themeConfig) {
+        if (name === key) {
+          document.documentElement.setAttribute('data-bs-' + key, value);
+          window.localStorage.setItem('tabler-' + key, value);
+        }
       }
-    }
+    });
 
-    function applyColorScheme(color) {
-      // Use Tabler's data-bs-theme-primary attribute system
-      document.documentElement.setAttribute('data-bs-theme-primary', color);
-    }
-
-    function applyFont(font) {
-      // Use custom data-theme-font attribute (matches our CSS)
-      document.documentElement.setAttribute('data-theme-font', font);
-    }
-
-    function applyBorderRadius(radius) {
-      const tablerRadius = radiusMapping[radius] || '1';
-      document.documentElement.setAttribute('data-bs-theme-radius', tablerRadius);
-    }
-
-    function applyThemeSettings() {
-      applyThemeMode(themeSettings.mode);
-      applyColorScheme(themeSettings.color);
-      applyFont(themeSettings.font);
-      applyBorderRadius(themeSettings.radius);
-    }
-
-    function saveThemeSetting(key, value) {
-      themeSettings[key] = value;
-      // Save using Tabler's localStorage convention
-      if (key === 'mode') {
-        localStorage.setItem('tabler-theme', value);
-      } else if (key === 'color') {
-        localStorage.setItem('tabler-theme-primary', value);
-      } else if (key === 'font') {
-        localStorage.setItem('tabler-theme-font', value);
-      } else if (key === 'radius') {
-        // Convert UI value to Tabler value before saving
-        const tablerRadius = radiusMapping[value] || '1';
-        localStorage.setItem('tabler-theme-radius', tablerRadius);
+    resetButton.addEventListener('click', function() {
+      for (var key in themeConfig) {
+        var value = themeConfig[key];
+        document.documentElement.removeAttribute('data-bs-' + key);
+        window.localStorage.removeItem('tabler-' + key);
       }
-      applyThemeSettings();
-    }
-
-    function loadThemeSettings() {
-      // Set radio button states
-      const modeRadio = document.querySelector(`input[name="theme-mode"][value="${themeSettings.mode}"]`);
-      const colorRadio = document.querySelector(`input[name="theme-color"][value="${themeSettings.color}"]`);
-      const fontRadio = document.querySelector(`input[name="theme-font"][value="${themeSettings.font}"]`);
-      const radiusRadio = document.querySelector(`input[name="theme-radius"][value="${themeSettings.radius}"]`);
-
-      if (modeRadio) modeRadio.checked = true;
-      if (colorRadio) colorRadio.checked = true;
-      if (fontRadio) fontRadio.checked = true;
-      if (radiusRadio) radiusRadio.checked = true;
-    }
-
-    function resetThemeSettings() {
-      themeSettings.mode = 'light';
-      themeSettings.color = 'blue';
-      themeSettings.font = 'inter';
-      themeSettings.radius = 'default';
-
-      localStorage.removeItem('tabler-theme');
-      localStorage.removeItem('tabler-theme-primary');
-      localStorage.removeItem('tabler-theme-font');
-      localStorage.removeItem('tabler-theme-radius');
-
-      loadThemeSettings();
-      applyThemeSettings();
+      checkItems();
       showNotification('Theme reset to defaults', 'info');
-    }
-
-    // Event listeners for theme settings
-    document.querySelectorAll('input[name="theme-mode"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          saveThemeSetting('mode', e.target.value);
-        }
-      });
     });
 
-    document.querySelectorAll('input[name="theme-color"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          saveThemeSetting('color', e.target.value);
-        }
-      });
-    });
-
-    document.querySelectorAll('input[name="theme-font"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          saveThemeSetting('font', e.target.value);
-        }
-      });
-    });
-
-    document.querySelectorAll('input[name="theme-radius"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          saveThemeSetting('radius', e.target.value);
-        }
-      });
-    });
-
-    document.getElementById('resetThemeBtn').addEventListener('click', resetThemeSettings);
-
-    // Listen for system theme changes when in auto mode
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-      if (themeSettings.mode === 'auto') {
-        applyThemeMode('auto');
-      }
-    });
-
-    // Initialize theme on page load
-    loadThemeSettings();
-    applyThemeSettings();
+    checkItems();
 
     if (authToken) {
       showApp();
