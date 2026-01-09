@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\MaintenanceTaskController;
 use App\Http\Controllers\Api\MaintenanceRecordController;
 use App\Http\Controllers\Api\InventoryLocationController;
+use App\Http\Controllers\Api\JobReservationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -76,6 +77,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/products/{product}/locations/{location}/adjust', [InventoryLocationController::class, 'adjust']);
         Route::get('/products/{product}/locations/statistics', [InventoryLocationController::class, 'statistics']);
         Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
+
+        // Job Reservations
+        Route::get('/products/{product}/reservations', [JobReservationController::class, 'index']);
+        Route::get('/products/{product}/reservations/active', [JobReservationController::class, 'active']);
+        Route::post('/products/{product}/reservations', [JobReservationController::class, 'store']);
+        Route::put('/products/{product}/reservations/{reservation}', [JobReservationController::class, 'update']);
+        Route::post('/products/{product}/reservations/{reservation}/fulfill', [JobReservationController::class, 'fulfill']);
+        Route::post('/products/{product}/reservations/{reservation}/release', [JobReservationController::class, 'release']);
+        Route::delete('/products/{product}/reservations/{reservation}', [JobReservationController::class, 'destroy']);
+        Route::get('/products/{product}/reservations/statistics', [JobReservationController::class, 'statistics']);
+        Route::get('/jobs', [JobReservationController::class, 'getAllJobs']);
 
         // Orders
         Route::apiResource('orders', OrderController::class);

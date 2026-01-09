@@ -61,6 +61,8 @@ class ProductController extends Controller
     {
         return response()->json($product->load([
             'inventoryLocations',
+            'jobReservations.reservedBy',
+            'jobReservations.releasedBy',
             'inventoryTransactions',
             'orderItems.order',
             'committedInventory.order'

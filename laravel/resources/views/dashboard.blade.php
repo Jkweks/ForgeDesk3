@@ -343,6 +343,11 @@
               </button>
             </li>
             <li class="nav-item" role="presentation">
+              <button class="nav-link" id="reservations-tab" data-bs-toggle="tab" data-bs-target="#reservations" type="button" role="tab">
+                <i class="ti ti-clipboard-check me-1"></i>Reservations <span class="badge text-bg-warning ms-1" id="reservationsCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
               <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
                 <i class="ti ti-history me-1"></i>Activity
               </button>
@@ -526,6 +531,160 @@
                         <button type="button" class="btn btn-link" onclick="hideTransferForm()">Cancel</button>
                       </div>
                     </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reservations Tab -->
+            <div class="tab-pane fade" id="reservations" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center mb-3">
+                  <div class="col">
+                    <h3 class="mb-0">Job Reservations</h3>
+                    <p class="text-muted mb-0">Reserve inventory for jobs and track commitments</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-primary" onclick="showAddReservationForm()">
+                      <i class="ti ti-plus me-1"></i>Reserve Inventory
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Reservation Statistics -->
+                <div class="row row-cards mb-3">
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Active</div>
+                        <div class="h2 mb-0" id="statActiveReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Committed</div>
+                        <div class="h2 mb-0" id="statQuantityCommitted">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">ATP (Available)</div>
+                        <div class="h2 mb-0 text-success" id="statATP">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Overdue</div>
+                        <div class="h2 mb-0 text-danger" id="statOverdueReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Due This Week</div>
+                        <div class="h2 mb-0 text-warning" id="statUpcomingReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add/Edit Reservation Form (Hidden by default) -->
+                <div class="card mb-3" id="reservationFormCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0" id="reservationFormTitle">Reserve Inventory</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="reservationForm">
+                      <input type="hidden" id="reservationId" name="reservation_id">
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label required">Job Number</label>
+                          <input type="text" class="form-control" id="reservationJobNumber" name="job_number" placeholder="e.g., JOB-2024-001" required list="existingJobs">
+                          <datalist id="existingJobs"></datalist>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Job Name</label>
+                          <input type="text" class="form-control" id="reservationJobName" name="job_name" placeholder="Optional job description">
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label class="form-label required">Quantity to Reserve</label>
+                          <input type="number" class="form-control" id="reservationQuantity" name="quantity_reserved" min="1" required>
+                          <small class="text-muted" id="availableForReservation"></small>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label required">Reserved Date</label>
+                          <input type="date" class="form-control" id="reservationDate" name="reserved_date" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Required Date</label>
+                          <input type="date" class="form-control" id="reservationRequiredDate" name="required_date">
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="reservationNotes" name="notes" rows="2" placeholder="Optional notes about this reservation"></textarea>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="saveReservationBtn">
+                          <i class="ti ti-check me-1"></i>Reserve
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideReservationForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Reservations List -->
+                <div class="card">
+                  <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="reservationFilterTabs">
+                      <li class="nav-item">
+                        <a class="nav-link active" href="#" data-filter="all" onclick="filterReservations('all'); return false;">All</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="active" onclick="filterReservations('active'); return false;">Active</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="fulfilled" onclick="filterReservations('fulfilled'); return false;">Fulfilled</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="cancelled" onclick="filterReservations('cancelled'); return false;">Cancelled</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Job #</th>
+                          <th>Reserved</th>
+                          <th>Required</th>
+                          <th class="text-end">Qty</th>
+                          <th class="text-end">Fulfilled</th>
+                          <th class="text-end">Remaining</th>
+                          <th>Status</th>
+                          <th class="w-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="reservationsTableBody">
+                        <tr>
+                          <td colspan="8" class="text-center text-muted py-5">
+                            <i class="ti ti-clipboard-check" style="font-size: 2rem;"></i>
+                            <p class="mb-0">No reservations yet</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showAddReservationForm()">Reserve First Item</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -1154,8 +1313,9 @@
           </div>
         `;
 
-        // Load locations
+        // Load locations and reservations
         await loadProductLocations(id);
+        await loadProductReservations(id);
 
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
@@ -1473,6 +1633,344 @@
       } catch (error) {
         console.error('Error transferring inventory:', error);
         showNotification('Failed to transfer inventory', 'danger');
+      }
+    });
+
+    // ========== RESERVATION MANAGEMENT ==========
+    let currentProductReservations = [];
+    let currentReservationFilter = 'all';
+
+    async function loadProductReservations(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/reservations`);
+        currentProductReservations = await response.json();
+
+        // Update reservations count badge
+        const activeCount = currentProductReservations.filter(r => r.status === 'active' || r.status === 'partially_fulfilled').length;
+        document.getElementById('reservationsCount').textContent = activeCount;
+
+        // Load reservation statistics
+        await loadReservationStatistics(productId);
+
+        // Render reservations table
+        renderReservationsTable();
+
+        // Load all existing jobs for autocomplete
+        await loadAllJobs();
+
+        // Set today's date as default
+        document.getElementById('reservationDate').valueAsDate = new Date();
+      } catch (error) {
+        console.error('Error loading reservations:', error);
+        showNotification('Failed to load reservations', 'danger');
+      }
+    }
+
+    async function loadReservationStatistics(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/reservations/statistics`);
+        const stats = await response.json();
+
+        document.getElementById('statActiveReservations').textContent = stats.active_reservations_count;
+        document.getElementById('statQuantityCommitted').textContent = stats.quantity_committed.toLocaleString();
+        document.getElementById('statATP').textContent = stats.atp.toLocaleString();
+        document.getElementById('statOverdueReservations').textContent = stats.overdue_reservations;
+        document.getElementById('statUpcomingReservations').textContent = stats.upcoming_reservations;
+
+        // Update available for reservation message
+        document.getElementById('availableForReservation').textContent =
+          `${stats.atp} units available to reserve`;
+      } catch (error) {
+        console.error('Error loading reservation statistics:', error);
+      }
+    }
+
+    async function loadAllJobs() {
+      try {
+        const response = await apiCall('/jobs');
+        const jobs = await response.json();
+
+        const datalist = document.getElementById('existingJobs');
+        datalist.innerHTML = '';
+        jobs.forEach(job => {
+          const option = document.createElement('option');
+          option.value = job.job_number;
+          option.setAttribute('data-name', job.job_name || '');
+          datalist.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading jobs:', error);
+      }
+    }
+
+    function renderReservationsTable() {
+      const tbody = document.getElementById('reservationsTableBody');
+
+      // Filter reservations based on current filter
+      let filteredReservations = currentProductReservations;
+      if (currentReservationFilter !== 'all') {
+        filteredReservations = currentProductReservations.filter(r => r.status === currentReservationFilter);
+      }
+
+      if (filteredReservations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="ti ti-clipboard-check" style="font-size: 2rem;"></i>
+              <p class="mb-0">No ${currentReservationFilter !== 'all' ? currentReservationFilter : ''} reservations</p>
+              ${currentReservationFilter === 'all' ? '<button class="btn btn-sm btn-primary mt-2" onclick="showAddReservationForm()">Reserve First Item</button>' : ''}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      filteredReservations.forEach(reservation => {
+        const statusBadge = getReservationStatusBadge(reservation.status);
+        const remaining = reservation.quantity_reserved - reservation.quantity_fulfilled;
+        const reservedBy = reservation.reserved_by ? `by ${reservation.reserved_by.name}` : '';
+        const requiredDate = reservation.required_date ? new Date(reservation.required_date).toLocaleDateString() : '-';
+        const isOverdue = reservation.required_date && new Date(reservation.required_date) < new Date() && (reservation.status === 'active' || reservation.status === 'partially_fulfilled');
+
+        const row = `
+          <tr ${isOverdue ? 'class="table-danger"' : ''}>
+            <td>
+              <strong>${reservation.job_number}</strong>
+              ${reservation.job_name ? `<br><small class="text-muted">${reservation.job_name}</small>` : ''}
+              ${reservedBy ? `<br><small class="text-muted">${reservedBy}</small>` : ''}
+            </td>
+            <td>${new Date(reservation.reserved_date).toLocaleDateString()}</td>
+            <td>${requiredDate}${isOverdue ? ' <span class="badge text-bg-danger">OVERDUE</span>' : ''}</td>
+            <td class="text-end">${reservation.quantity_reserved}</td>
+            <td class="text-end">${reservation.quantity_fulfilled}</td>
+            <td class="text-end"><strong>${remaining}</strong></td>
+            <td>${statusBadge}</td>
+            <td class="table-actions">
+              <div class="btn-group">
+                ${(reservation.status === 'active' || reservation.status === 'partially_fulfilled') ? `
+                  <button class="btn btn-sm btn-icon btn-ghost-success" onclick="showFulfillModal(${reservation.id})" title="Fulfill">
+                    <i class="ti ti-check"></i>
+                  </button>
+                  <button class="btn btn-sm btn-icon btn-ghost-warning" onclick="releaseReservation(${reservation.id})" title="Release/Cancel">
+                    <i class="ti ti-x"></i>
+                  </button>
+                  <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editReservation(${reservation.id})" title="Edit">
+                    <i class="ti ti-edit"></i>
+                  </button>
+                ` : ''}
+                ${(reservation.status === 'fulfilled' || reservation.status === 'cancelled') ? `
+                  <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteReservation(${reservation.id})" title="Delete">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function getReservationStatusBadge(status) {
+      const badges = {
+        'active': '<span class="badge text-bg-warning">Active</span>',
+        'partially_fulfilled': '<span class="badge text-bg-info">Partially Fulfilled</span>',
+        'fulfilled': '<span class="badge text-bg-success">Fulfilled</span>',
+        'cancelled': '<span class="badge text-bg-secondary">Cancelled</span>'
+      };
+      return badges[status] || badges['active'];
+    }
+
+    function filterReservations(filter) {
+      currentReservationFilter = filter;
+
+      // Update active tab
+      document.querySelectorAll('#reservationFilterTabs .nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-filter') === filter) {
+          link.classList.add('active');
+        }
+      });
+
+      renderReservationsTable();
+    }
+
+    function showAddReservationForm() {
+      document.getElementById('reservationFormTitle').textContent = 'Reserve Inventory';
+      document.getElementById('reservationForm').reset();
+      document.getElementById('reservationId').value = '';
+      document.getElementById('reservationDate').valueAsDate = new Date();
+      document.getElementById('reservationFormCard').style.display = 'block';
+      document.getElementById('reservationJobNumber').focus();
+    }
+
+    function hideReservationForm() {
+      document.getElementById('reservationFormCard').style.display = 'none';
+      document.getElementById('reservationForm').reset();
+    }
+
+    function editReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      document.getElementById('reservationFormTitle').textContent = 'Edit Reservation';
+      document.getElementById('reservationId').value = reservation.id;
+      document.getElementById('reservationJobNumber').value = reservation.job_number;
+      document.getElementById('reservationJobName').value = reservation.job_name || '';
+      document.getElementById('reservationQuantity').value = reservation.quantity_reserved;
+      document.getElementById('reservationDate').value = reservation.reserved_date;
+      document.getElementById('reservationRequiredDate').value = reservation.required_date || '';
+      document.getElementById('reservationNotes').value = reservation.notes || '';
+      document.getElementById('reservationFormCard').style.display = 'block';
+      document.getElementById('reservationJobNumber').focus();
+    }
+
+    async function releaseReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      const notes = prompt(`Release reservation for ${reservation.job_number}?\n\nEnter notes (optional):`);
+      if (notes === null) return; // User cancelled
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}/release`, {
+          method: 'POST',
+          body: JSON.stringify({ notes: notes || '' })
+        });
+
+        if (response.ok) {
+          showNotification('Reservation released successfully', 'success');
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to release reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error releasing reservation:', error);
+        showNotification('Failed to release reservation', 'danger');
+      }
+    }
+
+    function showFulfillModal(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      const remaining = reservation.quantity_reserved - reservation.quantity_fulfilled;
+      const quantity = prompt(`Fulfill reservation for ${reservation.job_number}\n\nRemaining: ${remaining} units\nEnter quantity to fulfill:`);
+
+      if (quantity === null) return; // User cancelled
+
+      const qtyNum = parseInt(quantity);
+      if (isNaN(qtyNum) || qtyNum <= 0) {
+        showNotification('Please enter a valid quantity', 'warning');
+        return;
+      }
+
+      fulfillReservation(reservationId, qtyNum);
+    }
+
+    async function fulfillReservation(reservationId, quantity) {
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}/fulfill`, {
+          method: 'POST',
+          body: JSON.stringify({
+            quantity_fulfilled: quantity,
+            notes: `Fulfilled ${quantity} units`
+          })
+        });
+
+        if (response.ok) {
+          showNotification('Reservation fulfilled successfully', 'success');
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to fulfill reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error fulfilling reservation:', error);
+        showNotification('Failed to fulfill reservation', 'danger');
+      }
+    }
+
+    async function deleteReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      if (!confirm(`Delete reservation for ${reservation.job_number}?\n\nThis action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showNotification('Reservation deleted successfully', 'success');
+          await loadProductReservations(currentProductId);
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to delete reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error deleting reservation:', error);
+        showNotification('Failed to delete reservation', 'danger');
+      }
+    }
+
+    // Reservation Form Submit
+    document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const reservationId = document.getElementById('reservationId').value;
+      const formData = {
+        job_number: document.getElementById('reservationJobNumber').value,
+        job_name: document.getElementById('reservationJobName').value,
+        quantity_reserved: parseInt(document.getElementById('reservationQuantity').value),
+        reserved_date: document.getElementById('reservationDate').value,
+        required_date: document.getElementById('reservationRequiredDate').value || null,
+        notes: document.getElementById('reservationNotes').value
+      };
+
+      try {
+        const saveBtn = document.getElementById('saveReservationBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        let response;
+        if (reservationId) {
+          // Update existing reservation
+          response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+          });
+        } else {
+          // Create new reservation
+          response = await apiCall(`/products/${currentProductId}/reservations`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          showNotification(reservationId ? 'Reservation updated successfully' : 'Inventory reserved successfully', 'success');
+          hideReservationForm();
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to save reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error saving reservation:', error);
+        showNotification('Failed to save reservation', 'danger');
+      } finally {
+        const saveBtn = document.getElementById('saveReservationBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-check me-1"></i>Reserve';
       }
     });
 
