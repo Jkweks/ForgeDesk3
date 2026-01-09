@@ -34,7 +34,39 @@ class Product extends Model
         'configurator_available' => 'boolean',
     ];
 
-    protected $appends = ['quantity_available'];
+    protected $appends = ['quantity_available', 'suggested_order_qty', 'days_until_stockout'];
+
+    // Finish codes configuration
+    public static $finishCodes = [
+        'BL' => 'Black',
+        'WH' => 'White',
+        'AL' => 'Aluminum',
+        'SS' => 'Stainless Steel',
+        'BR' => 'Bronze',
+        'CH' => 'Chrome',
+        'NI' => 'Nickel',
+        'BR' => 'Brass',
+        'C2' => 'Clear Anodized',
+        'DB' => 'Dark Bronze',
+        '0R' => 'Oil Rubbed',
+        'PW' => 'Powder Coat White',
+        'PB' => 'Powder Coat Black',
+        'RAW' => 'Raw/Unfinished',
+    ];
+
+    // UOM configuration
+    public static $unitOfMeasures = [
+        'EA' => 'Each',
+        'BOX' => 'Box',
+        'CASE' => 'Case',
+        'GAL' => 'Gallon',
+        'LB' => 'Pound',
+        'FT' => 'Foot',
+        'ROLL' => 'Roll',
+        'SET' => 'Set',
+        'PCS' => 'Pieces',
+        'PKG' => 'Package',
+    ];
 
     public function inventoryTransactions()
     {
@@ -127,5 +159,170 @@ class Product extends Model
         ]);
 
         $this->updateStatus();
+    }
+
+    /**
+     * Generate SKU from part number and finish
+     */
+    public static function generateSku($partNumber, $finish = null)
+    {
+        if ($finish) {
+            return strtoupper($partNumber . '-' . $finish);
+        }
+        return strtoupper($partNumber);
+    }
+
+    /**
+     * Auto-generate and set SKU if part_number is set
+     */
+    public function setSkuFromPartNumber()
+    {
+        if ($this->part_number) {
+            $this->sku = self::generateSku($this->part_number, $this->finish);
+        }
+    }
+
+    /**
+     * Calculate suggested order quantity based on reorder point logic
+     */
+    public function getSuggestedOrderQtyAttribute()
+    {
+        // If below reorder point, suggest ordering up to maximum quantity (or 2x reorder point if no max)
+        if ($this->reorder_point && $this->quantity_available <= $this->reorder_point) {
+            $targetQty = $this->maximum_quantity ?: ($this->reorder_point * 2);
+            $suggestedQty = $targetQty - $this->quantity_on_hand - $this->on_order_qty;
+
+            // Round up to order multiple if specified
+            if ($this->order_multiple && $this->order_multiple > 1) {
+                $suggestedQty = ceil($suggestedQty / $this->order_multiple) * $this->order_multiple;
+            }
+
+            // Ensure at least minimum order quantity
+            if ($this->min_order_qty && $suggestedQty < $this->min_order_qty) {
+                $suggestedQty = $this->min_order_qty;
+            }
+
+            return max(0, $suggestedQty);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Calculate days until stockout based on average daily use
+     */
+    public function getDaysUntilStockoutAttribute()
+    {
+        if ($this->average_daily_use && $this->average_daily_use > 0) {
+            return round($this->quantity_available / $this->average_daily_use, 1);
+        }
+        return null;
+    }
+
+    /**
+     * Calculate reorder point using safety stock and lead time
+     * Reorder Point = (Average Daily Use × Lead Time) + Safety Stock
+     */
+    public function calculateReorderPoint()
+    {
+        if ($this->average_daily_use && $this->lead_time_days) {
+            $calculatedReorderPoint = ($this->average_daily_use * $this->lead_time_days);
+
+            if ($this->safety_stock) {
+                $calculatedReorderPoint += $this->safety_stock;
+            }
+
+            return round($calculatedReorderPoint);
+        }
+
+        return $this->safety_stock ?: 0;
+    }
+
+    /**
+     * Auto-update reorder point
+     */
+    public function updateReorderPoint()
+    {
+        $this->reorder_point = $this->calculateReorderPoint();
+        $this->save();
+    }
+
+    /**
+     * Convert quantity between UOMs (Purchase UOM to Stock UOM)
+     */
+    public function convertPurchaseToStock($purchaseQty)
+    {
+        if ($this->pack_size && $this->pack_size > 0) {
+            return $purchaseQty * $this->pack_size;
+        }
+        return $purchaseQty;
+    }
+
+    /**
+     * Convert quantity between UOMs (Stock UOM to Purchase UOM)
+     */
+    public function convertStockToPurchase($stockQty)
+    {
+        if ($this->pack_size && $this->pack_size > 0) {
+            return $stockQty / $this->pack_size;
+        }
+        return $stockQty;
+    }
+
+    /**
+     * Check if product needs reordering
+     */
+    public function needsReorder()
+    {
+        if (!$this->reorder_point) {
+            return false;
+        }
+
+        $availableWithOnOrder = $this->quantity_available + $this->on_order_qty;
+        return $availableWithOnOrder <= $this->reorder_point;
+    }
+
+    /**
+     * Get finish name from code
+     */
+    public function getFinishNameAttribute()
+    {
+        if ($this->finish && isset(self::$finishCodes[$this->finish])) {
+            return self::$finishCodes[$this->finish];
+        }
+        return $this->finish;
+    }
+
+    /**
+     * Get UOM name
+     */
+    public function getUomNameAttribute()
+    {
+        if ($this->unit_of_measure && isset(self::$unitOfMeasures[$this->unit_of_measure])) {
+            return self::$unitOfMeasures[$this->unit_of_measure];
+        }
+        return $this->unit_of_measure;
+    }
+
+    /**
+     * Get purchase UOM name
+     */
+    public function getPurchaseUomNameAttribute()
+    {
+        if ($this->purchase_uom && isset(self::$unitOfMeasures[$this->purchase_uom])) {
+            return self::$unitOfMeasures[$this->purchase_uom];
+        }
+        return $this->purchase_uom;
+    }
+
+    /**
+     * Get stock UOM name
+     */
+    public function getStockUomNameAttribute()
+    {
+        if ($this->stock_uom && isset(self::$unitOfMeasures[$this->stock_uom])) {
+            return self::$unitOfMeasures[$this->stock_uom];
+        }
+        return $this->stock_uom;
     }
 }

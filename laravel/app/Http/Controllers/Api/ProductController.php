@@ -35,21 +35,60 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'sku' => 'required|unique:products|max:255',
+            // Basic info
+            'sku' => 'nullable|unique:products|max:255',
+            'part_number' => 'nullable|max:255',
+            'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
             'category' => 'nullable|max:255',
             'location' => 'nullable|max:255',
+
+            // Pricing
             'unit_cost' => 'required|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
+
+            // Quantities
             'quantity_on_hand' => 'required|integer|min:0',
             'minimum_quantity' => 'required|integer|min:0',
             'maximum_quantity' => 'nullable|integer|min:0',
+            'reorder_point' => 'nullable|integer|min:0',
+            'safety_stock' => 'nullable|integer|min:0',
+            'on_order_qty' => 'nullable|integer|min:0',
+            'average_daily_use' => 'nullable|numeric|min:0',
+
+            // UOM and Pack
             'unit_of_measure' => 'required|max:10',
+            'pack_size' => 'nullable|integer|min:1',
+            'purchase_uom' => 'nullable|max:10',
+            'stock_uom' => 'nullable|max:10',
+            'min_order_qty' => 'nullable|integer|min:1',
+            'order_multiple' => 'nullable|integer|min:1',
+
+            // Supplier
             'supplier' => 'nullable|max:255',
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
+
+            // Status
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Auto-generate SKU if part_number is provided but not SKU
+        if (!empty($validated['part_number']) && empty($validated['sku'])) {
+            $validated['sku'] = Product::generateSku(
+                $validated['part_number'],
+                $validated['finish'] ?? null
+            );
+        }
+
+        // Auto-calculate reorder point if not provided
+        if (empty($validated['reorder_point']) && !empty($validated['average_daily_use']) && !empty($validated['lead_time_days'])) {
+            $validated['reorder_point'] = round(
+                ($validated['average_daily_use'] * $validated['lead_time_days']) +
+                ($validated['safety_stock'] ?? 0)
+            );
+        }
 
         $product = Product::create($validated);
         $product->updateStatus();
@@ -72,20 +111,63 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'sku' => ['required', 'max:255', Rule::unique('products')->ignore($product->id)],
+            // Basic info
+            'sku' => ['nullable', 'max:255', Rule::unique('products')->ignore($product->id)],
+            'part_number' => 'nullable|max:255',
+            'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
             'category' => 'nullable|max:255',
             'location' => 'nullable|max:255',
+
+            // Pricing
             'unit_cost' => 'required|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
+
+            // Quantities
             'minimum_quantity' => 'required|integer|min:0',
             'maximum_quantity' => 'nullable|integer|min:0',
+            'reorder_point' => 'nullable|integer|min:0',
+            'safety_stock' => 'nullable|integer|min:0',
+            'on_order_qty' => 'nullable|integer|min:0',
+            'average_daily_use' => 'nullable|numeric|min:0',
+
+            // UOM and Pack
             'unit_of_measure' => 'required|max:10',
+            'pack_size' => 'nullable|integer|min:1',
+            'purchase_uom' => 'nullable|max:10',
+            'stock_uom' => 'nullable|max:10',
+            'min_order_qty' => 'nullable|integer|min:1',
+            'order_multiple' => 'nullable|integer|min:1',
+
+            // Supplier
             'supplier' => 'nullable|max:255',
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
+
+            // Status
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Auto-generate SKU if part_number changed
+        if (isset($validated['part_number']) && empty($validated['sku'])) {
+            $validated['sku'] = Product::generateSku(
+                $validated['part_number'],
+                $validated['finish'] ?? $product->finish
+            );
+        }
+
+        // Auto-calculate reorder point if relevant fields changed
+        if (empty($validated['reorder_point']) &&
+            (isset($validated['average_daily_use']) || isset($validated['lead_time_days']) || isset($validated['safety_stock']))) {
+            $avgDailyUse = $validated['average_daily_use'] ?? $product->average_daily_use;
+            $leadTime = $validated['lead_time_days'] ?? $product->lead_time_days;
+            $safetyStock = $validated['safety_stock'] ?? $product->safety_stock ?? 0;
+
+            if ($avgDailyUse && $leadTime) {
+                $validated['reorder_point'] = round(($avgDailyUse * $leadTime) + $safetyStock);
+            }
+        }
 
         $product->update($validated);
         $product->updateStatus();
@@ -129,5 +211,37 @@ class ProductController extends Controller
             ->paginate(50);
         
         return response()->json($transactions);
+    }
+
+    /**
+     * Get finish codes configuration
+     */
+    public function getFinishCodes()
+    {
+        return response()->json(Product::$finishCodes);
+    }
+
+    /**
+     * Get UOM configuration
+     */
+    public function getUnitOfMeasures()
+    {
+        return response()->json(Product::$unitOfMeasures);
+    }
+
+    /**
+     * Calculate reorder point for a product
+     */
+    public function calculateReorderPoint(Product $product)
+    {
+        $calculatedReorderPoint = $product->calculateReorderPoint();
+
+        return response()->json([
+            'calculated_reorder_point' => $calculatedReorderPoint,
+            'current_reorder_point' => $product->reorder_point,
+            'average_daily_use' => $product->average_daily_use,
+            'lead_time_days' => $product->lead_time_days,
+            'safety_stock' => $product->safety_stock,
+        ]);
     }
 }
