@@ -1456,7 +1456,16 @@
         await loadProductReservations(id);
 
         // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
+        const modalElement = document.getElementById('viewProductModal');
+        let modal;
+        if (typeof bootstrap !== 'undefined') {
+          modal = new bootstrap.Modal(modalElement);
+        } else if (window.bootstrap) {
+          modal = new window.bootstrap.Modal(modalElement);
+        } else {
+          console.error('Bootstrap is not loaded');
+          return;
+        }
         modal.show();
       } catch (error) {
         console.error('Error loading product:', error);
@@ -2209,7 +2218,16 @@
     document.getElementById('productSafetyStock').addEventListener('input', updateReorderPointPreview);
 
     function showAddProductModal() {
-      const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+      const modalElement = document.getElementById('addProductModal');
+      let modal;
+      if (typeof bootstrap !== 'undefined') {
+        modal = new bootstrap.Modal(modalElement);
+      } else if (window.bootstrap) {
+        modal = new window.bootstrap.Modal(modalElement);
+      } else {
+        console.error('Bootstrap is not loaded');
+        return;
+      }
       document.getElementById('addProductForm').reset();
       document.getElementById('formError').style.display = 'none';
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
