@@ -1457,16 +1457,16 @@
 
         // Show modal
         const modalElement = document.getElementById('viewProductModal');
-        let modal;
-        if (typeof bootstrap !== 'undefined') {
-          modal = new bootstrap.Modal(modalElement);
-        } else if (window.bootstrap) {
-          modal = new window.bootstrap.Modal(modalElement);
-        } else {
-          console.error('Bootstrap is not loaded');
-          return;
+        try {
+          const modal = new window.bootstrap.Modal(modalElement);
+          modal.show();
+        } catch (e) {
+          console.error('Failed to initialize Bootstrap modal:', e);
+          // Fallback: try using data-bs-toggle
+          modalElement.classList.add('show');
+          modalElement.style.display = 'block';
+          document.body.classList.add('modal-open');
         }
-        modal.show();
       } catch (error) {
         console.error('Error loading product:', error);
         showNotification('Failed to load product details', 'danger');
@@ -2219,21 +2219,22 @@
 
     function showAddProductModal() {
       const modalElement = document.getElementById('addProductModal');
-      let modal;
-      if (typeof bootstrap !== 'undefined') {
-        modal = new bootstrap.Modal(modalElement);
-      } else if (window.bootstrap) {
-        modal = new window.bootstrap.Modal(modalElement);
-      } else {
-        console.error('Bootstrap is not loaded');
-        return;
-      }
       document.getElementById('addProductForm').reset();
       document.getElementById('formError').style.display = 'none';
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
       document.getElementById('skuPreview').textContent = '';
       document.getElementById('reorderPreview').textContent = '';
-      modal.show();
+
+      try {
+        const modal = new window.bootstrap.Modal(modalElement);
+        modal.show();
+      } catch (e) {
+        console.error('Failed to initialize Bootstrap modal:', e);
+        // Fallback: try using data-bs-toggle
+        modalElement.classList.add('show');
+        modalElement.style.display = 'block';
+        document.body.classList.add('modal-open');
+      }
     }
 
     // Add Product Form Submission

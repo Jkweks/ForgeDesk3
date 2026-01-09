@@ -153,16 +153,15 @@ function openMachineModal(id = null) {
 function editMachine(id) {
   openMachineModal(id);
   const modalElement = document.getElementById('machineModal');
-  let modal;
-  if (typeof bootstrap !== 'undefined') {
-    modal = new bootstrap.Modal(modalElement);
-  } else if (window.bootstrap) {
-    modal = new window.bootstrap.Modal(modalElement);
-  } else {
-    console.error('Bootstrap is not loaded');
-    return;
+  try {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+  } catch (e) {
+    console.error('Failed to initialize Bootstrap modal:', e);
+    modalElement.classList.add('show');
+    modalElement.style.display = 'block';
+    document.body.classList.add('modal-open');
   }
-  modal.show();
 }
 
 async function deleteMachine(id) {
@@ -270,16 +269,15 @@ function openAssetModal(id = null) {
 function editAsset(id) {
   openAssetModal(id);
   const modalElement = document.getElementById('assetModal');
-  let modal;
-  if (typeof bootstrap !== 'undefined') {
-    modal = new bootstrap.Modal(modalElement);
-  } else if (window.bootstrap) {
-    modal = new window.bootstrap.Modal(modalElement);
-  } else {
-    console.error('Bootstrap is not loaded');
-    return;
+  try {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+  } catch (e) {
+    console.error('Failed to initialize Bootstrap modal:', e);
+    modalElement.classList.add('show');
+    modalElement.style.display = 'block';
+    document.body.classList.add('modal-open');
   }
-  modal.show();
 }
 
 async function deleteAsset(id) {
@@ -398,16 +396,15 @@ function openTaskModal(id = null) {
 function editTask(id) {
   openTaskModal(id);
   const modalElement = document.getElementById('taskModal');
-  let modal;
-  if (typeof bootstrap !== 'undefined') {
-    modal = new bootstrap.Modal(modalElement);
-  } else if (window.bootstrap) {
-    modal = new window.bootstrap.Modal(modalElement);
-  } else {
-    console.error('Bootstrap is not loaded');
-    return;
+  try {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+  } catch (e) {
+    console.error('Failed to initialize Bootstrap modal:', e);
+    modalElement.classList.add('show');
+    modalElement.style.display = 'block';
+    document.body.classList.add('modal-open');
   }
-  modal.show();
 }
 
 async function deleteTask(id) {
@@ -522,16 +519,15 @@ function openRecordModal(id = null) {
 function editRecord(id) {
   openRecordModal(id);
   const modalElement = document.getElementById('recordModal');
-  let modal;
-  if (typeof bootstrap !== 'undefined') {
-    modal = new bootstrap.Modal(modalElement);
-  } else if (window.bootstrap) {
-    modal = new window.bootstrap.Modal(modalElement);
-  } else {
-    console.error('Bootstrap is not loaded');
-    return;
+  try {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+  } catch (e) {
+    console.error('Failed to initialize Bootstrap modal:', e);
+    modalElement.classList.add('show');
+    modalElement.style.display = 'block';
+    document.body.classList.add('modal-open');
   }
-  modal.show();
 }
 
 async function deleteRecord(id) {
