@@ -1119,6 +1119,65 @@
     let authToken = localStorage.getItem('authToken');
     let currentTab = 'all';
 
+    // Bootstrap Modal Helper - handles initialization safely
+    function showModal(modalElement) {
+      try {
+        // Try multiple ways to access Bootstrap
+        const Bootstrap = window.bootstrap || bootstrap;
+        if (Bootstrap && Bootstrap.Modal) {
+          const modal = new Bootstrap.Modal(modalElement);
+          modal.show();
+          return true;
+        }
+      } catch (e) {
+        console.warn('Bootstrap not available, using fallback:', e);
+      }
+
+      // Fallback: manually show modal without Bootstrap
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = 'modal-backdrop-' + modalElement.id;
+      document.body.appendChild(backdrop);
+
+      modalElement.style.display = 'block';
+      modalElement.classList.add('show');
+      modalElement.removeAttribute('aria-hidden');
+      modalElement.setAttribute('aria-modal', 'true');
+      document.body.classList.add('modal-open');
+
+      // Close on backdrop click
+      backdrop.addEventListener('click', () => hideModal(modalElement));
+
+      return false;
+    }
+
+    function hideModal(modalElement) {
+      try {
+        const Bootstrap = window.bootstrap || bootstrap;
+        if (Bootstrap && Bootstrap.Modal) {
+          const modal = Bootstrap.Modal.getInstance(modalElement);
+          if (modal) {
+            modal.hide();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Bootstrap not available for hide, using fallback:', e);
+      }
+
+      // Fallback: manually hide modal
+      modalElement.style.display = 'none';
+      modalElement.classList.remove('show');
+      modalElement.setAttribute('aria-hidden', 'true');
+      modalElement.removeAttribute('aria-modal');
+      document.body.classList.remove('modal-open');
+
+      const backdrop = document.getElementById('modal-backdrop-' + modalElement.id);
+      if (backdrop) {
+        backdrop.remove();
+      }
+    }
+
     async function apiCall(endpoint, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
@@ -1456,17 +1515,7 @@
         await loadProductReservations(id);
 
         // Show modal
-        const modalElement = document.getElementById('viewProductModal');
-        try {
-          const modal = new window.bootstrap.Modal(modalElement);
-          modal.show();
-        } catch (e) {
-          console.error('Failed to initialize Bootstrap modal:', e);
-          // Fallback: try using data-bs-toggle
-          modalElement.classList.add('show');
-          modalElement.style.display = 'block';
-          document.body.classList.add('modal-open');
-        }
+        showModal(document.getElementById('viewProductModal'));
       } catch (error) {
         console.error('Error loading product:', error);
         showNotification('Failed to load product details', 'danger');
@@ -2218,23 +2267,12 @@
     document.getElementById('productSafetyStock').addEventListener('input', updateReorderPointPreview);
 
     function showAddProductModal() {
-      const modalElement = document.getElementById('addProductModal');
       document.getElementById('addProductForm').reset();
       document.getElementById('formError').style.display = 'none';
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
       document.getElementById('skuPreview').textContent = '';
       document.getElementById('reorderPreview').textContent = '';
-
-      try {
-        const modal = new window.bootstrap.Modal(modalElement);
-        modal.show();
-      } catch (e) {
-        console.error('Failed to initialize Bootstrap modal:', e);
-        // Fallback: try using data-bs-toggle
-        modalElement.classList.add('show');
-        modalElement.style.display = 'block';
-        document.body.classList.add('modal-open');
-      }
+      showModal(document.getElementById('addProductModal'));
     }
 
     // Add Product Form Submission
@@ -2267,8 +2305,7 @@
         });
 
         if (response.ok) {
-          const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-          modal.hide();
+          hideModal(document.getElementById('addProductModal'));
           showNotification('Product created successfully!', 'success');
           loadDashboard();
         } else {
