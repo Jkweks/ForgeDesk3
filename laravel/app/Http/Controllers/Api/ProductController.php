@@ -11,7 +11,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query();
+        $query = Product::query()->with(['inventoryLocations']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -60,6 +60,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         return response()->json($product->load([
+            'inventoryLocations',
             'inventoryTransactions',
             'orderItems.order',
             'committedInventory.order'

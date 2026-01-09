@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\MachineController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\MaintenanceTaskController;
 use App\Http\Controllers\Api\MaintenanceRecordController;
+use App\Http\Controllers\Api\InventoryLocationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -65,7 +66,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);
         Route::get('/products/{product}/transactions', [ProductController::class, 'getTransactions']);
-        
+
+        // Inventory Locations
+        Route::get('/products/{product}/locations', [InventoryLocationController::class, 'index']);
+        Route::post('/products/{product}/locations', [InventoryLocationController::class, 'store']);
+        Route::put('/products/{product}/locations/{location}', [InventoryLocationController::class, 'update']);
+        Route::delete('/products/{product}/locations/{location}', [InventoryLocationController::class, 'destroy']);
+        Route::post('/products/{product}/locations/transfer', [InventoryLocationController::class, 'transfer']);
+        Route::post('/products/{product}/locations/{location}/adjust', [InventoryLocationController::class, 'adjust']);
+        Route::get('/products/{product}/locations/statistics', [InventoryLocationController::class, 'statistics']);
+        Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
+
         // Orders
         Route::apiResource('orders', OrderController::class);
         Route::post('/orders/{order}/commit', [OrderController::class, 'commitInventory']);

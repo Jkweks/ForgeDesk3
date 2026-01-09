@@ -301,7 +301,7 @@
                         <tr>
                           <th>SKU</th>
                           <th>Description</th>
-                          <th>Location</th>
+                          <th>Locations</th>
                           <th class="text-end">On Hand</th>
                           <th class="text-end">Committed</th>
                           <th class="text-end">Available</th>
@@ -318,6 +318,231 @@
           </div>
         </div>
       </main>
+    </div>
+  </div>
+
+  <!-- View/Edit Product Modal -->
+  <div class="modal modal-blur fade" id="viewProductModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewProductModalTitle">Product Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-3" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                <i class="ti ti-info-circle me-1"></i>Details
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="locations-tab" data-bs-toggle="tab" data-bs-target="#locations" type="button" role="tab">
+                <i class="ti ti-map-pin me-1"></i>Locations <span class="badge text-bg-primary ms-1" id="locationsCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
+                <i class="ti ti-history me-1"></i>Activity
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab Content -->
+          <div class="tab-content" id="productTabContent">
+            <!-- Details Tab -->
+            <div class="tab-pane fade show active" id="details" role="tabpanel">
+              <div id="productDetailsView"></div>
+            </div>
+
+            <!-- Locations Tab -->
+            <div class="tab-pane fade" id="locations" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center mb-3">
+                  <div class="col">
+                    <h3 class="mb-0">Inventory Locations</h3>
+                    <p class="text-muted mb-0">Manage stock distribution across multiple locations</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-primary" onclick="showAddLocationForm()">
+                      <i class="ti ti-plus me-1"></i>Add Location
+                    </button>
+                    <button class="btn btn-outline-primary ms-2" onclick="showTransferForm()">
+                      <i class="ti ti-arrows-transfer-down me-1"></i>Transfer
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Location Statistics -->
+                <div class="row row-cards mb-3" id="locationStatsCards">
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Total Locations</div>
+                        <div class="h2 mb-0" id="statTotalLocations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Total Quantity</div>
+                        <div class="h2 mb-0" id="statTotalQuantity">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Committed</div>
+                        <div class="h2 mb-0" id="statTotalCommitted">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Available</div>
+                        <div class="h2 mb-0 text-success" id="statTotalAvailable">-</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add/Edit Location Form (Hidden by default) -->
+                <div class="card mb-3" id="locationFormCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0" id="locationFormTitle">Add Location</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="locationForm">
+                      <input type="hidden" id="locationId" name="location_id">
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label required">Location Name</label>
+                          <input type="text" class="form-control" id="locationName" name="location" placeholder="e.g., Warehouse A, Bin 23" required list="existingLocations">
+                          <datalist id="existingLocations"></datalist>
+                          <small class="form-hint">Choose from existing or enter new location</small>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label required">Quantity</label>
+                          <input type="number" class="form-control" id="locationQuantity" name="quantity" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Committed</label>
+                          <input type="number" class="form-control" id="locationCommitted" name="quantity_committed" min="0" value="0">
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="locationPrimary" name="is_primary">
+                            <span class="form-check-label">Set as Primary Location</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="locationNotes" name="notes" rows="2" placeholder="Optional notes about this location"></textarea>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="saveLocationBtn">
+                          <i class="ti ti-check me-1"></i>Save Location
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideLocationForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Locations List -->
+                <div class="card">
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Location</th>
+                          <th class="text-end">Quantity</th>
+                          <th class="text-end">Committed</th>
+                          <th class="text-end">Available</th>
+                          <th>Distribution</th>
+                          <th>Status</th>
+                          <th class="w-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="locationsTableBody">
+                        <tr>
+                          <td colspan="7" class="text-center text-muted py-5">
+                            <i class="ti ti-map-pin" style="font-size: 2rem;"></i>
+                            <p class="mb-0">No locations added yet</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showAddLocationForm()">Add First Location</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Transfer Modal -->
+                <div class="card mt-3" id="transferCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0">Transfer Inventory</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="transferForm">
+                      <div class="row mb-3">
+                        <div class="col-md-5">
+                          <label class="form-label required">From Location</label>
+                          <select class="form-select" id="transferFrom" name="from_location_id" required>
+                            <option value="">Select source...</option>
+                          </select>
+                          <small class="text-muted" id="transferFromAvailable"></small>
+                        </div>
+                        <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
+                          <i class="ti ti-arrow-right" style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="col-md-5">
+                          <label class="form-label required">To Location</label>
+                          <select class="form-select" id="transferTo" name="to_location_id" required>
+                            <option value="">Select destination...</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label class="form-label required">Quantity to Transfer</label>
+                          <input type="number" class="form-control" id="transferQuantity" name="quantity" min="1" required>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="transferNotes" name="notes" placeholder="Optional transfer notes">
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                          <i class="ti ti-arrows-transfer-down me-1"></i>Transfer
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideTransferForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div class="tab-pane fade" id="activity" role="tabpanel">
+              <div id="activityContent">
+                <p class="text-muted">Activity history coming soon...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -801,11 +1026,16 @@
 
       products.forEach(product => {
         const statusBadge = getStatusBadge(product.status);
+        const locationCount = product.inventory_locations?.length || 0;
+        const locationsDisplay = locationCount > 0
+          ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
+          : '<span class="text-muted">-</span>';
+
         const row = `
           <tr>
             <td><span class="text-muted">${product.sku}</span></td>
             <td>${product.description}</td>
-            <td>${product.location || '-'}</td>
+            <td>${locationsDisplay}</td>
             <td class="text-end">${product.quantity_on_hand.toLocaleString()}</td>
             <td class="text-end">${product.quantity_committed.toLocaleString()}</td>
             <td class="text-end">${product.quantity_available.toLocaleString()}</td>
@@ -864,7 +1094,387 @@
       }
     }
 
-    function viewProduct(id) { alert('View product: ' + id); }
+    let currentProductId = null;
+    let currentProductLocations = [];
+
+    async function viewProduct(id) {
+      try {
+        currentProductId = id;
+        const response = await apiCall(`/products/${id}`);
+        const product = await response.json();
+
+        // Set modal title
+        document.getElementById('viewProductModalTitle').textContent = `${product.sku} - ${product.description}`;
+
+        // Populate details tab
+        document.getElementById('productDetailsView').innerHTML = `
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">SKU</label>
+              <p>${product.sku}</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Description</label>
+              <p>${product.description}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">On Hand</label>
+              <p>${product.quantity_on_hand.toLocaleString()}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Committed</label>
+              <p>${product.quantity_committed.toLocaleString()}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Available</label>
+              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Unit Cost</label>
+              <p>$${parseFloat(product.unit_cost).toFixed(2)}</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Unit Price</label>
+              <p>$${parseFloat(product.unit_price).toFixed(2)}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Supplier</label>
+              <p>${product.supplier || '-'}</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Status</label>
+              <p>${getStatusBadge(product.status)}</p>
+            </div>
+          </div>
+        `;
+
+        // Load locations
+        await loadProductLocations(id);
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewProductModal'));
+        modal.show();
+      } catch (error) {
+        console.error('Error loading product:', error);
+        showNotification('Failed to load product details', 'danger');
+      }
+    }
+
+    async function loadProductLocations(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/locations`);
+        currentProductLocations = await response.json();
+
+        // Update locations count badge
+        document.getElementById('locationsCount').textContent = currentProductLocations.length;
+
+        // Load location statistics
+        await loadLocationStatistics(productId);
+
+        // Render locations table
+        renderLocationsTable();
+
+        // Load all existing locations for autocomplete
+        await loadAllLocations();
+      } catch (error) {
+        console.error('Error loading locations:', error);
+        showNotification('Failed to load locations', 'danger');
+      }
+    }
+
+    async function loadLocationStatistics(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/locations/statistics`);
+        const stats = await response.json();
+
+        document.getElementById('statTotalLocations').textContent = stats.total_locations;
+        document.getElementById('statTotalQuantity').textContent = stats.total_quantity.toLocaleString();
+        document.getElementById('statTotalCommitted').textContent = stats.total_committed.toLocaleString();
+        document.getElementById('statTotalAvailable').textContent = stats.total_available.toLocaleString();
+      } catch (error) {
+        console.error('Error loading statistics:', error);
+      }
+    }
+
+    async function loadAllLocations() {
+      try {
+        const response = await apiCall('/locations');
+        const locations = await response.json();
+
+        const datalist = document.getElementById('existingLocations');
+        datalist.innerHTML = '';
+        locations.forEach(location => {
+          const option = document.createElement('option');
+          option.value = location;
+          datalist.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading all locations:', error);
+      }
+    }
+
+    function renderLocationsTable() {
+      const tbody = document.getElementById('locationsTableBody');
+
+      if (currentProductLocations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="ti ti-map-pin" style="font-size: 2rem;"></i>
+              <p class="mb-0">No locations added yet</p>
+              <button class="btn btn-sm btn-primary mt-2" onclick="showAddLocationForm()">Add First Location</button>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      currentProductLocations.forEach(location => {
+        const primaryBadge = location.is_primary
+          ? '<span class="badge text-bg-primary ms-1">Primary</span>'
+          : '';
+
+        const availableClass = location.quantity_available <= 0 ? 'text-danger' : 'text-success';
+
+        const row = `
+          <tr>
+            <td>
+              <strong>${location.location}</strong>${primaryBadge}
+              ${location.notes ? `<br><small class="text-muted">${location.notes}</small>` : ''}
+            </td>
+            <td class="text-end">${location.quantity.toLocaleString()}</td>
+            <td class="text-end">${location.quantity_committed.toLocaleString()}</td>
+            <td class="text-end ${availableClass}"><strong>${location.quantity_available.toLocaleString()}</strong></td>
+            <td>
+              <div class="progress" style="height: 20px;">
+                <div class="progress-bar" role="progressbar" style="width: ${location.percentage || 0}%;"
+                     aria-valuenow="${location.percentage || 0}" aria-valuemin="0" aria-valuemax="100">
+                  ${location.percentage || 0}%
+                </div>
+              </div>
+            </td>
+            <td>
+              ${location.quantity > 0 ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-secondary">Empty</span>'}
+            </td>
+            <td class="table-actions">
+              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editLocation(${location.id})" title="Edit">
+                <i class="ti ti-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${location.id})" title="Delete">
+                <i class="ti ti-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      // Update transfer dropdowns
+      updateTransferDropdowns();
+    }
+
+    function showAddLocationForm() {
+      document.getElementById('locationFormTitle').textContent = 'Add Location';
+      document.getElementById('locationForm').reset();
+      document.getElementById('locationId').value = '';
+      document.getElementById('locationFormCard').style.display = 'block';
+      document.getElementById('locationName').focus();
+    }
+
+    function hideLocationForm() {
+      document.getElementById('locationFormCard').style.display = 'none';
+      document.getElementById('locationForm').reset();
+    }
+
+    function editLocation(locationId) {
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (!location) return;
+
+      document.getElementById('locationFormTitle').textContent = 'Edit Location';
+      document.getElementById('locationId').value = location.id;
+      document.getElementById('locationName').value = location.location;
+      document.getElementById('locationQuantity').value = location.quantity;
+      document.getElementById('locationCommitted').value = location.quantity_committed;
+      document.getElementById('locationPrimary').checked = location.is_primary;
+      document.getElementById('locationNotes').value = location.notes || '';
+      document.getElementById('locationFormCard').style.display = 'block';
+      document.getElementById('locationName').focus();
+    }
+
+    async function deleteLocation(locationId) {
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (!location) return;
+
+      if (location.quantity > 0) {
+        showNotification('Cannot delete location with inventory. Please transfer or adjust quantity to zero first.', 'warning');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete the location "${location.location}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/locations/${locationId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showNotification('Location deleted successfully', 'success');
+          await loadProductLocations(currentProductId);
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to delete location', 'danger');
+        }
+      } catch (error) {
+        console.error('Error deleting location:', error);
+        showNotification('Failed to delete location', 'danger');
+      }
+    }
+
+    // Location Form Submit
+    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const locationId = document.getElementById('locationId').value;
+      const formData = {
+        location: document.getElementById('locationName').value,
+        quantity: parseInt(document.getElementById('locationQuantity').value),
+        quantity_committed: parseInt(document.getElementById('locationCommitted').value),
+        is_primary: document.getElementById('locationPrimary').checked,
+        notes: document.getElementById('locationNotes').value
+      };
+
+      try {
+        const saveBtn = document.getElementById('saveLocationBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        let response;
+        if (locationId) {
+          // Update existing location
+          response = await apiCall(`/products/${currentProductId}/locations/${locationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+          });
+        } else {
+          // Create new location
+          response = await apiCall(`/products/${currentProductId}/locations`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          showNotification(locationId ? 'Location updated successfully' : 'Location added successfully', 'success');
+          hideLocationForm();
+          await loadProductLocations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to save location', 'danger');
+        }
+      } catch (error) {
+        console.error('Error saving location:', error);
+        showNotification('Failed to save location', 'danger');
+      } finally {
+        const saveBtn = document.getElementById('saveLocationBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-check me-1"></i>Save Location';
+      }
+    });
+
+    function updateTransferDropdowns() {
+      const fromSelect = document.getElementById('transferFrom');
+      const toSelect = document.getElementById('transferTo');
+
+      fromSelect.innerHTML = '<option value="">Select source...</option>';
+      toSelect.innerHTML = '<option value="">Select destination...</option>';
+
+      currentProductLocations.forEach(location => {
+        if (location.quantity_available > 0) {
+          const option = document.createElement('option');
+          option.value = location.id;
+          option.textContent = `${location.location} (Available: ${location.quantity_available})`;
+          fromSelect.appendChild(option);
+        }
+
+        const toOption = document.createElement('option');
+        toOption.value = location.id;
+        toOption.textContent = location.location;
+        toSelect.appendChild(toOption);
+      });
+    }
+
+    function showTransferForm() {
+      updateTransferDropdowns();
+      document.getElementById('transferCard').style.display = 'block';
+    }
+
+    function hideTransferForm() {
+      document.getElementById('transferCard').style.display = 'none';
+      document.getElementById('transferForm').reset();
+    }
+
+    // Update available quantity when source location changes
+    document.getElementById('transferFrom').addEventListener('change', function() {
+      const locationId = parseInt(this.value);
+      if (!locationId) {
+        document.getElementById('transferFromAvailable').textContent = '';
+        return;
+      }
+
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (location) {
+        document.getElementById('transferFromAvailable').textContent =
+          `Available: ${location.quantity_available}`;
+        document.getElementById('transferQuantity').max = location.quantity_available;
+      }
+    });
+
+    // Transfer Form Submit
+    document.getElementById('transferForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        from_location_id: parseInt(document.getElementById('transferFrom').value),
+        to_location_id: parseInt(document.getElementById('transferTo').value),
+        quantity: parseInt(document.getElementById('transferQuantity').value),
+        notes: document.getElementById('transferNotes').value
+      };
+
+      if (formData.from_location_id === formData.to_location_id) {
+        showNotification('Source and destination must be different', 'warning');
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/locations/transfer`, {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          showNotification('Inventory transferred successfully', 'success');
+          hideTransferForm();
+          await loadProductLocations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to transfer inventory', 'danger');
+        }
+      } catch (error) {
+        console.error('Error transferring inventory:', error);
+        showNotification('Failed to transfer inventory', 'danger');
+      }
+    });
 
     function showAddProductModal() {
       const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
