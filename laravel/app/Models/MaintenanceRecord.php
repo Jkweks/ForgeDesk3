@@ -1,0 +1,66 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class MaintenanceRecord extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'machine_id',
+        'task_id',
+        'asset_id',
+        'performed_by',
+        'performed_at',
+        'notes',
+        'downtime_minutes',
+        'labor_hours',
+        'parts_used',
+        'attachments',
+    ];
+
+    protected $casts = [
+        'performed_at' => 'date',
+        'downtime_minutes' => 'integer',
+        'labor_hours' => 'decimal:2',
+        'parts_used' => 'array',
+        'attachments' => 'array',
+    ];
+
+    public function machine()
+    {
+        return $this->belongsTo(Machine::class);
+    }
+
+    public function task()
+    {
+        return $this->belongsTo(MaintenanceTask::class, 'task_id');
+    }
+
+    public function asset()
+    {
+        return $this->belongsTo(Asset::class);
+    }
+
+    protected static function booted()
+    {
+        static::created(function ($record) {
+            $record->machine->updateDowntime();
+            $record->machine->updateLastService();
+        });
+
+        static::updated(function ($record) {
+            $record->machine->updateDowntime();
+            $record->machine->updateLastService();
+        });
+
+        static::deleted(function ($record) {
+            $record->machine->updateDowntime();
+            $record->machine->updateLastService();
+        });
+    }
+}

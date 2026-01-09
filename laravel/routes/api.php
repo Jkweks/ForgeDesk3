@@ -6,6 +6,11 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImportExportController;
+use App\Http\Controllers\Api\MaintenanceController;
+use App\Http\Controllers\Api\MachineController;
+use App\Http\Controllers\Api\AssetController;
+use App\Http\Controllers\Api\MaintenanceTaskController;
+use App\Http\Controllers\Api\MaintenanceRecordController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -71,5 +76,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/import/products', [ImportExportController::class, 'importProducts']);
         Route::get('/export/products', [ImportExportController::class, 'exportProducts']);
         Route::get('/export/template', [ImportExportController::class, 'downloadTemplate']);
+
+        // Maintenance
+        Route::get('/maintenance/dashboard', [MaintenanceController::class, 'dashboard']);
+        Route::get('/maintenance/upcoming-tasks', [MaintenanceController::class, 'upcomingTasks']);
+        Route::get('/maintenance/recent-records', [MaintenanceController::class, 'recentRecords']);
+
+        // Machines
+        Route::apiResource('machines', MachineController::class);
+        Route::get('/machine-types', [MachineController::class, 'getTypes']);
+
+        // Assets
+        Route::apiResource('assets', AssetController::class);
+
+        // Maintenance Tasks
+        Route::apiResource('maintenance-tasks', MaintenanceTaskController::class);
+
+        // Maintenance Records
+        Route::apiResource('maintenance-records', MaintenanceRecordController::class);
     });
 });
