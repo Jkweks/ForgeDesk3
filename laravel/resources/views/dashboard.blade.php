@@ -707,7 +707,7 @@
 
   <!-- Add Product Modal -->
   <div class="modal modal-blur fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Add New Product</h5>
@@ -715,125 +715,164 @@
         </div>
         <form id="addProductForm">
           <div class="modal-body">
+            <!-- Basic Info -->
+            <h5 class="mb-3"><i class="ti ti-info-circle me-2"></i>Basic Information</h5>
             <div class="row mb-3">
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">SKU</label>
-                  <input type="text" class="form-control" name="sku" id="productSku" placeholder="Enter SKU" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-4">
+                <label class="form-label">Part Number</label>
+                <input type="text" class="form-control" name="part_number" id="productPartNumber" placeholder="e.g., ABC-123">
+                <small class="form-hint">Optional - used for auto-SKU</small>
               </div>
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Description</label>
-                  <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-4">
+                <label class="form-label">Finish</label>
+                <select class="form-select" name="finish" id="productFinish">
+                  <option value="">None</option>
+                </select>
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label">SKU</label>
+                <input type="text" class="form-control" name="sku" id="productSku" placeholder="Auto-generated">
+                <small class="form-hint text-primary" id="skuPreview"></small>
               </div>
             </div>
-
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <label class="form-label required">Description</label>
+                <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-control" name="category" id="productCategory" placeholder="Hardware">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" name="location" id="productLocation" placeholder="A-12">
+              </div>
+            </div>
             <div class="mb-3">
               <label class="form-label">Long Description</label>
-              <textarea class="form-control" name="long_description" id="productLongDescription" rows="3" placeholder="Detailed product description"></textarea>
+              <textarea class="form-control" name="long_description" id="productLongDescription" rows="2"></textarea>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Category</label>
-                  <input type="text" class="form-control" name="category" id="productCategory" placeholder="e.g., Hardware, Electronics">
-                </div>
-              </div>
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Location</label>
-                  <input type="text" class="form-control" name="location" id="productLocation" placeholder="e.g., A-12-03">
-                </div>
-              </div>
-            </div>
+            <hr>
 
+            <!-- Pricing -->
+            <h5 class="mb-3"><i class="ti ti-currency-dollar me-2"></i>Pricing</h5>
             <div class="row mb-3">
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Unit Cost</label>
-                  <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
-                  </div>
-                  <div class="invalid-feedback"></div>
+                <label class="form-label required">Unit Cost</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
                 </div>
               </div>
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Unit Price</label>
-                  <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
-                  </div>
-                  <div class="invalid-feedback"></div>
+                <label class="form-label required">Unit Price</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
                 </div>
               </div>
             </div>
 
+            <hr>
+
+            <!-- Quantities -->
+            <h5 class="mb-3"><i class="ti ti-packages me-2"></i>Inventory Quantities</h5>
             <div class="row mb-3">
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Quantity on Hand</label>
-                  <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label required">On Hand</label>
+                <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
               </div>
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Minimum Quantity</label>
-                  <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label required">Minimum</label>
+                <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
               </div>
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label">Maximum Quantity</label>
-                  <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Maximum</label>
+                <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">On Order</label>
+                <input type="number" class="form-control" name="on_order_qty" id="productOnOrderQty" placeholder="0" min="0" value="0">
               </div>
             </div>
 
             <div class="row mb-3">
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Unit of Measure</label>
-                  <select class="form-select" name="unit_of_measure" id="productUOM" required>
-                    <option value="EA">Each (EA)</option>
-                    <option value="BOX">Box</option>
-                    <option value="CASE">Case</option>
-                    <option value="GAL">Gallon (GAL)</option>
-                    <option value="LB">Pound (LB)</option>
-                    <option value="FT">Foot (FT)</option>
-                    <option value="ROLL">Roll</option>
-                    <option value="SET">Set</option>
-                  </select>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Reorder Point</label>
+                <input type="number" class="form-control" name="reorder_point" id="productReorderPoint" placeholder="Auto" min="0">
+                <small class="form-hint text-success" id="reorderPreview"></small>
               </div>
-              <div class="col-lg-8">
-                <div class="mb-3">
-                  <label class="form-label">Supplier</label>
-                  <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Safety Stock</label>
+                <input type="number" class="form-control" name="safety_stock" id="productSafetyStock" placeholder="0" min="0" value="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Avg Daily Use</label>
+                <input type="number" class="form-control" name="average_daily_use" id="productAvgDailyUse" placeholder="0.00" step="0.01" min="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Lead Time (Days)</label>
+                <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- UOM & Pack -->
+            <h5 class="mb-3"><i class="ti ti-ruler-measure me-2"></i>Unit of Measure & Pack</h5>
+            <div class="row mb-3">
+              <div class="col-lg-3">
+                <label class="form-label required">Stock UOM</label>
+                <select class="form-select" name="unit_of_measure" id="productUOM" required>
+                  <option value="">Select...</option>
+                </select>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Pack Size</label>
+                <input type="number" class="form-control" name="pack_size" id="productPackSize" placeholder="1" min="1" value="1">
+                <small class="form-hint">Units per pack</small>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Purchase UOM</label>
+                <select class="form-select" name="purchase_uom" id="productPurchaseUOM">
+                  <option value="">Same as stock</option>
+                </select>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Alternate UOM</label>
+                <select class="form-select" name="stock_uom" id="productStockUOM">
+                  <option value="">Same as main</option>
+                </select>
               </div>
             </div>
 
             <div class="row mb-3">
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Supplier SKU</label>
-                  <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's product code">
-                </div>
+                <label class="form-label">Min Order Qty</label>
+                <input type="number" class="form-control" name="min_order_qty" id="productMinOrderQty" placeholder="1" min="1">
+                <small class="form-hint">Minimum order quantity</small>
               </div>
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Lead Time (Days)</label>
-                  <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
-                </div>
+                <label class="form-label">Order Multiple</label>
+                <input type="number" class="form-control" name="order_multiple" id="productOrderMultiple" placeholder="1" min="1">
+                <small class="form-hint">Must order in multiples</small>
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- Supplier -->
+            <h5 class="mb-3"><i class="ti ti-truck-delivery me-2"></i>Supplier</h5>
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <label class="form-label">Supplier Name</label>
+                <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
+              </div>
+              <div class="col-lg-6">
+                <label class="form-label">Supplier SKU</label>
+                <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's code">
               </div>
             </div>
 
@@ -1266,31 +1305,35 @@
         document.getElementById('viewProductModalTitle').textContent = `${product.sku} - ${product.description}`;
 
         // Populate details tab
+        const needsReorder = product.reorder_point && product.quantity_available <= product.reorder_point;
+        const daysUntilStockout = product.days_until_stockout;
+        const suggestedOrderQty = product.suggested_order_qty || 0;
+
         document.getElementById('productDetailsView').innerHTML = `
           <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
               <label class="form-label fw-bold">SKU</label>
               <p>${product.sku}</p>
             </div>
-            <div class="col-md-6">
-              <label class="form-label fw-bold">Description</label>
-              <p>${product.description}</p>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Part Number</label>
+              <p>${product.part_number || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Finish</label>
+              <p>${product.finish ? `${product.finish} - ${product.finish_name || product.finish}` : '-'}</p>
             </div>
           </div>
           <div class="row mb-3">
-            <div class="col-md-4">
-              <label class="form-label fw-bold">On Hand</label>
-              <p>${product.quantity_on_hand.toLocaleString()}</p>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Committed</label>
-              <p>${product.quantity_committed.toLocaleString()}</p>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label fw-bold">Available</label>
-              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Description</label>
+              <p>${product.description}</p>
+              ${product.long_description ? `<p class="text-muted">${product.long_description}</p>` : ''}
             </div>
           </div>
+
+          <hr>
+          <h5 class="mb-3">Pricing</h5>
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="form-label fw-bold">Unit Cost</label>
@@ -1301,10 +1344,105 @@
               <p>$${parseFloat(product.unit_price).toFixed(2)}</p>
             </div>
           </div>
+
+          <hr>
+          <h5 class="mb-3">Inventory Status</h5>
           <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">On Hand</label>
+              <p>${product.quantity_on_hand.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Committed</label>
+              <p>${product.quantity_committed.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Available</label>
+              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">On Order</label>
+              <p>${(product.on_order_qty || 0).toLocaleString()}</p>
+            </div>
+          </div>
+          ${needsReorder ? `
+            <div class="alert alert-warning mb-3">
+              <h4 class="alert-title"><i class="ti ti-alert-triangle me-2"></i>Reorder Alert</h4>
+              <p class="mb-2">Available quantity (${product.quantity_available}) is at or below reorder point (${product.reorder_point}).</p>
+              ${suggestedOrderQty > 0 ? `<p class="mb-0"><strong>Suggested Order:</strong> ${suggestedOrderQty} units</p>` : ''}
+            </div>
+          ` : ''}
+          ${daysUntilStockout && daysUntilStockout <= 30 ? `
+            <div class="alert alert-${daysUntilStockout <= 7 ? 'danger' : 'info'} mb-3">
+              <h4 class="alert-title"><i class="ti ti-clock-exclamation me-2"></i>Stockout Warning</h4>
+              <p class="mb-0">At current usage rate, inventory will last approximately <strong>${daysUntilStockout} days</strong>.</p>
+            </div>
+          ` : ''}
+
+          <hr>
+          <h5 class="mb-3">Stock Management</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Reorder Point</label>
+              <p>${product.reorder_point || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Safety Stock</label>
+              <p>${product.safety_stock || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Avg Daily Use</label>
+              <p>${product.average_daily_use || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Min / Max</label>
+              <p>${product.minimum_quantity} / ${product.maximum_quantity || '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Unit of Measure</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Stock UOM</label>
+              <p>${product.unit_of_measure} ${product.uom_name ? '- ' + product.uom_name : ''}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Pack Size</label>
+              <p>${product.pack_size || 1}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Min Order Qty</label>
+              <p>${product.min_order_qty || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Order Multiple</label>
+              <p>${product.order_multiple || '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Supplier</h5>
+          <div class="row mb-3">
+            <div class="col-md-4">
               <label class="form-label fw-bold">Supplier</label>
               <p>${product.supplier || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Supplier SKU</label>
+              <p>${product.supplier_sku || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Lead Time</label>
+              <p>${product.lead_time_days ? product.lead_time_days + ' days' : '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Category</label>
+              <p>${product.category || '-'}</p>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
@@ -1974,11 +2112,109 @@
       }
     });
 
+    // ========== CONFIGURATION DATA ==========
+    let finishCodes = {};
+    let unitOfMeasures = {};
+
+    async function loadConfigurations() {
+      try {
+        // Load finish codes
+        const finishResponse = await apiCall('/finish-codes');
+        finishCodes = await finishResponse.json();
+
+        // Load UOMs
+        const uomResponse = await apiCall('/unit-of-measures');
+        unitOfMeasures = await uomResponse.json();
+
+        // Populate finish dropdown
+        const finishSelect = document.getElementById('productFinish');
+        finishSelect.innerHTML = '<option value="">None</option>';
+        Object.entries(finishCodes).forEach(([code, name]) => {
+          const option = document.createElement('option');
+          option.value = code;
+          option.textContent = `${code} - ${name}`;
+          finishSelect.appendChild(option);
+        });
+
+        // Populate UOM dropdowns
+        const uomSelects = ['productUOM', 'productPurchaseUOM', 'productStockUOM'];
+        uomSelects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          const firstOption = select.querySelector('option').outerHTML; // Keep first option
+          select.innerHTML = firstOption;
+
+          Object.entries(unitOfMeasures).forEach(([code, name]) => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${code} - ${name}`;
+            select.appendChild(option);
+          });
+        });
+
+      } catch (error) {
+        console.error('Error loading configurations:', error);
+      }
+    }
+
+    // Auto-generate SKU preview
+    function updateSkuPreview() {
+      const partNumber = document.getElementById('productPartNumber').value.trim().toUpperCase();
+      const finish = document.getElementById('productFinish').value;
+      const skuField = document.getElementById('productSku');
+      const skuPreview = document.getElementById('skuPreview');
+
+      if (partNumber) {
+        const generatedSku = finish ? `${partNumber}-${finish}` : partNumber;
+        skuPreview.textContent = `Will generate: ${generatedSku}`;
+        skuPreview.classList.add('text-primary');
+
+        // Auto-fill SKU if empty
+        if (!skuField.value) {
+          skuField.value = generatedSku;
+        }
+      } else {
+        skuPreview.textContent = '';
+        skuPreview.classList.remove('text-primary');
+      }
+    }
+
+    // Calculate reorder point preview
+    function updateReorderPointPreview() {
+      const avgDailyUse = parseFloat(document.getElementById('productAvgDailyUse').value) || 0;
+      const leadTime = parseInt(document.getElementById('productLeadTime').value) || 0;
+      const safetyStock = parseInt(document.getElementById('productSafetyStock').value) || 0;
+      const reorderField = document.getElementById('productReorderPoint');
+      const reorderPreview = document.getElementById('reorderPreview');
+
+      if (avgDailyUse && leadTime) {
+        const calculatedReorder = Math.round((avgDailyUse * leadTime) + safetyStock);
+        reorderPreview.textContent = `Calculated: ${calculatedReorder}`;
+        reorderPreview.classList.add('text-success');
+
+        // Auto-fill if empty
+        if (!reorderField.value) {
+          reorderField.value = calculatedReorder;
+        }
+      } else {
+        reorderPreview.textContent = '';
+        reorderPreview.classList.remove('text-success');
+      }
+    }
+
+    // Add event listeners for auto-calculations
+    document.getElementById('productPartNumber').addEventListener('input', updateSkuPreview);
+    document.getElementById('productFinish').addEventListener('change', updateSkuPreview);
+    document.getElementById('productAvgDailyUse').addEventListener('input', updateReorderPointPreview);
+    document.getElementById('productLeadTime').addEventListener('input', updateReorderPointPreview);
+    document.getElementById('productSafetyStock').addEventListener('input', updateReorderPointPreview);
+
     function showAddProductModal() {
       const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
       document.getElementById('addProductForm').reset();
       document.getElementById('formError').style.display = 'none';
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+      document.getElementById('skuPreview').textContent = '';
+      document.getElementById('reorderPreview').textContent = '';
       modal.show();
     }
 
@@ -2117,6 +2353,7 @@
     if (authToken) {
       showApp();
       loadDashboard();
+      loadConfigurations(); // Load finish codes and UOMs
     } else {
       showLogin();
     }
