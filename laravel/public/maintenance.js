@@ -11,10 +11,8 @@ let records = [];
 // Bootstrap Modal Helper - handles initialization safely
 function showModal(modalElement) {
   try {
-    // Try multiple ways to access Bootstrap
-    const Bootstrap = window.bootstrap || bootstrap;
-    if (Bootstrap && Bootstrap.Modal) {
-      const modal = new Bootstrap.Modal(modalElement);
+    if (window.bootstrap && window.bootstrap.Modal) {
+      const modal = new window.bootstrap.Modal(modalElement);
       modal.show();
       return true;
     }
@@ -37,14 +35,19 @@ function showModal(modalElement) {
   // Close on backdrop click
   backdrop.addEventListener('click', () => hideModal(modalElement));
 
+  // Add close button listeners
+  const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+  closeButtons.forEach(btn => {
+    btn.onclick = () => hideModal(modalElement);
+  });
+
   return false;
 }
 
 function hideModal(modalElement) {
   try {
-    const Bootstrap = window.bootstrap || bootstrap;
-    if (Bootstrap && Bootstrap.Modal) {
-      const modal = Bootstrap.Modal.getInstance(modalElement);
+    if (window.bootstrap && window.bootstrap.Modal) {
+      const modal = window.bootstrap.Modal.getInstance(modalElement);
       if (modal) {
         modal.hide();
         return;
@@ -69,7 +72,7 @@ function hideModal(modalElement) {
 
 // Authentication
 function checkAuth() {
-  authToken = localStorage.getItem('auth_token');
+  authToken = localStorage.getItem('authToken');
   if (authToken) {
     document.getElementById('loginPage').classList.remove('active');
     document.getElementById('app').classList.add('active');
@@ -95,7 +98,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if (response.ok) {
       const data = await response.json();
       authToken = data.token;
-      localStorage.setItem('auth_token', authToken);
+      localStorage.setItem('authToken', authToken);
       checkAuth();
     } else {
       document.getElementById('loginError').textContent = 'Invalid credentials';
@@ -110,7 +113,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
   e.preventDefault();
-  localStorage.removeItem('auth_token');
+  localStorage.removeItem('authToken');
   authToken = null;
   checkAuth();
 });
