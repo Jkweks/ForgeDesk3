@@ -119,6 +119,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/transactions-timeline', [InventoryTransactionController::class, 'timeline']);
         Route::get('/products/{product}/transactions', [InventoryTransactionController::class, 'productTransactions']);
 
+        // Configurator & BOM (Required Parts)
+        Route::get('/products/{product}/required-parts', [RequiredPartsController::class, 'index']);
+        Route::post('/products/{product}/required-parts', [RequiredPartsController::class, 'store']);
+        Route::put('/products/{product}/required-parts/{requiredPart}', [RequiredPartsController::class, 'update']);
+        Route::delete('/products/{product}/required-parts/{requiredPart}', [RequiredPartsController::class, 'destroy']);
+        Route::get('/products/{product}/bom-explosion', [RequiredPartsController::class, 'explosion']);
+        Route::get('/products/{product}/bom-availability', [RequiredPartsController::class, 'checkAvailability']);
+        Route::post('/products/{product}/required-parts/sort-order', [RequiredPartsController::class, 'updateSortOrder']);
+        Route::get('/products/{product}/where-used', [RequiredPartsController::class, 'whereUsed']);
+
         // Orders
         Route::apiResource('orders', OrderController::class);
         Route::post('/orders/{order}/commit', [OrderController::class, 'commitInventory']);
