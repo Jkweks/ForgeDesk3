@@ -1,177 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="csrf-token" content="{{ csrf_token() }}">
-  <title>ForgeDesk - Maintenance Hub</title>
-  <link href="{{ asset('assets/tabler/css/tabler.min.css') }}" rel="stylesheet">
-  <link href="{{ asset('assets/tabler/css/tabler-flags.min.css') }}" rel="stylesheet">
-  <link href="{{ asset('assets/tabler/css/tabler-vendors.min.css') }}" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
-  <style>
-    @import url("https://rsms.me/inter/inter.css");
-    .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
-    .table-actions { white-space: nowrap; }
-    .login-container {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    #app { display: none; }
-    #app.active { display: block; }
-    #loginPage { display: none; }
-    #loginPage.active { display: flex; }
-    .modal-body .form-label.required:after {
-      content: " *";
-      color: #d63939;
-    }
-    .priority-critical { background-color: #d63939; color: white; }
-    .priority-high { background-color: #f76707; color: white; }
-    .priority-medium { background-color: #fab005; color: white; }
-    .priority-low { background-color: #74b816; color: white; }
-    .overdue { background-color: #d63939; color: white; }
-    .due-soon { background-color: #fab005; color: white; }
-  </style>
-</head>
-<body>
-  <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
+@extends('layouts.app')
 
-  <!-- Login Page -->
-  <div id="loginPage" class="login-container">
-    <div class="card" style="width: 100%; max-width: 400px;">
-      <div class="card-body">
-        <h2 class="text-center mb-4">ForgeDesk</h2>
-        <form id="loginForm">
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" class="form-control" id="loginEmail" value="admin@forgedesk.local" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input type="password" class="form-control" id="loginPassword" value="password" required>
-          </div>
-          <div id="loginError" class="alert alert-danger" style="display: none;"></div>
-          <button type="submit" class="btn btn-primary w-100">Login</button>
-        </form>
-      </div>
-    </div>
-  </div>
+@section('title', 'Maintenance Hub - ForgeDesk')
 
-  <!-- Main Application -->
-  <div id="app" class="page">
-    <header class="navbar navbar-expand-md d-print-none">
-      <div class="container-xl">
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <h1 class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-          <a href="/">
-            <svg xmlns="http://www.w3.org/2000/svg" width="110" height="32" viewBox="0 0 232 68" class="navbar-brand-image">
-              <text x="10" y="50" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="var(--tblr-primary, #066fd1)">FD</text>
-            </svg>
-          </a>
-        </h1>
-        <div class="navbar-nav flex-row order-md-last">
-          <div class="nav-item dropdown d-none d-md-flex me-3">
-            <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
-              <span class="badge text-bg-red"></span>
-            </a>
-            <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card">
-              <div class="card">
-                <div class="card-header d-flex">
-                  <h3 class="card-title">Notifications</h3>
-                  <div class="btn-close ms-auto" data-bs-dismiss="dropdown"></div>
-                </div>
-                <div class="list-group list-group-flush list-group-hoverable">
-                  <div class="list-group-item">
-                    <div class="row align-items-center">
-                      <div class="col text-truncate">
-                        <div class="text-muted">No new notifications</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="nav-item dropdown">
-            <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
-              <span class="avatar avatar-sm" id="userAvatar">A</span>
-              <div class="d-none d-xl-block ps-2">
-                <div id="userName">Admin</div>
-                <div class="mt-1 small text-secondary" id="userEmail">admin@forgedesk.local</div>
-              </div>
-            </a>
-            <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-              <a href="#" class="dropdown-item">Status</a>
-              <a href="#" class="dropdown-item">Profile</a>
-              <div class="dropdown-divider"></div>
-              <a href="#" class="dropdown-item">Settings</a>
-              <a href="#" class="dropdown-item" id="logoutBtn">Logout</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+@section('styles')
+.priority-critical { background-color: #d63939; color: white; }
+.priority-high { background-color: #f76707; color: white; }
+.priority-medium { background-color: #fab005; color: white; }
+.priority-low { background-color: #74b816; color: white; }
+.overdue { background-color: #d63939; color: white; }
+.due-soon { background-color: #fab005; color: white; }
+@endsection
 
-    <div class="navbar-expand-md">
-      <div class="collapse navbar-collapse" id="navbar-menu">
-        <div class="navbar">
-          <div class="container-xl">
-            <div class="row flex-column flex-md-row flex-fill align-items-center">
-              <div class="col">
-                <nav aria-label="Primary">
-                  <ul class="navbar-nav">
-                    <li class="nav-item">
-                      <a class="nav-link" href="/">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /></svg>
-                        </span>
-                        <span class="nav-link-title">Dashboard</span>
-                      </a>
-                    </li>
-                    <li class="nav-item dropdown">
-                      <a class="nav-link dropdown-toggle" href="#navbar-inventory" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l8 4.5l0 9l-8 4.5l-8 -4.5l0 -9l8 -4.5" /><path d="M12 12l8 -4.5" /><path d="M12 12l0 9" /><path d="M12 12l-8 -4.5" /></svg>
-                        </span>
-                        <span class="nav-link-title">Inventory</span>
-                      </a>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" href="#">All Products</a>
-                        <a class="dropdown-item" href="#">Low Stock</a>
-                        <a class="dropdown-item" href="#">Critical Stock</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="#">Categories</a>
-                        <a class="dropdown-item" href="#">Suppliers</a>
-                      </div>
-                    </li>
-                    <li class="nav-item dropdown active">
-                      <a class="nav-link dropdown-toggle" href="#navbar-maintenance" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
-                        <span class="nav-link-icon d-md-none d-lg-inline-block">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5" /></svg>
-                        </span>
-                        <span class="nav-link-title">Maintenance</span>
-                      </a>
-                      <div class="dropdown-menu">
-                        <a class="dropdown-item" href="/maintenance">Maintenance Hub</a>
-                        <a class="dropdown-item" href="/maintenance#tab-machines">Machines</a>
-                        <a class="dropdown-item" href="/maintenance#tab-tasks">Tasks</a>
-                        <a class="dropdown-item" href="/maintenance#tab-records">Service Log</a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="/maintenance#tab-assets">Assets</a>
-                      </div>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+@section('content')
     <div class="page-wrapper">
       <div class="page-header d-print-none">
         <div class="container-xl">
@@ -597,7 +437,9 @@
     </div>
   </div>
 
-  <script src="{{ asset('assets/tabler/js/tabler.min.js') }}"></script>
+@endsection
+
+@push('scripts')
+  @include('partials.auth-scripts')
   <script src="/maintenance.js"></script>
-</body>
-</html>
+@endpush
