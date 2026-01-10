@@ -109,6 +109,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{product}/reservations/statistics', [JobReservationController::class, 'statistics']);
         Route::get('/jobs', [JobReservationController::class, 'getAllJobs']);
 
+        // Inventory Transactions (Activity & Audit Trail)
+        Route::get('/transactions', [InventoryTransactionController::class, 'index']);
+        Route::get('/transactions/{transaction}', [InventoryTransactionController::class, 'show']);
+        Route::get('/transactions-statistics', [InventoryTransactionController::class, 'statistics']);
+        Route::get('/transactions-types', [InventoryTransactionController::class, 'types']);
+        Route::get('/transactions-export', [InventoryTransactionController::class, 'export']);
+        Route::get('/transactions-recent', [InventoryTransactionController::class, 'recentActivity']);
+        Route::get('/transactions-timeline', [InventoryTransactionController::class, 'timeline']);
+        Route::get('/products/{product}/transactions', [InventoryTransactionController::class, 'productTransactions']);
+
         // Orders
         Route::apiResource('orders', OrderController::class);
         Route::post('/orders/{order}/commit', [OrderController::class, 'commitInventory']);
