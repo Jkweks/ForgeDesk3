@@ -71,6 +71,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/categories/sort-order', [CategoryController::class, 'updateSortOrder']);
         Route::post('/categories/bulk-action', [CategoryController::class, 'bulkAction']);
 
+        // Suppliers
+        Route::apiResource('suppliers', SupplierController::class);
+        Route::get('/supplier-countries', [SupplierController::class, 'countries']);
+        Route::get('/supplier-statistics', [SupplierController::class, 'statistics']);
+        Route::get('/suppliers/{supplier}/products', [SupplierController::class, 'products']);
+        Route::get('/suppliers/{supplier}/contacts', [SupplierController::class, 'contacts']);
+        Route::get('/suppliers/{supplier}/low-stock-report', [SupplierController::class, 'lowStockReport']);
+        Route::post('/suppliers/bulk-action', [SupplierController::class, 'bulkAction']);
+
         // Products
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);

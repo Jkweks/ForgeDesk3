@@ -27,7 +27,7 @@
                     <a class="dropdown-item" href="#">Critical Stock</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="/categories">Categories</a>
-                    <a class="dropdown-item" href="#">Suppliers</a>
+                    <a class="dropdown-item" href="/suppliers">Suppliers</a>
                   </div>
                 </li>
                 <li class="nav-item dropdown {{ Request::is('maintenance*') ? 'active' : '' }}">

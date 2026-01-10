@@ -10,6 +10,10 @@ Route::get('/categories', function () {
     return view('categories');
 });
 
+Route::get('/suppliers', function () {
+    return view('suppliers');
+});
+
 Route::get('/maintenance', function () {
     return view('maintenance');
 });
