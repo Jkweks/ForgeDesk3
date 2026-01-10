@@ -301,7 +301,7 @@
                         <tr>
                           <th>SKU</th>
                           <th>Description</th>
-                          <th>Location</th>
+                          <th>Locations</th>
                           <th class="text-end">On Hand</th>
                           <th class="text-end">Committed</th>
                           <th class="text-end">Available</th>
@@ -321,9 +321,393 @@
     </div>
   </div>
 
+  <!-- View/Edit Product Modal -->
+  <div class="modal modal-blur fade" id="viewProductModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="viewProductModalTitle">Product Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Tabs -->
+          <ul class="nav nav-tabs mb-3" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab">
+                <i class="ti ti-info-circle me-1"></i>Details
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="locations-tab" data-bs-toggle="tab" data-bs-target="#locations" type="button" role="tab">
+                <i class="ti ti-map-pin me-1"></i>Locations <span class="badge text-bg-primary ms-1" id="locationsCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="reservations-tab" data-bs-toggle="tab" data-bs-target="#reservations" type="button" role="tab">
+                <i class="ti ti-clipboard-check me-1"></i>Reservations <span class="badge text-bg-warning ms-1" id="reservationsCount">0</span>
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
+                <i class="ti ti-history me-1"></i>Activity
+              </button>
+            </li>
+          </ul>
+
+          <!-- Tab Content -->
+          <div class="tab-content" id="productTabContent">
+            <!-- Details Tab -->
+            <div class="tab-pane fade show active" id="details" role="tabpanel">
+              <div id="productDetailsView"></div>
+            </div>
+
+            <!-- Locations Tab -->
+            <div class="tab-pane fade" id="locations" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center mb-3">
+                  <div class="col">
+                    <h3 class="mb-0">Inventory Locations</h3>
+                    <p class="text-muted mb-0">Manage stock distribution across multiple locations</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-primary" onclick="showAddLocationForm()">
+                      <i class="ti ti-plus me-1"></i>Add Location
+                    </button>
+                    <button class="btn btn-outline-primary ms-2" onclick="showTransferForm()">
+                      <i class="ti ti-arrows-transfer-down me-1"></i>Transfer
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Location Statistics -->
+                <div class="row row-cards mb-3" id="locationStatsCards">
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Total Locations</div>
+                        <div class="h2 mb-0" id="statTotalLocations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Total Quantity</div>
+                        <div class="h2 mb-0" id="statTotalQuantity">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Committed</div>
+                        <div class="h2 mb-0" id="statTotalCommitted">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Available</div>
+                        <div class="h2 mb-0 text-success" id="statTotalAvailable">-</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add/Edit Location Form (Hidden by default) -->
+                <div class="card mb-3" id="locationFormCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0" id="locationFormTitle">Add Location</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="locationForm">
+                      <input type="hidden" id="locationId" name="location_id">
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label required">Location Name</label>
+                          <input type="text" class="form-control" id="locationName" name="location" placeholder="e.g., Warehouse A, Bin 23" required list="existingLocations">
+                          <datalist id="existingLocations"></datalist>
+                          <small class="form-hint">Choose from existing or enter new location</small>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label required">Quantity</label>
+                          <input type="number" class="form-control" id="locationQuantity" name="quantity" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label">Committed</label>
+                          <input type="number" class="form-control" id="locationCommitted" name="quantity_committed" min="0" value="0">
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="locationPrimary" name="is_primary">
+                            <span class="form-check-label">Set as Primary Location</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="locationNotes" name="notes" rows="2" placeholder="Optional notes about this location"></textarea>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="saveLocationBtn">
+                          <i class="ti ti-check me-1"></i>Save Location
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideLocationForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Locations List -->
+                <div class="card">
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Location</th>
+                          <th class="text-end">Quantity</th>
+                          <th class="text-end">Committed</th>
+                          <th class="text-end">Available</th>
+                          <th>Distribution</th>
+                          <th>Status</th>
+                          <th class="w-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="locationsTableBody">
+                        <tr>
+                          <td colspan="7" class="text-center text-muted py-5">
+                            <i class="ti ti-map-pin" style="font-size: 2rem;"></i>
+                            <p class="mb-0">No locations added yet</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showAddLocationForm()">Add First Location</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Transfer Modal -->
+                <div class="card mt-3" id="transferCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0">Transfer Inventory</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="transferForm">
+                      <div class="row mb-3">
+                        <div class="col-md-5">
+                          <label class="form-label required">From Location</label>
+                          <select class="form-select" id="transferFrom" name="from_location_id" required>
+                            <option value="">Select source...</option>
+                          </select>
+                          <small class="text-muted" id="transferFromAvailable"></small>
+                        </div>
+                        <div class="col-md-2 text-center d-flex align-items-center justify-content-center">
+                          <i class="ti ti-arrow-right" style="font-size: 2rem;"></i>
+                        </div>
+                        <div class="col-md-5">
+                          <label class="form-label required">To Location</label>
+                          <select class="form-select" id="transferTo" name="to_location_id" required>
+                            <option value="">Select destination...</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label class="form-label required">Quantity to Transfer</label>
+                          <input type="number" class="form-control" id="transferQuantity" name="quantity" min="1" required>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <input type="text" class="form-control" id="transferNotes" name="notes" placeholder="Optional transfer notes">
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                          <i class="ti ti-arrows-transfer-down me-1"></i>Transfer
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideTransferForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reservations Tab -->
+            <div class="tab-pane fade" id="reservations" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center mb-3">
+                  <div class="col">
+                    <h3 class="mb-0">Job Reservations</h3>
+                    <p class="text-muted mb-0">Reserve inventory for jobs and track commitments</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-primary" onclick="showAddReservationForm()">
+                      <i class="ti ti-plus me-1"></i>Reserve Inventory
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Reservation Statistics -->
+                <div class="row row-cards mb-3">
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Active</div>
+                        <div class="h2 mb-0" id="statActiveReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Committed</div>
+                        <div class="h2 mb-0" id="statQuantityCommitted">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">ATP (Available)</div>
+                        <div class="h2 mb-0 text-success" id="statATP">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Overdue</div>
+                        <div class="h2 mb-0 text-danger" id="statOverdueReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <div class="card card-sm">
+                      <div class="card-body">
+                        <div class="subheader">Due This Week</div>
+                        <div class="h2 mb-0 text-warning" id="statUpcomingReservations">-</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add/Edit Reservation Form (Hidden by default) -->
+                <div class="card mb-3" id="reservationFormCard" style="display: none;">
+                  <div class="card-header">
+                    <h4 class="card-title mb-0" id="reservationFormTitle">Reserve Inventory</h4>
+                  </div>
+                  <div class="card-body">
+                    <form id="reservationForm">
+                      <input type="hidden" id="reservationId" name="reservation_id">
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label class="form-label required">Job Number</label>
+                          <input type="text" class="form-control" id="reservationJobNumber" name="job_number" placeholder="e.g., JOB-2024-001" required list="existingJobs">
+                          <datalist id="existingJobs"></datalist>
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label">Job Name</label>
+                          <input type="text" class="form-control" id="reservationJobName" name="job_name" placeholder="Optional job description">
+                        </div>
+                      </div>
+                      <div class="row mb-3">
+                        <div class="col-md-4">
+                          <label class="form-label required">Quantity to Reserve</label>
+                          <input type="number" class="form-control" id="reservationQuantity" name="quantity_reserved" min="1" required>
+                          <small class="text-muted" id="availableForReservation"></small>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label required">Reserved Date</label>
+                          <input type="date" class="form-control" id="reservationDate" name="reserved_date" required>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">Required Date</label>
+                          <input type="date" class="form-control" id="reservationRequiredDate" name="required_date">
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="reservationNotes" name="notes" rows="2" placeholder="Optional notes about this reservation"></textarea>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" id="saveReservationBtn">
+                          <i class="ti ti-check me-1"></i>Reserve
+                        </button>
+                        <button type="button" class="btn btn-link" onclick="hideReservationForm()">Cancel</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <!-- Reservations List -->
+                <div class="card">
+                  <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="reservationFilterTabs">
+                      <li class="nav-item">
+                        <a class="nav-link active" href="#" data-filter="all" onclick="filterReservations('all'); return false;">All</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="active" onclick="filterReservations('active'); return false;">Active</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="fulfilled" onclick="filterReservations('fulfilled'); return false;">Fulfilled</a>
+                      </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="#" data-filter="cancelled" onclick="filterReservations('cancelled'); return false;">Cancelled</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-vcenter card-table">
+                      <thead>
+                        <tr>
+                          <th>Job #</th>
+                          <th>Reserved</th>
+                          <th>Required</th>
+                          <th class="text-end">Qty</th>
+                          <th class="text-end">Fulfilled</th>
+                          <th class="text-end">Remaining</th>
+                          <th>Status</th>
+                          <th class="w-1"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="reservationsTableBody">
+                        <tr>
+                          <td colspan="8" class="text-center text-muted py-5">
+                            <i class="ti ti-clipboard-check" style="font-size: 2rem;"></i>
+                            <p class="mb-0">No reservations yet</p>
+                            <button class="btn btn-sm btn-primary mt-2" onclick="showAddReservationForm()">Reserve First Item</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity Tab -->
+            <div class="tab-pane fade" id="activity" role="tabpanel">
+              <div id="activityContent">
+                <p class="text-muted">Activity history coming soon...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-link" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Add Product Modal -->
   <div class="modal modal-blur fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Add New Product</h5>
@@ -331,125 +715,164 @@
         </div>
         <form id="addProductForm">
           <div class="modal-body">
+            <!-- Basic Info -->
+            <h5 class="mb-3"><i class="ti ti-info-circle me-2"></i>Basic Information</h5>
             <div class="row mb-3">
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">SKU</label>
-                  <input type="text" class="form-control" name="sku" id="productSku" placeholder="Enter SKU" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-4">
+                <label class="form-label">Part Number</label>
+                <input type="text" class="form-control" name="part_number" id="productPartNumber" placeholder="e.g., ABC-123">
+                <small class="form-hint">Optional - used for auto-SKU</small>
               </div>
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Description</label>
-                  <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-4">
+                <label class="form-label">Finish</label>
+                <select class="form-select" name="finish" id="productFinish">
+                  <option value="">None</option>
+                </select>
+              </div>
+              <div class="col-lg-4">
+                <label class="form-label">SKU</label>
+                <input type="text" class="form-control" name="sku" id="productSku" placeholder="Auto-generated">
+                <small class="form-hint text-primary" id="skuPreview"></small>
               </div>
             </div>
-
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <label class="form-label required">Description</label>
+                <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-control" name="category" id="productCategory" placeholder="Hardware">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" name="location" id="productLocation" placeholder="A-12">
+              </div>
+            </div>
             <div class="mb-3">
               <label class="form-label">Long Description</label>
-              <textarea class="form-control" name="long_description" id="productLongDescription" rows="3" placeholder="Detailed product description"></textarea>
+              <textarea class="form-control" name="long_description" id="productLongDescription" rows="2"></textarea>
             </div>
 
-            <div class="row mb-3">
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Category</label>
-                  <input type="text" class="form-control" name="category" id="productCategory" placeholder="e.g., Hardware, Electronics">
-                </div>
-              </div>
-              <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Location</label>
-                  <input type="text" class="form-control" name="location" id="productLocation" placeholder="e.g., A-12-03">
-                </div>
-              </div>
-            </div>
+            <hr>
 
+            <!-- Pricing -->
+            <h5 class="mb-3"><i class="ti ti-currency-dollar me-2"></i>Pricing</h5>
             <div class="row mb-3">
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Unit Cost</label>
-                  <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
-                  </div>
-                  <div class="invalid-feedback"></div>
+                <label class="form-label required">Unit Cost</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" name="unit_cost" id="productUnitCost" placeholder="0.00" step="0.01" min="0" required>
                 </div>
               </div>
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label required">Unit Price</label>
-                  <div class="input-group">
-                    <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
-                  </div>
-                  <div class="invalid-feedback"></div>
+                <label class="form-label required">Unit Price</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
                 </div>
               </div>
             </div>
 
+            <hr>
+
+            <!-- Quantities -->
+            <h5 class="mb-3"><i class="ti ti-packages me-2"></i>Inventory Quantities</h5>
             <div class="row mb-3">
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Quantity on Hand</label>
-                  <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label required">On Hand</label>
+                <input type="number" class="form-control" name="quantity_on_hand" id="productQuantityOnHand" placeholder="0" min="0" required>
               </div>
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Minimum Quantity</label>
-                  <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
-                  <div class="invalid-feedback"></div>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label required">Minimum</label>
+                <input type="number" class="form-control" name="minimum_quantity" id="productMinQuantity" placeholder="0" min="0" required>
               </div>
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label">Maximum Quantity</label>
-                  <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Maximum</label>
+                <input type="number" class="form-control" name="maximum_quantity" id="productMaxQuantity" placeholder="Optional" min="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">On Order</label>
+                <input type="number" class="form-control" name="on_order_qty" id="productOnOrderQty" placeholder="0" min="0" value="0">
               </div>
             </div>
 
             <div class="row mb-3">
-              <div class="col-lg-4">
-                <div class="mb-3">
-                  <label class="form-label required">Unit of Measure</label>
-                  <select class="form-select" name="unit_of_measure" id="productUOM" required>
-                    <option value="EA">Each (EA)</option>
-                    <option value="BOX">Box</option>
-                    <option value="CASE">Case</option>
-                    <option value="GAL">Gallon (GAL)</option>
-                    <option value="LB">Pound (LB)</option>
-                    <option value="FT">Foot (FT)</option>
-                    <option value="ROLL">Roll</option>
-                    <option value="SET">Set</option>
-                  </select>
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Reorder Point</label>
+                <input type="number" class="form-control" name="reorder_point" id="productReorderPoint" placeholder="Auto" min="0">
+                <small class="form-hint text-success" id="reorderPreview"></small>
               </div>
-              <div class="col-lg-8">
-                <div class="mb-3">
-                  <label class="form-label">Supplier</label>
-                  <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
-                </div>
+              <div class="col-lg-3">
+                <label class="form-label">Safety Stock</label>
+                <input type="number" class="form-control" name="safety_stock" id="productSafetyStock" placeholder="0" min="0" value="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Avg Daily Use</label>
+                <input type="number" class="form-control" name="average_daily_use" id="productAvgDailyUse" placeholder="0.00" step="0.01" min="0">
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Lead Time (Days)</label>
+                <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- UOM & Pack -->
+            <h5 class="mb-3"><i class="ti ti-ruler-measure me-2"></i>Unit of Measure & Pack</h5>
+            <div class="row mb-3">
+              <div class="col-lg-3">
+                <label class="form-label required">Stock UOM</label>
+                <select class="form-select" name="unit_of_measure" id="productUOM" required>
+                  <option value="">Select...</option>
+                </select>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Pack Size</label>
+                <input type="number" class="form-control" name="pack_size" id="productPackSize" placeholder="1" min="1" value="1">
+                <small class="form-hint">Units per pack</small>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Purchase UOM</label>
+                <select class="form-select" name="purchase_uom" id="productPurchaseUOM">
+                  <option value="">Same as stock</option>
+                </select>
+              </div>
+              <div class="col-lg-3">
+                <label class="form-label">Alternate UOM</label>
+                <select class="form-select" name="stock_uom" id="productStockUOM">
+                  <option value="">Same as main</option>
+                </select>
               </div>
             </div>
 
             <div class="row mb-3">
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Supplier SKU</label>
-                  <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's product code">
-                </div>
+                <label class="form-label">Min Order Qty</label>
+                <input type="number" class="form-control" name="min_order_qty" id="productMinOrderQty" placeholder="1" min="1">
+                <small class="form-hint">Minimum order quantity</small>
               </div>
               <div class="col-lg-6">
-                <div class="mb-3">
-                  <label class="form-label">Lead Time (Days)</label>
-                  <input type="number" class="form-control" name="lead_time_days" id="productLeadTime" placeholder="0" min="0">
-                </div>
+                <label class="form-label">Order Multiple</label>
+                <input type="number" class="form-control" name="order_multiple" id="productOrderMultiple" placeholder="1" min="1">
+                <small class="form-hint">Must order in multiples</small>
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- Supplier -->
+            <h5 class="mb-3"><i class="ti ti-truck-delivery me-2"></i>Supplier</h5>
+            <div class="row mb-3">
+              <div class="col-lg-6">
+                <label class="form-label">Supplier Name</label>
+                <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
+              </div>
+              <div class="col-lg-6">
+                <label class="form-label">Supplier SKU</label>
+                <input type="text" class="form-control" name="supplier_sku" id="productSupplierSku" placeholder="Supplier's code">
               </div>
             </div>
 
@@ -696,6 +1119,68 @@
     let authToken = localStorage.getItem('authToken');
     let currentTab = 'all';
 
+    // Bootstrap Modal Helper - handles initialization safely
+    function showModal(modalElement) {
+      try {
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const modal = new window.bootstrap.Modal(modalElement);
+          modal.show();
+          return true;
+        }
+      } catch (e) {
+        console.warn('Bootstrap not available, using fallback:', e);
+      }
+
+      // Fallback: manually show modal without Bootstrap
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = 'modal-backdrop-' + modalElement.id;
+      document.body.appendChild(backdrop);
+
+      modalElement.style.display = 'block';
+      modalElement.classList.add('show');
+      modalElement.removeAttribute('aria-hidden');
+      modalElement.setAttribute('aria-modal', 'true');
+      document.body.classList.add('modal-open');
+
+      // Close on backdrop click
+      backdrop.addEventListener('click', () => hideModal(modalElement));
+
+      // Add close button listeners
+      const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+      closeButtons.forEach(btn => {
+        btn.onclick = () => hideModal(modalElement);
+      });
+
+      return false;
+    }
+
+    function hideModal(modalElement) {
+      try {
+        if (window.bootstrap && window.bootstrap.Modal) {
+          const modal = window.bootstrap.Modal.getInstance(modalElement);
+          if (modal) {
+            modal.hide();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Bootstrap not available for hide, using fallback:', e);
+      }
+
+      // Fallback: manually hide modal
+      modalElement.style.display = 'none';
+      modalElement.classList.remove('show');
+      modalElement.setAttribute('aria-hidden', 'true');
+      modalElement.removeAttribute('aria-modal');
+      document.body.classList.remove('modal-open');
+
+      const backdrop = document.getElementById('modal-backdrop-' + modalElement.id);
+      if (backdrop) {
+        backdrop.remove();
+      }
+    }
+
     async function apiCall(endpoint, options = {}) {
       const headers = {
         'Content-Type': 'application/json',
@@ -801,11 +1286,16 @@
 
       products.forEach(product => {
         const statusBadge = getStatusBadge(product.status);
+        const locationCount = product.inventory_locations?.length || 0;
+        const locationsDisplay = locationCount > 0
+          ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
+          : '<span class="text-muted">-</span>';
+
         const row = `
           <tr>
             <td><span class="text-muted">${product.sku}</span></td>
             <td>${product.description}</td>
-            <td>${product.location || '-'}</td>
+            <td>${locationsDisplay}</td>
             <td class="text-end">${product.quantity_on_hand.toLocaleString()}</td>
             <td class="text-end">${product.quantity_committed.toLocaleString()}</td>
             <td class="text-end">${product.quantity_available.toLocaleString()}</td>
@@ -864,14 +1354,928 @@
       }
     }
 
-    function viewProduct(id) { alert('View product: ' + id); }
+    let currentProductId = null;
+    let currentProductLocations = [];
+
+    async function viewProduct(id) {
+      try {
+        currentProductId = id;
+        const response = await apiCall(`/products/${id}`);
+        const product = await response.json();
+
+        // Set modal title
+        document.getElementById('viewProductModalTitle').textContent = `${product.sku} - ${product.description}`;
+
+        // Populate details tab
+        const needsReorder = product.reorder_point && product.quantity_available <= product.reorder_point;
+        const daysUntilStockout = product.days_until_stockout;
+        const suggestedOrderQty = product.suggested_order_qty || 0;
+
+        document.getElementById('productDetailsView').innerHTML = `
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">SKU</label>
+              <p>${product.sku}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Part Number</label>
+              <p>${product.part_number || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Finish</label>
+              <p>${product.finish ? `${product.finish} - ${product.finish_name || product.finish}` : '-'}</p>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Description</label>
+              <p>${product.description}</p>
+              ${product.long_description ? `<p class="text-muted">${product.long_description}</p>` : ''}
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Pricing</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Unit Cost</label>
+              <p>$${parseFloat(product.unit_cost).toFixed(2)}</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Unit Price</label>
+              <p>$${parseFloat(product.unit_price).toFixed(2)}</p>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Inventory Status</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">On Hand</label>
+              <p>${product.quantity_on_hand.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Committed</label>
+              <p>${product.quantity_committed.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Available</label>
+              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">On Order</label>
+              <p>${(product.on_order_qty || 0).toLocaleString()}</p>
+            </div>
+          </div>
+          ${needsReorder ? `
+            <div class="alert alert-warning mb-3">
+              <h4 class="alert-title"><i class="ti ti-alert-triangle me-2"></i>Reorder Alert</h4>
+              <p class="mb-2">Available quantity (${product.quantity_available}) is at or below reorder point (${product.reorder_point}).</p>
+              ${suggestedOrderQty > 0 ? `<p class="mb-0"><strong>Suggested Order:</strong> ${suggestedOrderQty} units</p>` : ''}
+            </div>
+          ` : ''}
+          ${daysUntilStockout && daysUntilStockout <= 30 ? `
+            <div class="alert alert-${daysUntilStockout <= 7 ? 'danger' : 'info'} mb-3">
+              <h4 class="alert-title"><i class="ti ti-clock-exclamation me-2"></i>Stockout Warning</h4>
+              <p class="mb-0">At current usage rate, inventory will last approximately <strong>${daysUntilStockout} days</strong>.</p>
+            </div>
+          ` : ''}
+
+          <hr>
+          <h5 class="mb-3">Stock Management</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Reorder Point</label>
+              <p>${product.reorder_point || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Safety Stock</label>
+              <p>${product.safety_stock || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Avg Daily Use</label>
+              <p>${product.average_daily_use || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Min / Max</label>
+              <p>${product.minimum_quantity} / ${product.maximum_quantity || '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Unit of Measure</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Stock UOM</label>
+              <p>${product.unit_of_measure} ${product.uom_name ? '- ' + product.uom_name : ''}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Pack Size</label>
+              <p>${product.pack_size || 1}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Min Order Qty</label>
+              <p>${product.min_order_qty || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Order Multiple</label>
+              <p>${product.order_multiple || '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3">Supplier</h5>
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Supplier</label>
+              <p>${product.supplier || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Supplier SKU</label>
+              <p>${product.supplier_sku || '-'}</p>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-bold">Lead Time</label>
+              <p>${product.lead_time_days ? product.lead_time_days + ' days' : '-'}</p>
+            </div>
+          </div>
+
+          <hr>
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Category</label>
+              <p>${product.category || '-'}</p>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Status</label>
+              <p>${getStatusBadge(product.status)}</p>
+            </div>
+          </div>
+        `;
+
+        // Load locations and reservations
+        await loadProductLocations(id);
+        await loadProductReservations(id);
+
+        // Show modal
+        showModal(document.getElementById('viewProductModal'));
+      } catch (error) {
+        console.error('Error loading product:', error);
+        showNotification('Failed to load product details', 'danger');
+      }
+    }
+
+    async function loadProductLocations(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/locations`);
+        currentProductLocations = await response.json();
+
+        // Update locations count badge
+        document.getElementById('locationsCount').textContent = currentProductLocations.length;
+
+        // Load location statistics
+        await loadLocationStatistics(productId);
+
+        // Render locations table
+        renderLocationsTable();
+
+        // Load all existing locations for autocomplete
+        await loadAllLocations();
+      } catch (error) {
+        console.error('Error loading locations:', error);
+        showNotification('Failed to load locations', 'danger');
+      }
+    }
+
+    async function loadLocationStatistics(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/locations/statistics`);
+        const stats = await response.json();
+
+        document.getElementById('statTotalLocations').textContent = stats.total_locations;
+        document.getElementById('statTotalQuantity').textContent = stats.total_quantity.toLocaleString();
+        document.getElementById('statTotalCommitted').textContent = stats.total_committed.toLocaleString();
+        document.getElementById('statTotalAvailable').textContent = stats.total_available.toLocaleString();
+      } catch (error) {
+        console.error('Error loading statistics:', error);
+      }
+    }
+
+    async function loadAllLocations() {
+      try {
+        const response = await apiCall('/locations');
+        const locations = await response.json();
+
+        const datalist = document.getElementById('existingLocations');
+        datalist.innerHTML = '';
+        locations.forEach(location => {
+          const option = document.createElement('option');
+          option.value = location;
+          datalist.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading all locations:', error);
+      }
+    }
+
+    function renderLocationsTable() {
+      const tbody = document.getElementById('locationsTableBody');
+
+      if (currentProductLocations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center text-muted py-5">
+              <i class="ti ti-map-pin" style="font-size: 2rem;"></i>
+              <p class="mb-0">No locations added yet</p>
+              <button class="btn btn-sm btn-primary mt-2" onclick="showAddLocationForm()">Add First Location</button>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      currentProductLocations.forEach(location => {
+        const primaryBadge = location.is_primary
+          ? '<span class="badge text-bg-primary ms-1">Primary</span>'
+          : '';
+
+        const availableClass = location.quantity_available <= 0 ? 'text-danger' : 'text-success';
+
+        const row = `
+          <tr>
+            <td>
+              <strong>${location.location}</strong>${primaryBadge}
+              ${location.notes ? `<br><small class="text-muted">${location.notes}</small>` : ''}
+            </td>
+            <td class="text-end">${location.quantity.toLocaleString()}</td>
+            <td class="text-end">${location.quantity_committed.toLocaleString()}</td>
+            <td class="text-end ${availableClass}"><strong>${location.quantity_available.toLocaleString()}</strong></td>
+            <td>
+              <div class="progress" style="height: 20px;">
+                <div class="progress-bar" role="progressbar" style="width: ${location.percentage || 0}%;"
+                     aria-valuenow="${location.percentage || 0}" aria-valuemin="0" aria-valuemax="100">
+                  ${location.percentage || 0}%
+                </div>
+              </div>
+            </td>
+            <td>
+              ${location.quantity > 0 ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-secondary">Empty</span>'}
+            </td>
+            <td class="table-actions">
+              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editLocation(${location.id})" title="Edit">
+                <i class="ti ti-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${location.id})" title="Delete">
+                <i class="ti ti-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+
+      // Update transfer dropdowns
+      updateTransferDropdowns();
+    }
+
+    function showAddLocationForm() {
+      document.getElementById('locationFormTitle').textContent = 'Add Location';
+      document.getElementById('locationForm').reset();
+      document.getElementById('locationId').value = '';
+      document.getElementById('locationFormCard').style.display = 'block';
+      document.getElementById('locationName').focus();
+    }
+
+    function hideLocationForm() {
+      document.getElementById('locationFormCard').style.display = 'none';
+      document.getElementById('locationForm').reset();
+    }
+
+    function editLocation(locationId) {
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (!location) return;
+
+      document.getElementById('locationFormTitle').textContent = 'Edit Location';
+      document.getElementById('locationId').value = location.id;
+      document.getElementById('locationName').value = location.location;
+      document.getElementById('locationQuantity').value = location.quantity;
+      document.getElementById('locationCommitted').value = location.quantity_committed;
+      document.getElementById('locationPrimary').checked = location.is_primary;
+      document.getElementById('locationNotes').value = location.notes || '';
+      document.getElementById('locationFormCard').style.display = 'block';
+      document.getElementById('locationName').focus();
+    }
+
+    async function deleteLocation(locationId) {
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (!location) return;
+
+      if (location.quantity > 0) {
+        showNotification('Cannot delete location with inventory. Please transfer or adjust quantity to zero first.', 'warning');
+        return;
+      }
+
+      if (!confirm(`Are you sure you want to delete the location "${location.location}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/locations/${locationId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showNotification('Location deleted successfully', 'success');
+          await loadProductLocations(currentProductId);
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to delete location', 'danger');
+        }
+      } catch (error) {
+        console.error('Error deleting location:', error);
+        showNotification('Failed to delete location', 'danger');
+      }
+    }
+
+    // Location Form Submit
+    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const locationId = document.getElementById('locationId').value;
+      const formData = {
+        location: document.getElementById('locationName').value,
+        quantity: parseInt(document.getElementById('locationQuantity').value),
+        quantity_committed: parseInt(document.getElementById('locationCommitted').value),
+        is_primary: document.getElementById('locationPrimary').checked,
+        notes: document.getElementById('locationNotes').value
+      };
+
+      try {
+        const saveBtn = document.getElementById('saveLocationBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        let response;
+        if (locationId) {
+          // Update existing location
+          response = await apiCall(`/products/${currentProductId}/locations/${locationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+          });
+        } else {
+          // Create new location
+          response = await apiCall(`/products/${currentProductId}/locations`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          showNotification(locationId ? 'Location updated successfully' : 'Location added successfully', 'success');
+          hideLocationForm();
+          await loadProductLocations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to save location', 'danger');
+        }
+      } catch (error) {
+        console.error('Error saving location:', error);
+        showNotification('Failed to save location', 'danger');
+      } finally {
+        const saveBtn = document.getElementById('saveLocationBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-check me-1"></i>Save Location';
+      }
+    });
+
+    function updateTransferDropdowns() {
+      const fromSelect = document.getElementById('transferFrom');
+      const toSelect = document.getElementById('transferTo');
+
+      fromSelect.innerHTML = '<option value="">Select source...</option>';
+      toSelect.innerHTML = '<option value="">Select destination...</option>';
+
+      currentProductLocations.forEach(location => {
+        if (location.quantity_available > 0) {
+          const option = document.createElement('option');
+          option.value = location.id;
+          option.textContent = `${location.location} (Available: ${location.quantity_available})`;
+          fromSelect.appendChild(option);
+        }
+
+        const toOption = document.createElement('option');
+        toOption.value = location.id;
+        toOption.textContent = location.location;
+        toSelect.appendChild(toOption);
+      });
+    }
+
+    function showTransferForm() {
+      updateTransferDropdowns();
+      document.getElementById('transferCard').style.display = 'block';
+    }
+
+    function hideTransferForm() {
+      document.getElementById('transferCard').style.display = 'none';
+      document.getElementById('transferForm').reset();
+    }
+
+    // Update available quantity when source location changes
+    document.getElementById('transferFrom').addEventListener('change', function() {
+      const locationId = parseInt(this.value);
+      if (!locationId) {
+        document.getElementById('transferFromAvailable').textContent = '';
+        return;
+      }
+
+      const location = currentProductLocations.find(l => l.id === locationId);
+      if (location) {
+        document.getElementById('transferFromAvailable').textContent =
+          `Available: ${location.quantity_available}`;
+        document.getElementById('transferQuantity').max = location.quantity_available;
+      }
+    });
+
+    // Transfer Form Submit
+    document.getElementById('transferForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = {
+        from_location_id: parseInt(document.getElementById('transferFrom').value),
+        to_location_id: parseInt(document.getElementById('transferTo').value),
+        quantity: parseInt(document.getElementById('transferQuantity').value),
+        notes: document.getElementById('transferNotes').value
+      };
+
+      if (formData.from_location_id === formData.to_location_id) {
+        showNotification('Source and destination must be different', 'warning');
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/locations/transfer`, {
+          method: 'POST',
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          showNotification('Inventory transferred successfully', 'success');
+          hideTransferForm();
+          await loadProductLocations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to transfer inventory', 'danger');
+        }
+      } catch (error) {
+        console.error('Error transferring inventory:', error);
+        showNotification('Failed to transfer inventory', 'danger');
+      }
+    });
+
+    // ========== RESERVATION MANAGEMENT ==========
+    let currentProductReservations = [];
+    let currentReservationFilter = 'all';
+
+    async function loadProductReservations(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/reservations`);
+        currentProductReservations = await response.json();
+
+        // Update reservations count badge
+        const activeCount = currentProductReservations.filter(r => r.status === 'active' || r.status === 'partially_fulfilled').length;
+        document.getElementById('reservationsCount').textContent = activeCount;
+
+        // Load reservation statistics
+        await loadReservationStatistics(productId);
+
+        // Render reservations table
+        renderReservationsTable();
+
+        // Load all existing jobs for autocomplete
+        await loadAllJobs();
+
+        // Set today's date as default
+        document.getElementById('reservationDate').valueAsDate = new Date();
+      } catch (error) {
+        console.error('Error loading reservations:', error);
+        showNotification('Failed to load reservations', 'danger');
+      }
+    }
+
+    async function loadReservationStatistics(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/reservations/statistics`);
+        const stats = await response.json();
+
+        document.getElementById('statActiveReservations').textContent = stats.active_reservations_count;
+        document.getElementById('statQuantityCommitted').textContent = stats.quantity_committed.toLocaleString();
+        document.getElementById('statATP').textContent = stats.atp.toLocaleString();
+        document.getElementById('statOverdueReservations').textContent = stats.overdue_reservations;
+        document.getElementById('statUpcomingReservations').textContent = stats.upcoming_reservations;
+
+        // Update available for reservation message
+        document.getElementById('availableForReservation').textContent =
+          `${stats.atp} units available to reserve`;
+      } catch (error) {
+        console.error('Error loading reservation statistics:', error);
+      }
+    }
+
+    async function loadAllJobs() {
+      try {
+        const response = await apiCall('/jobs');
+        const jobs = await response.json();
+
+        const datalist = document.getElementById('existingJobs');
+        datalist.innerHTML = '';
+        jobs.forEach(job => {
+          const option = document.createElement('option');
+          option.value = job.job_number;
+          option.setAttribute('data-name', job.job_name || '');
+          datalist.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading jobs:', error);
+      }
+    }
+
+    function renderReservationsTable() {
+      const tbody = document.getElementById('reservationsTableBody');
+
+      // Filter reservations based on current filter
+      let filteredReservations = currentProductReservations;
+      if (currentReservationFilter !== 'all') {
+        filteredReservations = currentProductReservations.filter(r => r.status === currentReservationFilter);
+      }
+
+      if (filteredReservations.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center text-muted py-5">
+              <i class="ti ti-clipboard-check" style="font-size: 2rem;"></i>
+              <p class="mb-0">No ${currentReservationFilter !== 'all' ? currentReservationFilter : ''} reservations</p>
+              ${currentReservationFilter === 'all' ? '<button class="btn btn-sm btn-primary mt-2" onclick="showAddReservationForm()">Reserve First Item</button>' : ''}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = '';
+      filteredReservations.forEach(reservation => {
+        const statusBadge = getReservationStatusBadge(reservation.status);
+        const remaining = reservation.quantity_reserved - reservation.quantity_fulfilled;
+        const reservedBy = reservation.reserved_by ? `by ${reservation.reserved_by.name}` : '';
+        const requiredDate = reservation.required_date ? new Date(reservation.required_date).toLocaleDateString() : '-';
+        const isOverdue = reservation.required_date && new Date(reservation.required_date) < new Date() && (reservation.status === 'active' || reservation.status === 'partially_fulfilled');
+
+        const row = `
+          <tr ${isOverdue ? 'class="table-danger"' : ''}>
+            <td>
+              <strong>${reservation.job_number}</strong>
+              ${reservation.job_name ? `<br><small class="text-muted">${reservation.job_name}</small>` : ''}
+              ${reservedBy ? `<br><small class="text-muted">${reservedBy}</small>` : ''}
+            </td>
+            <td>${new Date(reservation.reserved_date).toLocaleDateString()}</td>
+            <td>${requiredDate}${isOverdue ? ' <span class="badge text-bg-danger">OVERDUE</span>' : ''}</td>
+            <td class="text-end">${reservation.quantity_reserved}</td>
+            <td class="text-end">${reservation.quantity_fulfilled}</td>
+            <td class="text-end"><strong>${remaining}</strong></td>
+            <td>${statusBadge}</td>
+            <td class="table-actions">
+              <div class="btn-group">
+                ${(reservation.status === 'active' || reservation.status === 'partially_fulfilled') ? `
+                  <button class="btn btn-sm btn-icon btn-ghost-success" onclick="showFulfillModal(${reservation.id})" title="Fulfill">
+                    <i class="ti ti-check"></i>
+                  </button>
+                  <button class="btn btn-sm btn-icon btn-ghost-warning" onclick="releaseReservation(${reservation.id})" title="Release/Cancel">
+                    <i class="ti ti-x"></i>
+                  </button>
+                  <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editReservation(${reservation.id})" title="Edit">
+                    <i class="ti ti-edit"></i>
+                  </button>
+                ` : ''}
+                ${(reservation.status === 'fulfilled' || reservation.status === 'cancelled') ? `
+                  <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteReservation(${reservation.id})" title="Delete">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+        tbody.innerHTML += row;
+      });
+    }
+
+    function getReservationStatusBadge(status) {
+      const badges = {
+        'active': '<span class="badge text-bg-warning">Active</span>',
+        'partially_fulfilled': '<span class="badge text-bg-info">Partially Fulfilled</span>',
+        'fulfilled': '<span class="badge text-bg-success">Fulfilled</span>',
+        'cancelled': '<span class="badge text-bg-secondary">Cancelled</span>'
+      };
+      return badges[status] || badges['active'];
+    }
+
+    function filterReservations(filter) {
+      currentReservationFilter = filter;
+
+      // Update active tab
+      document.querySelectorAll('#reservationFilterTabs .nav-link').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-filter') === filter) {
+          link.classList.add('active');
+        }
+      });
+
+      renderReservationsTable();
+    }
+
+    function showAddReservationForm() {
+      document.getElementById('reservationFormTitle').textContent = 'Reserve Inventory';
+      document.getElementById('reservationForm').reset();
+      document.getElementById('reservationId').value = '';
+      document.getElementById('reservationDate').valueAsDate = new Date();
+      document.getElementById('reservationFormCard').style.display = 'block';
+      document.getElementById('reservationJobNumber').focus();
+    }
+
+    function hideReservationForm() {
+      document.getElementById('reservationFormCard').style.display = 'none';
+      document.getElementById('reservationForm').reset();
+    }
+
+    function editReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      document.getElementById('reservationFormTitle').textContent = 'Edit Reservation';
+      document.getElementById('reservationId').value = reservation.id;
+      document.getElementById('reservationJobNumber').value = reservation.job_number;
+      document.getElementById('reservationJobName').value = reservation.job_name || '';
+      document.getElementById('reservationQuantity').value = reservation.quantity_reserved;
+      document.getElementById('reservationDate').value = reservation.reserved_date;
+      document.getElementById('reservationRequiredDate').value = reservation.required_date || '';
+      document.getElementById('reservationNotes').value = reservation.notes || '';
+      document.getElementById('reservationFormCard').style.display = 'block';
+      document.getElementById('reservationJobNumber').focus();
+    }
+
+    async function releaseReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      const notes = prompt(`Release reservation for ${reservation.job_number}?\n\nEnter notes (optional):`);
+      if (notes === null) return; // User cancelled
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}/release`, {
+          method: 'POST',
+          body: JSON.stringify({ notes: notes || '' })
+        });
+
+        if (response.ok) {
+          showNotification('Reservation released successfully', 'success');
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to release reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error releasing reservation:', error);
+        showNotification('Failed to release reservation', 'danger');
+      }
+    }
+
+    function showFulfillModal(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      const remaining = reservation.quantity_reserved - reservation.quantity_fulfilled;
+      const quantity = prompt(`Fulfill reservation for ${reservation.job_number}\n\nRemaining: ${remaining} units\nEnter quantity to fulfill:`);
+
+      if (quantity === null) return; // User cancelled
+
+      const qtyNum = parseInt(quantity);
+      if (isNaN(qtyNum) || qtyNum <= 0) {
+        showNotification('Please enter a valid quantity', 'warning');
+        return;
+      }
+
+      fulfillReservation(reservationId, qtyNum);
+    }
+
+    async function fulfillReservation(reservationId, quantity) {
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}/fulfill`, {
+          method: 'POST',
+          body: JSON.stringify({
+            quantity_fulfilled: quantity,
+            notes: `Fulfilled ${quantity} units`
+          })
+        });
+
+        if (response.ok) {
+          showNotification('Reservation fulfilled successfully', 'success');
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to fulfill reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error fulfilling reservation:', error);
+        showNotification('Failed to fulfill reservation', 'danger');
+      }
+    }
+
+    async function deleteReservation(reservationId) {
+      const reservation = currentProductReservations.find(r => r.id === reservationId);
+      if (!reservation) return;
+
+      if (!confirm(`Delete reservation for ${reservation.job_number}?\n\nThis action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showNotification('Reservation deleted successfully', 'success');
+          await loadProductReservations(currentProductId);
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to delete reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error deleting reservation:', error);
+        showNotification('Failed to delete reservation', 'danger');
+      }
+    }
+
+    // Reservation Form Submit
+    document.getElementById('reservationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const reservationId = document.getElementById('reservationId').value;
+      const formData = {
+        job_number: document.getElementById('reservationJobNumber').value,
+        job_name: document.getElementById('reservationJobName').value,
+        quantity_reserved: parseInt(document.getElementById('reservationQuantity').value),
+        reserved_date: document.getElementById('reservationDate').value,
+        required_date: document.getElementById('reservationRequiredDate').value || null,
+        notes: document.getElementById('reservationNotes').value
+      };
+
+      try {
+        const saveBtn = document.getElementById('saveReservationBtn');
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        let response;
+        if (reservationId) {
+          // Update existing reservation
+          response = await apiCall(`/products/${currentProductId}/reservations/${reservationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+          });
+        } else {
+          // Create new reservation
+          response = await apiCall(`/products/${currentProductId}/reservations`, {
+            method: 'POST',
+            body: JSON.stringify(formData)
+          });
+        }
+
+        if (response.ok) {
+          showNotification(reservationId ? 'Reservation updated successfully' : 'Inventory reserved successfully', 'success');
+          hideReservationForm();
+          await loadProductReservations(currentProductId);
+          await loadDashboard(); // Refresh main dashboard
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to save reservation', 'danger');
+        }
+      } catch (error) {
+        console.error('Error saving reservation:', error);
+        showNotification('Failed to save reservation', 'danger');
+      } finally {
+        const saveBtn = document.getElementById('saveReservationBtn');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="ti ti-check me-1"></i>Reserve';
+      }
+    });
+
+    // ========== CONFIGURATION DATA ==========
+    let finishCodes = {};
+    let unitOfMeasures = {};
+
+    async function loadConfigurations() {
+      try {
+        // Load finish codes
+        const finishResponse = await apiCall('/finish-codes');
+        finishCodes = await finishResponse.json();
+
+        // Load UOMs
+        const uomResponse = await apiCall('/unit-of-measures');
+        unitOfMeasures = await uomResponse.json();
+
+        // Populate finish dropdown
+        const finishSelect = document.getElementById('productFinish');
+        finishSelect.innerHTML = '<option value="">None</option>';
+        Object.entries(finishCodes).forEach(([code, name]) => {
+          const option = document.createElement('option');
+          option.value = code;
+          option.textContent = `${code} - ${name}`;
+          finishSelect.appendChild(option);
+        });
+
+        // Populate UOM dropdowns
+        const uomSelects = ['productUOM', 'productPurchaseUOM', 'productStockUOM'];
+        uomSelects.forEach(selectId => {
+          const select = document.getElementById(selectId);
+          const firstOption = select.querySelector('option').outerHTML; // Keep first option
+          select.innerHTML = firstOption;
+
+          Object.entries(unitOfMeasures).forEach(([code, name]) => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.textContent = `${code} - ${name}`;
+            select.appendChild(option);
+          });
+        });
+
+      } catch (error) {
+        console.error('Error loading configurations:', error);
+      }
+    }
+
+    // Auto-generate SKU preview
+    function updateSkuPreview() {
+      const partNumber = document.getElementById('productPartNumber').value.trim().toUpperCase();
+      const finish = document.getElementById('productFinish').value;
+      const skuField = document.getElementById('productSku');
+      const skuPreview = document.getElementById('skuPreview');
+
+      if (partNumber) {
+        const generatedSku = finish ? `${partNumber}-${finish}` : partNumber;
+        skuPreview.textContent = `Will generate: ${generatedSku}`;
+        skuPreview.classList.add('text-primary');
+
+        // Auto-fill SKU if empty
+        if (!skuField.value) {
+          skuField.value = generatedSku;
+        }
+      } else {
+        skuPreview.textContent = '';
+        skuPreview.classList.remove('text-primary');
+      }
+    }
+
+    // Calculate reorder point preview
+    function updateReorderPointPreview() {
+      const avgDailyUse = parseFloat(document.getElementById('productAvgDailyUse').value) || 0;
+      const leadTime = parseInt(document.getElementById('productLeadTime').value) || 0;
+      const safetyStock = parseInt(document.getElementById('productSafetyStock').value) || 0;
+      const reorderField = document.getElementById('productReorderPoint');
+      const reorderPreview = document.getElementById('reorderPreview');
+
+      if (avgDailyUse && leadTime) {
+        const calculatedReorder = Math.round((avgDailyUse * leadTime) + safetyStock);
+        reorderPreview.textContent = `Calculated: ${calculatedReorder}`;
+        reorderPreview.classList.add('text-success');
+
+        // Auto-fill if empty
+        if (!reorderField.value) {
+          reorderField.value = calculatedReorder;
+        }
+      } else {
+        reorderPreview.textContent = '';
+        reorderPreview.classList.remove('text-success');
+      }
+    }
+
+    // Add event listeners for auto-calculations
+    document.getElementById('productPartNumber').addEventListener('input', updateSkuPreview);
+    document.getElementById('productFinish').addEventListener('change', updateSkuPreview);
+    document.getElementById('productAvgDailyUse').addEventListener('input', updateReorderPointPreview);
+    document.getElementById('productLeadTime').addEventListener('input', updateReorderPointPreview);
+    document.getElementById('productSafetyStock').addEventListener('input', updateReorderPointPreview);
 
     function showAddProductModal() {
-      const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
       document.getElementById('addProductForm').reset();
       document.getElementById('formError').style.display = 'none';
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-      modal.show();
+      document.getElementById('skuPreview').textContent = '';
+      document.getElementById('reorderPreview').textContent = '';
+      showModal(document.getElementById('addProductModal'));
     }
 
     // Add Product Form Submission
@@ -904,8 +2308,7 @@
         });
 
         if (response.ok) {
-          const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-          modal.hide();
+          hideModal(document.getElementById('addProductModal'));
           showNotification('Product created successfully!', 'success');
           loadDashboard();
         } else {
@@ -1009,6 +2412,7 @@
     if (authToken) {
       showApp();
       loadDashboard();
+      loadConfigurations(); // Load finish codes and UOMs
     } else {
       showLogin();
     }
