@@ -8,71 +8,9 @@ let assets = [];
 let tasks = [];
 let records = [];
 
-// Bootstrap Modal Helper - handles initialization safely
-function showModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = new window.bootstrap.Modal(modalElement);
-      modal.show();
-      return true;
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available, using fallback:', e);
-  }
-
-  // Fallback: manually show modal without Bootstrap
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop fade show';
-  backdrop.id = 'modal-backdrop-' + modalElement.id;
-  document.body.appendChild(backdrop);
-
-  modalElement.style.display = 'block';
-  modalElement.classList.add('show');
-  modalElement.removeAttribute('aria-hidden');
-  modalElement.setAttribute('aria-modal', 'true');
-  document.body.classList.add('modal-open');
-
-  // Close on backdrop click
-  backdrop.addEventListener('click', () => hideModal(modalElement));
-
-  // Add close button listeners
-  const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
-  closeButtons.forEach(btn => {
-    btn.onclick = () => hideModal(modalElement);
-  });
-
-  return false;
-}
-
-function hideModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = window.bootstrap.Modal.getInstance(modalElement);
-      if (modal) {
-        modal.hide();
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available for hide, using fallback:', e);
-  }
-
-  // Fallback: manually hide modal
-  modalElement.style.display = 'none';
-  modalElement.classList.remove('show');
-  modalElement.setAttribute('aria-hidden', 'true');
-  modalElement.removeAttribute('aria-modal');
-  document.body.classList.remove('modal-open');
-
-  const backdrop = document.getElementById('modal-backdrop-' + modalElement.id);
-  if (backdrop) {
-    backdrop.remove();
-  }
-}
-
 // Authentication
 function checkAuth() {
-  authToken = localStorage.getItem('authToken');
+  authToken = localStorage.getItem('auth_token');
   if (authToken) {
     document.getElementById('loginPage').classList.remove('active');
     document.getElementById('app').classList.add('active');
@@ -98,7 +36,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     if (response.ok) {
       const data = await response.json();
       authToken = data.token;
-      localStorage.setItem('authToken', authToken);
+      localStorage.setItem('auth_token', authToken);
       checkAuth();
     } else {
       document.getElementById('loginError').textContent = 'Invalid credentials';
@@ -113,7 +51,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
   e.preventDefault();
-  localStorage.removeItem('authToken');
+  localStorage.removeItem('auth_token');
   authToken = null;
   checkAuth();
 });
@@ -214,7 +152,7 @@ function openMachineModal(id = null) {
 
 function editMachine(id) {
   openMachineModal(id);
-  showModal(document.getElementById('machineModal'));
+  new bootstrap.Modal(document.getElementById('machineModal')).show();
 }
 
 async function deleteMachine(id) {
@@ -251,7 +189,7 @@ document.getElementById('machineForm').addEventListener('submit', async (e) => {
       await apiCall('/machines', { method: 'POST', body: JSON.stringify(data) });
     }
 
-    hideModal(document.getElementById('machineModal'));
+    bootstrap.Modal.getInstance(document.getElementById('machineModal')).hide();
     await loadMachines();
     await loadDashboard();
   } catch (error) {
@@ -321,7 +259,7 @@ function openAssetModal(id = null) {
 
 function editAsset(id) {
   openAssetModal(id);
-  showModal(document.getElementById('assetModal'));
+  new bootstrap.Modal(document.getElementById('assetModal')).show();
 }
 
 async function deleteAsset(id) {
@@ -357,7 +295,7 @@ document.getElementById('assetForm').addEventListener('submit', async (e) => {
       await apiCall('/assets', { method: 'POST', body: JSON.stringify(data) });
     }
 
-    hideModal(document.getElementById('assetModal'));
+    bootstrap.Modal.getInstance(document.getElementById('assetModal')).hide();
     await loadAssets();
   } catch (error) {
     console.error('Failed to save asset:', error);
@@ -439,7 +377,7 @@ function openTaskModal(id = null) {
 
 function editTask(id) {
   openTaskModal(id);
-  showModal(document.getElementById('taskModal'));
+  new bootstrap.Modal(document.getElementById('taskModal')).show();
 }
 
 async function deleteTask(id) {
@@ -479,7 +417,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
       await apiCall('/maintenance-tasks', { method: 'POST', body: JSON.stringify(data) });
     }
 
-    hideModal(document.getElementById('taskModal'));
+    bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
     await loadTasks();
     await loadDashboard();
   } catch (error) {
@@ -553,7 +491,7 @@ function openRecordModal(id = null) {
 
 function editRecord(id) {
   openRecordModal(id);
-  showModal(document.getElementById('recordModal'));
+  new bootstrap.Modal(document.getElementById('recordModal')).show();
 }
 
 async function deleteRecord(id) {
@@ -595,7 +533,7 @@ document.getElementById('recordForm').addEventListener('submit', async (e) => {
       await apiCall('/maintenance-records', { method: 'POST', body: JSON.stringify(data) });
     }
 
-    hideModal(document.getElementById('recordModal'));
+    bootstrap.Modal.getInstance(document.getElementById('recordModal')).hide();
     await loadRecords();
     await loadDashboard();
   } catch (error) {

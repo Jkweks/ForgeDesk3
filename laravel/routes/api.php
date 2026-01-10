@@ -11,8 +11,6 @@ use App\Http\Controllers\Api\MachineController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\MaintenanceTaskController;
 use App\Http\Controllers\Api\MaintenanceRecordController;
-use App\Http\Controllers\Api\InventoryLocationController;
-use App\Http\Controllers\Api\JobReservationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -67,31 +65,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);
         Route::get('/products/{product}/transactions', [ProductController::class, 'getTransactions']);
-        Route::get('/products/{product}/calculate-reorder', [ProductController::class, 'calculateReorderPoint']);
-        Route::get('/finish-codes', [ProductController::class, 'getFinishCodes']);
-        Route::get('/unit-of-measures', [ProductController::class, 'getUnitOfMeasures']);
-
-        // Inventory Locations
-        Route::get('/products/{product}/locations', [InventoryLocationController::class, 'index']);
-        Route::post('/products/{product}/locations', [InventoryLocationController::class, 'store']);
-        Route::put('/products/{product}/locations/{location}', [InventoryLocationController::class, 'update']);
-        Route::delete('/products/{product}/locations/{location}', [InventoryLocationController::class, 'destroy']);
-        Route::post('/products/{product}/locations/transfer', [InventoryLocationController::class, 'transfer']);
-        Route::post('/products/{product}/locations/{location}/adjust', [InventoryLocationController::class, 'adjust']);
-        Route::get('/products/{product}/locations/statistics', [InventoryLocationController::class, 'statistics']);
-        Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
-
-        // Job Reservations
-        Route::get('/products/{product}/reservations', [JobReservationController::class, 'index']);
-        Route::get('/products/{product}/reservations/active', [JobReservationController::class, 'active']);
-        Route::post('/products/{product}/reservations', [JobReservationController::class, 'store']);
-        Route::put('/products/{product}/reservations/{reservation}', [JobReservationController::class, 'update']);
-        Route::post('/products/{product}/reservations/{reservation}/fulfill', [JobReservationController::class, 'fulfill']);
-        Route::post('/products/{product}/reservations/{reservation}/release', [JobReservationController::class, 'release']);
-        Route::delete('/products/{product}/reservations/{reservation}', [JobReservationController::class, 'destroy']);
-        Route::get('/products/{product}/reservations/statistics', [JobReservationController::class, 'statistics']);
-        Route::get('/jobs', [JobReservationController::class, 'getAllJobs']);
-
+        
         // Orders
         Route::apiResource('orders', OrderController::class);
         Route::post('/orders/{order}/commit', [OrderController::class, 'commitInventory']);
