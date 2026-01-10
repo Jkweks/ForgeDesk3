@@ -44,11 +44,11 @@
         <form id="loginForm">
           <div class="mb-3">
             <label class="form-label">Email</label>
-            <input type="email" class="form-control" id="loginEmail" value="admin@forgedesk.local" required>
+            <input type="email" class="form-control" id="loginEmail" value="admin@forgedesk.local" autocomplete="username" required>
           </div>
           <div class="mb-3">
             <label class="form-label">Password</label>
-            <input type="password" class="form-control" id="loginPassword" value="password" required>
+            <input type="password" class="form-control" id="loginPassword" value="password" autocomplete="current-password" required>
           </div>
           <div id="loginError" class="alert alert-danger" style="display: none;"></div>
           <button type="submit" class="btn btn-primary w-100">Login</button>
