@@ -524,8 +524,57 @@
 
             <!-- Activity Tab -->
             <div class="tab-pane fade" id="activity" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center">
+                  <div class="col">
+                    <h3 class="mb-0">Activity History</h3>
+                    <p class="text-muted mb-0">All inventory transactions for this product</p>
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select form-select-sm" id="activityTypeFilter" onchange="loadProductActivity(currentProductId)">
+                      <option value="">All Types</option>
+                      <option value="receipt">Receipts</option>
+                      <option value="shipment">Shipments</option>
+                      <option value="adjustment">Adjustments</option>
+                      <option value="transfer">Transfers</option>
+                      <option value="return">Returns</option>
+                      <option value="cycle_count">Cycle Counts</option>
+                    </select>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" onclick="exportProductTransactions(currentProductId)">
+                      <i class="ti ti-download me-1"></i>Export
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="loading" id="activityLoading" style="display: none;">
+                <div class="text-muted">Loading activity...</div>
+              </div>
+
               <div id="activityContent">
-                <p class="text-muted">Activity history coming soon...</p>
+                <div class="table-responsive">
+                  <table class="table table-sm table-vcenter">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Before</th>
+                        <th class="text-end">After</th>
+                        <th>Reference</th>
+                        <th>User</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                      <tr>
+                        <td colspan="8" class="text-center text-muted">No activity records</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1226,6 +1275,7 @@
         // Load locations and reservations
         await loadProductLocations(id);
         await loadProductReservations(id);
+        await loadProductActivity(id);
 
         // Show modal
         showModal(document.getElementById('viewProductModal'));
@@ -1577,6 +1627,92 @@
       }
     }
 
+    // ========== ACTIVITY/TRANSACTIONS ==========
+    let currentProductTransactions = [];
+
+    async function loadProductActivity(productId) {
+      try {
+        document.getElementById('activityLoading').style.display = 'block';
+        document.getElementById('activityContent').style.display = 'none';
+
+        const typeFilter = document.getElementById('activityTypeFilter').value;
+        let url = `/products/${productId}/transactions?per_page=all`;
+
+        if (typeFilter) {
+          url += `&type=${typeFilter}`;
+        }
+
+        const response = await apiCall(url);
+        currentProductTransactions = response;
+        renderProductActivity();
+
+        document.getElementById('activityLoading').style.display = 'none';
+        document.getElementById('activityContent').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading product activity:', error);
+        document.getElementById('activityLoading').style.display = 'none';
+        document.getElementById('activityContent').innerHTML = '<div class="alert alert-danger">Error loading activity</div>';
+      }
+    }
+
+    function renderProductActivity() {
+      const tbody = document.getElementById('activityTableBody');
+
+      if (currentProductTransactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No activity records</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentProductTransactions.map(transaction => {
+        const date = new Date(transaction.transaction_date);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+
+        const typeBadge = getTransactionTypeBadge(transaction.type);
+        const quantityClass = transaction.quantity >= 0 ? 'text-success' : 'text-danger';
+        const quantitySign = transaction.quantity >= 0 ? '+' : '';
+
+        return `
+          <tr>
+            <td><small>${formattedDate}</small></td>
+            <td>${typeBadge}</td>
+            <td class="text-end ${quantityClass}"><strong>${quantitySign}${transaction.quantity}</strong></td>
+            <td class="text-end">${transaction.quantity_before}</td>
+            <td class="text-end">${transaction.quantity_after}</td>
+            <td>${transaction.reference_number ? escapeHtml(transaction.reference_number) : '-'}</td>
+            <td><small>${transaction.user ? escapeHtml(transaction.user.name) : '-'}</small></td>
+            <td><small>${transaction.notes ? escapeHtml(transaction.notes) : '-'}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getTransactionTypeBadge(type) {
+      const badges = {
+        'receipt': '<span class="badge text-bg-success">Receipt</span>',
+        'shipment': '<span class="badge text-bg-info">Shipment</span>',
+        'adjustment': '<span class="badge text-bg-warning">Adjustment</span>',
+        'transfer': '<span class="badge text-bg-primary">Transfer</span>',
+        'return': '<span class="badge text-bg-secondary">Return</span>',
+        'cycle_count': '<span class="badge text-bg-purple">Cycle Count</span>',
+      };
+      return badges[type] || '<span class="badge">' + type + '</span>';
+    }
+
+    async function exportProductTransactions(productId) {
+      try {
+        const typeFilter = document.getElementById('activityTypeFilter').value;
+        let url = `/transactions-export?product_id=${productId}`;
+
+        if (typeFilter) {
+          url += `&type=${typeFilter}`;
+        }
+
+        window.location.href = `${API_BASE}${url}`;
+      } catch (error) {
+        console.error('Error exporting transactions:', error);
+        showNotification('Error exporting transactions', 'danger');
+      }
+    }
     async function loadReservationStatistics(productId) {
       try {
         const response = await apiCall(`/products/${productId}/reservations/statistics`);
