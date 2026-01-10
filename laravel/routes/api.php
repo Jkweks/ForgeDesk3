@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ImportExportController;
 use App\Http\Controllers\Api\MaintenanceController;
@@ -63,6 +64,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dashboard/inventory/{status}', [DashboardController::class, 'inventoryByStatus']);
         Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
         
+        // Categories
+        Route::apiResource('categories', CategoryController::class);
+        Route::get('/categories-tree', [CategoryController::class, 'tree']);
+        Route::get('/category-systems', [CategoryController::class, 'systems']);
+        Route::post('/categories/sort-order', [CategoryController::class, 'updateSortOrder']);
+        Route::post('/categories/bulk-action', [CategoryController::class, 'bulkAction']);
+
         // Products
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);

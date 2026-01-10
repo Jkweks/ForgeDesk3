@@ -26,7 +26,7 @@
                     <a class="dropdown-item" href="#">Low Stock</a>
                     <a class="dropdown-item" href="#">Critical Stock</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Categories</a>
+                    <a class="dropdown-item" href="/categories">Categories</a>
                     <a class="dropdown-item" href="#">Suppliers</a>
                   </div>
                 </li>

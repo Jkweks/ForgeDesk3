@@ -74,14 +74,39 @@
             </div>
           </div>
 
+
+          <!-- Category Breakdown Widget -->
+          <div class="row mb-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Category Breakdown</h3>
+                  <div class="card-actions">
+                    <a href="/categories" class="btn btn-sm">Manage Categories</a>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row" id="categoryBreakdown">
+                    <div class="col-12 text-muted">
+                      <div class="text-center">Loading category data...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Inventory Table -->
           <div class="row">
             <div class="col-12">
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">Inventory Snapshot</h3>
-                  <div class="ms-auto">
-                    <input type="text" class="form-control form-control-sm" placeholder="Search..." id="searchInput">
+                  <div class="ms-auto d-flex gap-2">
+                    <select class="form-select form-select-sm" id="categoryFilter" style="width: auto;">
+                      <option value="">All Categories</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm" placeholder="Search..." id="searchInput" style="min-width: 200px;">
                   </div>
                 </div>
                 <div class="card-body">
@@ -549,7 +574,10 @@
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Category</label>
-                <input type="text" class="form-control" name="category" id="productCategory" placeholder="Hardware">
+                <select class="form-select" name="category_id" id="productCategoryId">
+                  <option value="">Select category...</option>
+                </select>
+                <small class="form-hint">Product category</small>
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Location</label>
@@ -925,13 +953,19 @@
   <script>
     // Dashboard-specific state
     let currentTab = 'all';
+    let currentCategoryFilter = '';
 
     async function loadDashboard() {
       try {
         document.getElementById('loadingIndicator').style.display = 'block';
         document.getElementById('inventoryTableContainer').style.display = 'none';
 
-        const response = await apiCall('/dashboard');
+        // Build URL with category filter if selected
+        let url = '/dashboard';
+        if (currentCategoryFilter) {
+          url += `?category_id=${currentCategoryFilter}`;
+        }
+        const response = await apiCall(url);
         const data = await response.json();
 
         document.getElementById('statSkus').textContent = data.stats.skus_tracked.toLocaleString();
@@ -1001,6 +1035,7 @@
         currentTab = e.target.dataset.tab;
         if (currentTab === 'all') {
           loadDashboard();
+      loadCategoryBreakdown();
         } else {
           await loadByStatus(currentTab);
         }
@@ -1009,7 +1044,11 @@
 
     async function loadByStatus(status) {
       try {
-        const response = await apiCall(`/dashboard/inventory/${status}`);
+        let url = `/dashboard/inventory/${status}`;
+        if (currentCategoryFilter) {
+          url += `?category_id=${currentCategoryFilter}`;
+        }
+        const response = await apiCall(url);
         const data = await response.json();
         renderInventoryTable(data.data);
       } catch (error) {
@@ -1407,6 +1446,7 @@
           hideLocationForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save location', 'danger');
@@ -1496,6 +1536,7 @@
           hideTransferForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to transfer inventory', 'danger');
@@ -1713,6 +1754,7 @@
           showNotification('Reservation released successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to release reservation', 'danger');
@@ -1755,6 +1797,7 @@
           showNotification('Reservation fulfilled successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to fulfill reservation', 'danger');
@@ -1830,6 +1873,7 @@
           hideReservationForm();
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save reservation', 'danger');
@@ -1847,6 +1891,7 @@
     // ========== CONFIGURATION DATA ==========
     let finishCodes = {};
     let unitOfMeasures = {};
+    let categories = [];
 
     async function loadConfigurations() {
       try {
@@ -1857,6 +1902,10 @@
         // Load UOMs
         const uomResponse = await apiCall('/unit-of-measures');
         unitOfMeasures = await uomResponse.json();
+
+        // Load categories
+        const categoriesResponse = await apiCall('/categories?per_page=all&with_parent=true');
+        categories = await categoriesResponse.json();
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
@@ -1883,9 +1932,34 @@
           });
         });
 
+        // Populate category dropdown
+        populateCategoryDropdown();
+
       } catch (error) {
         console.error('Error loading configurations:', error);
       }
+    }
+
+    function populateCategoryDropdown() {
+      const categorySelect = document.getElementById('productCategoryId');
+      categorySelect.innerHTML = '<option value="">Select category...</option>';
+
+      // Sort categories by name
+      const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+
+        // Show parent category if exists
+        if (category.parent) {
+          option.textContent = `${category.parent.name} > ${category.name}`;
+        } else {
+          option.textContent = category.name;
+        }
+
+        categorySelect.appendChild(option);
+      });
     }
 
     // Auto-generate SKU preview
@@ -1982,6 +2056,7 @@
           hideModal(document.getElementById('addProductModal'));
           showNotification('Product created successfully!', 'success');
           loadDashboard();
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           if (error.errors) {
@@ -2080,9 +2155,76 @@
 
     checkItems();
 
+
+    // Category filter event listener
+    document.getElementById('categoryFilter').addEventListener('change', function(e) {
+      currentCategoryFilter = e.target.value;
+      if (currentTab === 'all') {
+        loadDashboard();
+      loadCategoryBreakdown();
+      } else {
+        loadByStatus(currentTab);
+      }
+    });
+
+
+    // Load and render category breakdown
+    async function loadCategoryBreakdown() {
+      try {
+        const response = await apiCall('/categories?per_page=all');
+        const allCategories = await response.json();
+
+        // Get product counts for each category
+        const categoryStats = allCategories.filter(cat => cat.products_count > 0)
+          .sort((a, b) => b.products_count - a.products_count)
+          .slice(0, 6); // Top 6 categories
+
+        const container = document.getElementById('categoryBreakdown');
+
+        if (categoryStats.length === 0) {
+          container.innerHTML = '<div class="col-12 text-muted"><div class="text-center">No categories with products yet</div></div>';
+          return;
+        }
+
+        container.innerHTML = categoryStats.map(category => `
+          <div class="col-sm-6 col-lg-2">
+            <a href="#" class="text-decoration-none" onclick="filterByCategory(${category.id}); return false;">
+              <div class="card card-sm card-link">
+                <div class="card-body">
+                  <div class="subheader">${htmlEscape(category.name)}</div>
+                  <div class="h2 mb-0">${category.products_count}</div>
+                  <div class="text-muted small">${category.products_count === 1 ? 'product' : 'products'}</div>
+                </div>
+              </div>
+            </a>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading category breakdown:', error);
+      }
+    }
+
+    function filterByCategory(categoryId) {
+      const categoryFilter = document.getElementById('categoryFilter');
+      categoryFilter.value = categoryId;
+      currentCategoryFilter = categoryId;
+      if (currentTab === 'all') {
+        loadDashboard();
+      loadCategoryBreakdown();
+      } else {
+        loadByStatus(currentTab);
+      }
+    }
+
+    function htmlEscape(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
     // Initialize dashboard if authenticated
     if (authToken) {
       loadDashboard();
+      loadCategoryBreakdown();
       loadConfigurations(); // Load finish codes and UOMs
     }
   </script>
