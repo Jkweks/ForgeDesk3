@@ -77,6 +77,8 @@
   <script src="{{ asset('assets/tabler/js/tabler.min.js') }}"></script>
   <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
 
+  @include('partials.auth-scripts')
+
   @stack('scripts')
 </body>
 </html>

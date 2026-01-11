@@ -1266,9 +1266,32 @@
 
     async function exportProducts() {
       try {
-        window.location.href = `${API_BASE}/export/products`;
+        const response = await fetch(`${API_BASE}/export/products`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'text/csv'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showNotification('Products exported successfully', 'success');
       } catch (error) {
-        alert('Export failed: ' + error.message);
+        console.error('Export failed:', error);
+        showNotification('Export failed: ' + error.message, 'danger');
       }
     }
 
@@ -1876,11 +1899,34 @@
           url += `&type=${typeFilter}`;
         }
 
-        window.location.href = `${API_BASE}${url}`;
+        const response = await fetch(`${API_BASE}${url}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'text/csv'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `transactions_export_${productId}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        showNotification('Transactions exported successfully', 'success');
       } catch (error) {
         console.error('Error exporting transactions:', error);
-        showNotification('Error exporting transactions', 'danger');
+        showNotification('Error exporting transactions: ' + error.message, 'danger');
       }
+    }
 
     // ========== CONFIGURATOR & BOM ==========
     let currentBOM = [];

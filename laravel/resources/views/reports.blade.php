@@ -855,8 +855,38 @@ async function loadUsageReport() {
 }
 
 // Export report
-function exportReport(type) {
-  window.location.href = `${API_BASE}/reports/export?type=${type}`;
+async function exportReport(type) {
+  try {
+    const response = await fetch(`${API_BASE}/reports/export?type=${type}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'text/csv'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    // Get the blob from response
+    const blob = await response.blob();
+
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    showNotification('Report exported successfully', 'success');
+  } catch (error) {
+    console.error('Error exporting report:', error);
+    showNotification('Error exporting report', 'danger');
+  }
 }
 
 // Refresh all visible reports
