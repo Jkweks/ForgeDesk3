@@ -193,8 +193,6 @@
       </div>
     </div>
 
-    @include('partials.auth-scripts')
-
     <script>
     let categories = [];
     let systems = [];
@@ -234,7 +232,7 @@
       const search = document.getElementById('searchInput').value;
       const system = document.getElementById('filterSystem').value;
 
-      let url = '/api/v1/categories?per_page=all&with_parent=true&with_children=true';
+      let url = '/categories?per_page=all&with_parent=true&with_children=true';
 
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
@@ -257,7 +255,7 @@
 
     async function loadSystems() {
       try {
-        const response = await authenticatedFetch('/api/v1/category-systems');
+        const response = await authenticatedFetch('/category-systems');
         systems = response;
         populateSystemFilter();
         populateSystemDatalist();
@@ -418,7 +416,7 @@
       document.getElementById('categoryModalTitle').textContent = 'Edit Category';
 
       try {
-        const category = await authenticatedFetch(`/api/v1/categories/${id}`);
+        const category = await authenticatedFetch(`/categories/${id}`);
 
         document.getElementById('categoryName').value = category.name || '';
         document.getElementById('categoryCode').value = category.code || '';
@@ -478,14 +476,14 @@
 
       try {
         if (editingCategoryId) {
-          await authenticatedFetch(`/api/v1/categories/${editingCategoryId}`, {
+          await authenticatedFetch(`/categories/${editingCategoryId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
           showAlert('Category updated successfully', 'success');
         } else {
-          await authenticatedFetch('/api/v1/categories', {
+          await authenticatedFetch('/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
@@ -508,7 +506,7 @@
       }
 
       try {
-        await authenticatedFetch(`/api/v1/categories/${id}`, {
+        await authenticatedFetch(`/categories/${id}`, {
           method: 'DELETE',
         });
         showAlert('Category deleted successfully', 'success');

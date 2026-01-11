@@ -440,6 +440,5 @@
 @endsection
 
 @push('scripts')
-  @include('partials.auth-scripts')
   <script src="/maintenance.js"></script>
 @endpush

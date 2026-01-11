@@ -286,8 +286,6 @@
       </div>
     </div>
 
-    @include('partials.auth-scripts')
-
     <script>
     let suppliers = [];
     let countries = [];
@@ -320,7 +318,7 @@
       const country = document.getElementById('filterCountry').value;
       const status = document.getElementById('filterStatus').value;
 
-      let url = '/api/v1/suppliers?per_page=all';
+      let url = '/suppliers?per_page=all';
 
       if (search) {
         url += `&search=${encodeURIComponent(search)}`;
@@ -346,7 +344,7 @@
 
     async function loadCountries() {
       try {
-        const response = await authenticatedFetch('/api/v1/supplier-countries');
+        const response = await authenticatedFetch('/supplier-countries');
         countries = response;
         populateCountryFilter();
         populateCountryDatalist();
@@ -357,7 +355,7 @@
 
     async function loadStatistics() {
       try {
-        const response = await authenticatedFetch('/api/v1/supplier-statistics');
+        const response = await authenticatedFetch('/supplier-statistics');
         statistics = response;
         updateStats();
         renderTopSuppliers();
@@ -499,7 +497,7 @@
       document.getElementById('supplierModalTitle').textContent = 'Edit Supplier';
 
       try {
-        const supplier = await authenticatedFetch(`/api/v1/suppliers/${id}`);
+        const supplier = await authenticatedFetch(`/suppliers/${id}`);
 
         document.getElementById('supplierName').value = supplier.supplier.name || '';
         document.getElementById('supplierCode').value = supplier.supplier.code || '';
@@ -535,7 +533,7 @@
       viewingSupplierId = id;
 
       try {
-        const data = await authenticatedFetch(`/api/v1/suppliers/${id}`);
+        const data = await authenticatedFetch(`/suppliers/${id}`);
         const supplier = data.supplier;
         const stats = data.stats;
 
@@ -602,7 +600,7 @@
 
     async function loadSupplierProducts(supplierId) {
       try {
-        const response = await authenticatedFetch(`/api/v1/suppliers/${supplierId}/products`);
+        const response = await authenticatedFetch(`/suppliers/${supplierId}/products`);
         const products = response.data;
 
         const container = document.getElementById('supplierProducts');
@@ -679,14 +677,14 @@
 
       try {
         if (editingSupplierId) {
-          await authenticatedFetch(`/api/v1/suppliers/${editingSupplierId}`, {
+          await authenticatedFetch(`/suppliers/${editingSupplierId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
           showAlert('Supplier updated successfully', 'success');
         } else {
-          await authenticatedFetch('/api/v1/suppliers', {
+          await authenticatedFetch('/suppliers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
@@ -709,7 +707,7 @@
       }
 
       try {
-        await authenticatedFetch(`/api/v1/suppliers/${id}`, {
+        await authenticatedFetch(`/suppliers/${id}`, {
           method: 'DELETE',
         });
         showAlert('Supplier deleted successfully', 'success');

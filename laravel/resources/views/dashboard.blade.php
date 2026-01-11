@@ -1157,7 +1157,6 @@
 @endsection
 
 @push('scripts')
-  @include('partials.auth-scripts')
   <script>
     // Dashboard-specific state
     let currentTab = 'all';
@@ -2737,24 +2736,6 @@
         saveBtn.innerHTML = '<i class="ti ti-device-floppy icon"></i> Save Product';
       }
     });
-
-    // Notification system
-    function showNotification(message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = `alert alert-${type} alert-dismissible position-fixed top-0 end-0 m-3`;
-      toast.style.zIndex = '9999';
-      toast.style.minWidth = '300px';
-      toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.add('fade');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
 
     // Theme settings from Tabler demo
     var themeConfig = {

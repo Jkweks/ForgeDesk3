@@ -72,9 +72,9 @@ class ReportsController extends Controller
             'committed_products' => $committedProducts,
             'summary' => [
                 'total_products' => $committedProducts->count(),
-                'total_quantity_committed' => $committedProducts->sum('quantity_committed'),
+                'total_quantity_committed' => $committedProducts->sum('committed'),
                 'total_value_committed' => $committedProducts->sum(function($p) {
-                    return $p['quantity_committed'] * $p['unit_cost'];
+                    return $p['committed'] * $p['unit_cost'];
                 }),
             ],
         ]);
@@ -154,10 +154,10 @@ class ReportsController extends Controller
     {
         $products = Product::where('is_active', true)
             ->where(function($query) {
-                // Products at or below reorder point
-                $query->whereRaw('quantity_available <= reorder_point')
+                // Products at or below reorder point (using actual DB columns)
+                $query->whereRaw('(quantity_on_hand - quantity_committed) <= reorder_point')
                     // Or products below minimum
-                    ->orWhereRaw('quantity_available <= minimum_quantity');
+                    ->orWhereRaw('(quantity_on_hand - quantity_committed) <= minimum_quantity');
             })
             ->with(['category', 'supplier'])
             ->get()
