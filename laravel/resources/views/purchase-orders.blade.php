@@ -365,6 +365,57 @@ let allSuppliers = [];
 let lineItemCounter = 0;
 let searchTimeout = null;
 
+// Safe modal helpers
+function safeShowModal(modalId) {
+  const modalElement = document.getElementById(modalId);
+  if (!modalElement) return;
+
+  // Try using Bootstrap if available
+  if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+    return modal;
+  }
+
+  // Fallback: manual modal display
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop fade show';
+  backdrop.id = 'backdrop-' + modalId;
+  document.body.appendChild(backdrop);
+
+  modalElement.style.display = 'block';
+  modalElement.classList.add('show');
+  modalElement.setAttribute('aria-modal', 'true');
+  modalElement.removeAttribute('aria-hidden');
+  document.body.classList.add('modal-open');
+
+  return null;
+}
+
+function safeHideModal(modalId) {
+  const modalElement = document.getElementById(modalId);
+  if (!modalElement) return;
+
+  // Try using Bootstrap if available
+  if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+    const modal = window.bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+      modal.hide();
+      return;
+    }
+  }
+
+  // Fallback: manual modal hide
+  modalElement.style.display = 'none';
+  modalElement.classList.remove('show');
+  modalElement.setAttribute('aria-hidden', 'true');
+  modalElement.removeAttribute('aria-modal');
+  document.body.classList.remove('modal-open');
+
+  const backdrop = document.getElementById('backdrop-' + modalId);
+  if (backdrop) backdrop.remove();
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadSuppliers();
@@ -515,8 +566,7 @@ function showCreatePOModal() {
   document.getElementById('poTotalAmount').textContent = '$0.00';
   lineItemCounter = 0;
 
-  const modal = new window.bootstrap.Modal(document.getElementById('createPOModal'));
-  modal.show();
+  safeShowModal('createPOModal');
 }
 
 // Add PO line item
@@ -660,7 +710,7 @@ async function savePurchaseOrder() {
     });
 
     showNotification('Purchase order created successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('createPOModal')).hide();
+    safeHideModal('createPOModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -756,8 +806,7 @@ async function viewPODetails(poId) {
       `;
     }
 
-    const modal = new window.bootstrap.Modal(document.getElementById('viewPOModal'));
-    modal.show();
+    safeShowModal('viewPOModal');
   } catch (error) {
     console.error('Error loading PO details:', error);
     showNotification('Error loading PO details', 'danger');
@@ -771,7 +820,7 @@ async function submitPO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/submit`, { method: 'POST' });
     showNotification('Purchase order submitted successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    safeHideModal('viewPOModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -787,7 +836,7 @@ async function approvePO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/approve`, { method: 'POST' });
     showNotification('Purchase order approved successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    safeHideModal('viewPOModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -803,7 +852,7 @@ async function cancelPO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/cancel`, { method: 'POST' });
     showNotification('Purchase order cancelled successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    safeHideModal('viewPOModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -819,7 +868,7 @@ async function deletePO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}`, { method: 'DELETE' });
     showNotification('Purchase order deleted successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    safeHideModal('viewPOModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -864,11 +913,9 @@ async function showReceiveModal(poId) {
       }).join('');
 
     // Hide view modal if open
-    const viewModal = window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal'));
-    if (viewModal) viewModal.hide();
+    safeHideModal('viewPOModal');
 
-    const modal = new window.bootstrap.Modal(document.getElementById('receiveModal'));
-    modal.show();
+    safeShowModal('receiveModal');
   } catch (error) {
     console.error('Error loading receive modal:', error);
     showNotification('Error loading receive modal', 'danger');
@@ -920,7 +967,7 @@ async function submitReceive() {
     });
 
     showNotification('Materials received successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('receiveModal')).hide();
+    safeHideModal('receiveModal');
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {

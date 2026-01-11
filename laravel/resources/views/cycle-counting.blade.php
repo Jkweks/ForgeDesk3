@@ -403,6 +403,57 @@ let allProducts = [];
 let allUsers = [];
 let searchTimeout = null;
 
+// Safe modal helpers
+function safeShowModal(modalId) {
+  const modalElement = document.getElementById(modalId);
+  if (!modalElement) return;
+
+  // Try using Bootstrap if available
+  if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+    const modal = new window.bootstrap.Modal(modalElement);
+    modal.show();
+    return modal;
+  }
+
+  // Fallback: manual modal display
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop fade show';
+  backdrop.id = 'backdrop-' + modalId;
+  document.body.appendChild(backdrop);
+
+  modalElement.style.display = 'block';
+  modalElement.classList.add('show');
+  modalElement.setAttribute('aria-modal', 'true');
+  modalElement.removeAttribute('aria-hidden');
+  document.body.classList.add('modal-open');
+
+  return null;
+}
+
+function safeHideModal(modalId) {
+  const modalElement = document.getElementById(modalId);
+  if (!modalElement) return;
+
+  // Try using Bootstrap if available
+  if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+    const modal = window.bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+      modal.hide();
+      return;
+    }
+  }
+
+  // Fallback: manual modal hide
+  modalElement.style.display = 'none';
+  modalElement.classList.remove('show');
+  modalElement.setAttribute('aria-hidden', 'true');
+  modalElement.removeAttribute('aria-modal');
+  document.body.classList.remove('modal-open');
+
+  const backdrop = document.getElementById('backdrop-' + modalId);
+  if (backdrop) backdrop.remove();
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadCategories();
@@ -579,8 +630,7 @@ function showCreateSessionModal() {
   document.getElementById('sessionForm').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
 
-  const modal = new window.bootstrap.Modal(document.getElementById('createSessionModal'));
-  modal.show();
+  safeShowModal('createSessionModal');
 }
 
 // Create cycle count session
@@ -610,7 +660,7 @@ async function createCycleCountSession() {
     });
 
     showNotification('Cycle count session created successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
+    safeHideModal('createSessionModal');
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
@@ -669,8 +719,7 @@ async function enterCounts(sessionId) {
       `;
     }).join('');
 
-    const modal = new window.bootstrap.Modal(document.getElementById('countEntryModal'));
-    modal.show();
+    safeShowModal('countEntryModal');
   } catch (error) {
     console.error('Error loading count session:', error);
     showNotification('Error loading count session', 'danger');
@@ -759,11 +808,9 @@ async function viewVarianceReport(sessionId) {
     }).join('');
 
     // Hide count entry modal if open
-    const countModal = window.bootstrap.Modal.getInstance(document.getElementById('countEntryModal'));
-    if (countModal) countModal.hide();
+    safeHideModal('countEntryModal');
 
-    const modal = new window.bootstrap.Modal(document.getElementById('varianceModal'));
-    modal.show();
+    safeShowModal('varianceModal');
   } catch (error) {
     console.error('Error loading variance report:', error);
     showNotification('Error loading variance report', 'danger');
@@ -829,7 +876,7 @@ async function completeSession() {
     await authenticatedFetch(`/cycle-counts/${sessionId}/complete`, { method: 'POST' });
 
     showNotification('Cycle count session completed successfully', 'success');
-    window.bootstrap.Modal.getInstance(document.getElementById('countEntryModal')).hide();
+    safeHideModal('countEntryModal');
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
@@ -859,8 +906,7 @@ async function viewSessionDetails(sessionId) {
       document.getElementById('detailNotesSection').style.display = 'none';
     }
 
-    const modal = new window.bootstrap.Modal(document.getElementById('sessionDetailsModal'));
-    modal.show();
+    safeShowModal('sessionDetailsModal');
   } catch (error) {
     console.error('Error loading session details:', error);
     showNotification('Error loading session details', 'danger');
