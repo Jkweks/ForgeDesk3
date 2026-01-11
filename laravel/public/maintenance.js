@@ -1,143 +1,11 @@
-// API Configuration
-const API_BASE = '/api/v1';
-let authToken = null;
+// API_BASE, authToken, apiCall, showModal, hideModal, and showNotification
+// are all provided by auth-scripts.blade.php
 
 // State
 let machines = [];
 let assets = [];
 let tasks = [];
 let records = [];
-
-// Bootstrap Modal Helper - handles initialization safely
-function showModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = new window.bootstrap.Modal(modalElement);
-      modal.show();
-      return true;
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available, using fallback:', e);
-  }
-
-  // Fallback: manually show modal without Bootstrap
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop fade show';
-  backdrop.id = 'modal-backdrop-' + modalElement.id;
-  document.body.appendChild(backdrop);
-
-  modalElement.style.display = 'block';
-  modalElement.classList.add('show');
-  modalElement.removeAttribute('aria-hidden');
-  modalElement.setAttribute('aria-modal', 'true');
-  document.body.classList.add('modal-open');
-
-  // Close on backdrop click
-  backdrop.addEventListener('click', () => hideModal(modalElement));
-
-  // Add close button listeners
-  const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
-  closeButtons.forEach(btn => {
-    btn.onclick = () => hideModal(modalElement);
-  });
-
-  return false;
-}
-
-function hideModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = window.bootstrap.Modal.getInstance(modalElement);
-      if (modal) {
-        modal.hide();
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available for hide, using fallback:', e);
-  }
-
-  // Fallback: manually hide modal
-  modalElement.style.display = 'none';
-  modalElement.classList.remove('show');
-  modalElement.setAttribute('aria-hidden', 'true');
-  modalElement.removeAttribute('aria-modal');
-  document.body.classList.remove('modal-open');
-
-  const backdrop = document.getElementById('modal-backdrop-' + modalElement.id);
-  if (backdrop) {
-    backdrop.remove();
-  }
-}
-
-// Authentication
-function checkAuth() {
-  authToken = localStorage.getItem('authToken');
-  if (authToken) {
-    document.getElementById('loginPage').classList.remove('active');
-    document.getElementById('app').classList.add('active');
-    initApp();
-  } else {
-    document.getElementById('loginPage').classList.add('active');
-    document.getElementById('app').classList.remove('active');
-  }
-}
-
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-
-  try {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      authToken = data.token;
-      localStorage.setItem('authToken', authToken);
-      checkAuth();
-    } else {
-      document.getElementById('loginError').textContent = 'Invalid credentials';
-      document.getElementById('loginError').style.display = 'block';
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    document.getElementById('loginError').textContent = 'Login failed';
-    document.getElementById('loginError').style.display = 'block';
-  }
-});
-
-document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  localStorage.removeItem('authToken');
-  authToken = null;
-  checkAuth();
-});
-
-// API Helper
-async function apiCall(endpoint, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': `Bearer ${authToken}`,
-    ...options.headers
-  };
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.statusText}`);
-  }
-
-  return response.json();
-}
 
 // Initialize App
 async function initApp() {
@@ -604,7 +472,10 @@ document.getElementById('recordForm').addEventListener('submit', async (e) => {
   }
 });
 
-// Initialize on page load
+// Initialize on page load (auth is handled by auth-scripts.blade.php)
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
+  // Only initialize if user is authenticated (auth-scripts.blade.php shows/hides login)
+  if (authToken) {
+    initApp();
+  }
 });
