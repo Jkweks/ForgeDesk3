@@ -199,6 +199,57 @@
     let currentView = 'tree';
     let editingCategoryId = null;
 
+    // Safe modal helpers
+    function safeShowModal(modalId) {
+      const modalElement = document.getElementById(modalId);
+      if (!modalElement) return;
+
+      // Try using Bootstrap if available
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        const modal = new window.bootstrap.Modal(modalElement);
+        modal.show();
+        return modal;
+      }
+
+      // Fallback: manual modal display
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = 'backdrop-' + modalId;
+      document.body.appendChild(backdrop);
+
+      modalElement.style.display = 'block';
+      modalElement.classList.add('show');
+      modalElement.setAttribute('aria-modal', 'true');
+      modalElement.removeAttribute('aria-hidden');
+      document.body.classList.add('modal-open');
+
+      return null;
+    }
+
+    function safeHideModal(modalId) {
+      const modalElement = document.getElementById(modalId);
+      if (!modalElement) return;
+
+      // Try using Bootstrap if available
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        const modal = window.bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+          modal.hide();
+          return;
+        }
+      }
+
+      // Fallback: manual modal hide
+      modalElement.style.display = 'none';
+      modalElement.classList.remove('show');
+      modalElement.setAttribute('aria-hidden', 'true');
+      modalElement.removeAttribute('aria-modal');
+      document.body.classList.remove('modal-open');
+
+      const backdrop = document.getElementById('backdrop-' + modalId);
+      if (backdrop) backdrop.remove();
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       loadCategories();
@@ -407,8 +458,7 @@
       document.getElementById('categoryForm').reset();
       populateParentSelect();
 
-      const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
-      modal.show();
+      safeShowModal('categoryModal');
     }
 
     async function editCategory(id) {
@@ -428,8 +478,7 @@
 
         populateParentSelect(id);
 
-        const modal = new bootstrap.Modal(document.getElementById('categoryModal'));
-        modal.show();
+        safeShowModal('categoryModal');
       } catch (error) {
         console.error('Error loading category:', error);
         showAlert('Error loading category', 'danger');
@@ -491,7 +540,7 @@
           showAlert('Category created successfully', 'success');
         }
 
-        bootstrap.Modal.getInstance(document.getElementById('categoryModal')).hide();
+        safeHideModal('categoryModal');
         loadCategories();
         loadSystems(); // Refresh systems list
       } catch (error) {

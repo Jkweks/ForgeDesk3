@@ -293,6 +293,57 @@
     let editingSupplierId = null;
     let viewingSupplierId = null;
 
+    // Safe modal helpers
+    function safeShowModal(modalId) {
+      const modalElement = document.getElementById(modalId);
+      if (!modalElement) return;
+
+      // Try using Bootstrap if available
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        const modal = new window.bootstrap.Modal(modalElement);
+        modal.show();
+        return modal;
+      }
+
+      // Fallback: manual modal display
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop fade show';
+      backdrop.id = 'backdrop-' + modalId;
+      document.body.appendChild(backdrop);
+
+      modalElement.style.display = 'block';
+      modalElement.classList.add('show');
+      modalElement.setAttribute('aria-modal', 'true');
+      modalElement.removeAttribute('aria-hidden');
+      document.body.classList.add('modal-open');
+
+      return null;
+    }
+
+    function safeHideModal(modalId) {
+      const modalElement = document.getElementById(modalId);
+      if (!modalElement) return;
+
+      // Try using Bootstrap if available
+      if (typeof window.bootstrap !== 'undefined' && window.bootstrap.Modal) {
+        const modal = window.bootstrap.Modal.getInstance(modalElement);
+        if (modal) {
+          modal.hide();
+          return;
+        }
+      }
+
+      // Fallback: manual modal hide
+      modalElement.style.display = 'none';
+      modalElement.classList.remove('show');
+      modalElement.setAttribute('aria-hidden', 'true');
+      modalElement.removeAttribute('aria-modal');
+      document.body.classList.remove('modal-open');
+
+      const backdrop = document.getElementById('backdrop-' + modalId);
+      if (backdrop) backdrop.remove();
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
       loadSuppliers();
@@ -488,8 +539,7 @@
       document.getElementById('supplierIsActive').checked = true;
       document.getElementById('supplierCountry').value = 'USA';
 
-      const modal = new bootstrap.Modal(document.getElementById('supplierModal'));
-      modal.show();
+      safeShowModal('supplierModal');
     }
 
     async function editSupplier(id) {
@@ -515,8 +565,7 @@
         document.getElementById('supplierNotes').value = supplier.supplier.notes || '';
         document.getElementById('supplierIsActive').checked = supplier.supplier.is_active;
 
-        const modal = new bootstrap.Modal(document.getElementById('supplierModal'));
-        modal.show();
+        safeShowModal('supplierModal');
       } catch (error) {
         console.error('Error loading supplier:', error);
         showAlert('Error loading supplier', 'danger');
@@ -524,8 +573,7 @@
     }
 
     function editSupplierFromView() {
-      const modal = bootstrap.Modal.getInstance(document.getElementById('viewSupplierModal'));
-      modal.hide();
+      safeHideModal('viewSupplierModal');
       editSupplier(viewingSupplierId);
     }
 
@@ -590,8 +638,7 @@
         // Load supplier products
         loadSupplierProducts(id);
 
-        const modal = new bootstrap.Modal(document.getElementById('viewSupplierModal'));
-        modal.show();
+        safeShowModal('viewSupplierModal');
       } catch (error) {
         console.error('Error loading supplier details:', error);
         showAlert('Error loading supplier details', 'danger');
@@ -692,7 +739,7 @@
           showAlert('Supplier created successfully', 'success');
         }
 
-        bootstrap.Modal.getInstance(document.getElementById('supplierModal')).hide();
+        safeHideModal('supplierModal');
         loadSuppliers();
         loadStatistics(); // Refresh statistics
       } catch (error) {

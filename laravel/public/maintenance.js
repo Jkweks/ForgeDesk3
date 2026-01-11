@@ -1,4 +1,4 @@
-// API_BASE, authToken, apiCall, showModal, hideModal, and showNotification
+// API_BASE, authToken, authenticatedFetch, showModal, hideModal, and showNotification
 // are all provided by auth-scripts.blade.php
 
 // State
@@ -19,7 +19,7 @@ async function initApp() {
 // Load Dashboard Stats
 async function loadDashboard() {
   try {
-    const data = await apiCall('/maintenance/dashboard');
+    const data = await authenticatedFetch('/maintenance/dashboard');
     document.getElementById('dashMachineCount').textContent = data.machine_count;
     document.getElementById('dashActiveTaskCount').textContent = data.active_task_count;
     document.getElementById('dashOverdueCount').textContent = data.overdue_task_count;
@@ -32,7 +32,7 @@ async function loadDashboard() {
 // Machines
 async function loadMachines() {
   try {
-    machines = await apiCall('/machines');
+    machines = await authenticatedFetch('/machines');
     renderMachines();
   } catch (error) {
     console.error('Failed to load machines:', error);
@@ -89,7 +89,7 @@ async function deleteMachine(id) {
   if (!confirm('Are you sure you want to delete this machine?')) return;
 
   try {
-    await apiCall(`/machines/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/machines/${id}`, { method: 'DELETE' });
     await loadMachines();
     await loadDashboard();
   } catch (error) {
@@ -114,9 +114,9 @@ document.getElementById('machineForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/machines/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/machines/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/machines', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/machines', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('machineModal'));
@@ -131,7 +131,7 @@ document.getElementById('machineForm').addEventListener('submit', async (e) => {
 // Assets
 async function loadAssets() {
   try {
-    assets = await apiCall('/assets');
+    assets = await authenticatedFetch('/assets');
     renderAssets();
   } catch (error) {
     console.error('Failed to load assets:', error);
@@ -196,7 +196,7 @@ async function deleteAsset(id) {
   if (!confirm('Are you sure you want to delete this asset?')) return;
 
   try {
-    await apiCall(`/assets/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/assets/${id}`, { method: 'DELETE' });
     await loadAssets();
   } catch (error) {
     console.error('Failed to delete asset:', error);
@@ -220,9 +220,9 @@ document.getElementById('assetForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/assets', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/assets', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('assetModal'));
@@ -236,7 +236,7 @@ document.getElementById('assetForm').addEventListener('submit', async (e) => {
 // Tasks
 async function loadTasks() {
   try {
-    tasks = await apiCall('/maintenance-tasks');
+    tasks = await authenticatedFetch('/maintenance-tasks');
     renderTasks();
     populateTaskDropdowns();
   } catch (error) {
@@ -314,7 +314,7 @@ async function deleteTask(id) {
   if (!confirm('Are you sure you want to delete this task?')) return;
 
   try {
-    await apiCall(`/maintenance-tasks/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/maintenance-tasks/${id}`, { method: 'DELETE' });
     await loadTasks();
     await loadDashboard();
   } catch (error) {
@@ -342,9 +342,9 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/maintenance-tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/maintenance-tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/maintenance-tasks', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/maintenance-tasks', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('taskModal'));
@@ -359,7 +359,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 // Service Records
 async function loadRecords() {
   try {
-    records = await apiCall('/maintenance-records');
+    records = await authenticatedFetch('/maintenance-records');
     renderRecords();
   } catch (error) {
     console.error('Failed to load records:', error);
@@ -428,7 +428,7 @@ async function deleteRecord(id) {
   if (!confirm('Are you sure you want to delete this record?')) return;
 
   try {
-    await apiCall(`/maintenance-records/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/maintenance-records/${id}`, { method: 'DELETE' });
     await loadRecords();
     await loadDashboard();
   } catch (error) {
@@ -458,9 +458,9 @@ document.getElementById('recordForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/maintenance-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/maintenance-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/maintenance-records', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/maintenance-records', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('recordModal'));
