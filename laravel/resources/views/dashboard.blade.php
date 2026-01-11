@@ -2225,7 +2225,7 @@
         showNotification('Error checking BOM availability', 'danger');
       }
     }
-    }
+
     async function loadReservationStatistics(productId) {
       try {
         const response = await apiCall(`/products/${productId}/reservations/statistics`);

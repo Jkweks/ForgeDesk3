@@ -579,7 +579,7 @@ function showCreateSessionModal() {
   document.getElementById('sessionForm').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
 
-  const modal = new bootstrap.Modal(document.getElementById('createSessionModal'));
+  const modal = new window.bootstrap.Modal(document.getElementById('createSessionModal'));
   modal.show();
 }
 
@@ -610,7 +610,7 @@ async function createCycleCountSession() {
     });
 
     showNotification('Cycle count session created successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('createSessionModal')).hide();
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
@@ -669,7 +669,7 @@ async function enterCounts(sessionId) {
       `;
     }).join('');
 
-    const modal = new bootstrap.Modal(document.getElementById('countEntryModal'));
+    const modal = new window.bootstrap.Modal(document.getElementById('countEntryModal'));
     modal.show();
   } catch (error) {
     console.error('Error loading count session:', error);
@@ -759,10 +759,10 @@ async function viewVarianceReport(sessionId) {
     }).join('');
 
     // Hide count entry modal if open
-    const countModal = bootstrap.Modal.getInstance(document.getElementById('countEntryModal'));
+    const countModal = window.bootstrap.Modal.getInstance(document.getElementById('countEntryModal'));
     if (countModal) countModal.hide();
 
-    const modal = new bootstrap.Modal(document.getElementById('varianceModal'));
+    const modal = new window.bootstrap.Modal(document.getElementById('varianceModal'));
     modal.show();
   } catch (error) {
     console.error('Error loading variance report:', error);
@@ -829,7 +829,7 @@ async function completeSession() {
     await authenticatedFetch(`/cycle-counts/${sessionId}/complete`, { method: 'POST' });
 
     showNotification('Cycle count session completed successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('countEntryModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('countEntryModal')).hide();
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
@@ -859,7 +859,7 @@ async function viewSessionDetails(sessionId) {
       document.getElementById('detailNotesSection').style.display = 'none';
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('sessionDetailsModal'));
+    const modal = new window.bootstrap.Modal(document.getElementById('sessionDetailsModal'));
     modal.show();
   } catch (error) {
     console.error('Error loading session details:', error);

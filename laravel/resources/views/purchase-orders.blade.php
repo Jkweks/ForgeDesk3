@@ -515,7 +515,7 @@ function showCreatePOModal() {
   document.getElementById('poTotalAmount').textContent = '$0.00';
   lineItemCounter = 0;
 
-  const modal = new bootstrap.Modal(document.getElementById('createPOModal'));
+  const modal = new window.bootstrap.Modal(document.getElementById('createPOModal'));
   modal.show();
 }
 
@@ -660,7 +660,7 @@ async function savePurchaseOrder() {
     });
 
     showNotification('Purchase order created successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('createPOModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('createPOModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -756,7 +756,7 @@ async function viewPODetails(poId) {
       `;
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('viewPOModal'));
+    const modal = new window.bootstrap.Modal(document.getElementById('viewPOModal'));
     modal.show();
   } catch (error) {
     console.error('Error loading PO details:', error);
@@ -771,7 +771,7 @@ async function submitPO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/submit`, { method: 'POST' });
     showNotification('Purchase order submitted successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -787,7 +787,7 @@ async function approvePO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/approve`, { method: 'POST' });
     showNotification('Purchase order approved successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -803,7 +803,7 @@ async function cancelPO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}/cancel`, { method: 'POST' });
     showNotification('Purchase order cancelled successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -819,7 +819,7 @@ async function deletePO(poId) {
   try {
     await authenticatedFetch(`/purchase-orders/${poId}`, { method: 'DELETE' });
     showNotification('Purchase order deleted successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
@@ -864,10 +864,10 @@ async function showReceiveModal(poId) {
       }).join('');
 
     // Hide view modal if open
-    const viewModal = bootstrap.Modal.getInstance(document.getElementById('viewPOModal'));
+    const viewModal = window.bootstrap.Modal.getInstance(document.getElementById('viewPOModal'));
     if (viewModal) viewModal.hide();
 
-    const modal = new bootstrap.Modal(document.getElementById('receiveModal'));
+    const modal = new window.bootstrap.Modal(document.getElementById('receiveModal'));
     modal.show();
   } catch (error) {
     console.error('Error loading receive modal:', error);
@@ -920,7 +920,7 @@ async function submitReceive() {
     });
 
     showNotification('Materials received successfully', 'success');
-    bootstrap.Modal.getInstance(document.getElementById('receiveModal')).hide();
+    window.bootstrap.Modal.getInstance(document.getElementById('receiveModal')).hide();
     loadPurchaseOrders();
     loadStatistics();
   } catch (error) {
