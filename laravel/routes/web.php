@@ -18,6 +18,14 @@ Route::get('/reports', function () {
     return view('reports');
 });
 
+Route::get('/purchase-orders', function () {
+    return view('purchase-orders');
+});
+
+Route::get('/cycle-counting', function () {
+    return view('cycle-counting');
+});
+
 Route::get('/maintenance', function () {
     return view('maintenance');
 });
