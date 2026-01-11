@@ -392,7 +392,7 @@ async function loadPurchaseOrders() {
     if (supplier) params.append('supplier_id', supplier);
     if (search) params.append('search', search);
 
-    const response = await apiCall(`/purchase-orders?${params.toString()}`);
+    const response = await authenticatedFetch(`/purchase-orders?${params.toString()}`);
     const orders = response.data || response;
 
     renderPurchaseOrders(orders);
@@ -453,7 +453,7 @@ function renderPurchaseOrders(orders) {
 // Load suppliers
 async function loadSuppliers() {
   try {
-    const response = await apiCall('/suppliers?is_active=1&per_page=all');
+    const response = await authenticatedFetch('/suppliers?is_active=1&per_page=all');
     allSuppliers = response.data || response;
 
     const selects = ['poSupplier', 'filterSupplier'];
@@ -484,7 +484,7 @@ async function loadSuppliers() {
 // Load products
 async function loadProducts() {
   try {
-    const response = await apiCall('/products?is_active=1&per_page=all');
+    const response = await authenticatedFetch('/products?is_active=1&per_page=all');
     allProducts = response.data || response;
   } catch (error) {
     console.error('Error loading products:', error);
@@ -494,7 +494,7 @@ async function loadProducts() {
 // Load statistics
 async function loadStatistics() {
   try {
-    const stats = await apiCall('/purchase-orders-statistics');
+    const stats = await authenticatedFetch('/purchase-orders-statistics');
 
     document.getElementById('statTotalOrders').textContent = stats.total_orders;
     document.getElementById('statOpenOrders').textContent =
@@ -653,7 +653,7 @@ async function savePurchaseOrder() {
       items: items,
     };
 
-    await apiCall('/purchase-orders', {
+    await authenticatedFetch('/purchase-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -672,7 +672,7 @@ async function savePurchaseOrder() {
 // View PO details
 async function viewPODetails(poId) {
   try {
-    const po = await apiCall(`/purchase-orders/${poId}`);
+    const po = await authenticatedFetch(`/purchase-orders/${poId}`);
     currentPO = po;
 
     // Header info
@@ -769,7 +769,7 @@ async function submitPO(poId) {
   if (!confirm('Submit this purchase order for approval?')) return;
 
   try {
-    await apiCall(`/purchase-orders/${poId}/submit`, { method: 'POST' });
+    await authenticatedFetch(`/purchase-orders/${poId}/submit`, { method: 'POST' });
     showNotification('Purchase order submitted successfully', 'success');
     bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
@@ -785,7 +785,7 @@ async function approvePO(poId) {
   if (!confirm('Approve this purchase order?')) return;
 
   try {
-    await apiCall(`/purchase-orders/${poId}/approve`, { method: 'POST' });
+    await authenticatedFetch(`/purchase-orders/${poId}/approve`, { method: 'POST' });
     showNotification('Purchase order approved successfully', 'success');
     bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
@@ -801,7 +801,7 @@ async function cancelPO(poId) {
   if (!confirm('Cancel this purchase order? This will release any on-order quantities.')) return;
 
   try {
-    await apiCall(`/purchase-orders/${poId}/cancel`, { method: 'POST' });
+    await authenticatedFetch(`/purchase-orders/${poId}/cancel`, { method: 'POST' });
     showNotification('Purchase order cancelled successfully', 'success');
     bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
@@ -817,7 +817,7 @@ async function deletePO(poId) {
   if (!confirm('Delete this draft purchase order? This action cannot be undone.')) return;
 
   try {
-    await apiCall(`/purchase-orders/${poId}`, { method: 'DELETE' });
+    await authenticatedFetch(`/purchase-orders/${poId}`, { method: 'DELETE' });
     showNotification('Purchase order deleted successfully', 'success');
     bootstrap.Modal.getInstance(document.getElementById('viewPOModal')).hide();
     loadPurchaseOrders();
@@ -831,7 +831,7 @@ async function deletePO(poId) {
 // Show receive modal
 async function showReceiveModal(poId) {
   try {
-    const po = await apiCall(`/purchase-orders/${poId}`);
+    const po = await authenticatedFetch(`/purchase-orders/${poId}`);
     document.getElementById('receivePOId').value = po.id;
     document.getElementById('receiveDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('receiveNotes').value = '';
@@ -910,7 +910,7 @@ async function submitReceive() {
       return;
     }
 
-    await apiCall(`/purchase-orders/${poId}/receive`, {
+    await authenticatedFetch(`/purchase-orders/${poId}/receive`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

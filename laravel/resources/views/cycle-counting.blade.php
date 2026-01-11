@@ -430,7 +430,7 @@ async function loadCycleCounts() {
     if (location) params.append('location', location);
     if (search) params.append('search', search);
 
-    const response = await apiCall(`/cycle-counts?${params.toString()}`);
+    const response = await authenticatedFetch(`/cycle-counts?${params.toString()}`);
     const sessions = response.data || response;
 
     renderCycleCounts(sessions);
@@ -504,7 +504,7 @@ function renderCycleCounts(sessions) {
 // Load categories
 async function loadCategories() {
   try {
-    const response = await apiCall('/categories?is_active=1&per_page=all');
+    const response = await authenticatedFetch('/categories?is_active=1&per_page=all');
     allCategories = response.data || response;
 
     const select = document.getElementById('sessionCategory');
@@ -524,7 +524,7 @@ async function loadCategories() {
 // Load products
 async function loadProducts() {
   try {
-    const response = await apiCall('/products?is_active=1&per_page=all');
+    const response = await authenticatedFetch('/products?is_active=1&per_page=all');
     allProducts = response.data || response;
 
     const select = document.getElementById('sessionProducts');
@@ -544,7 +544,7 @@ async function loadProducts() {
 // Load users
 async function loadUsers() {
   try {
-    const response = await apiCall('/user');
+    const response = await authenticatedFetch('/user');
     const currentUser = response;
 
     const select = document.getElementById('sessionAssignedTo');
@@ -563,7 +563,7 @@ async function loadUsers() {
 // Load statistics
 async function loadStatistics() {
   try {
-    const stats = await apiCall('/cycle-counts-statistics');
+    const stats = await authenticatedFetch('/cycle-counts-statistics');
 
     document.getElementById('statTotalSessions').textContent = stats.total_sessions;
     document.getElementById('statActiveSessions').textContent = stats.active_sessions;
@@ -603,7 +603,7 @@ async function createCycleCountSession() {
       product_ids: productIds.length > 0 ? productIds : null,
     };
 
-    await apiCall('/cycle-counts', {
+    await authenticatedFetch('/cycle-counts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -622,7 +622,7 @@ async function createCycleCountSession() {
 // Enter counts
 async function enterCounts(sessionId) {
   try {
-    const session = await apiCall(`/cycle-counts/${sessionId}`);
+    const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
     currentSession = session;
 
     document.getElementById('countSessionId').value = session.id;
@@ -687,7 +687,7 @@ async function recordItemCount(itemId) {
 
     const sessionId = document.getElementById('countSessionId').value;
 
-    await apiCall(`/cycle-counts/${sessionId}/record-count`, {
+    await authenticatedFetch(`/cycle-counts/${sessionId}/record-count`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -714,7 +714,7 @@ async function showVarianceReview() {
 // View variance report
 async function viewVarianceReport(sessionId) {
   try {
-    const report = await apiCall(`/cycle-counts/${sessionId}/variance-report`);
+    const report = await authenticatedFetch(`/cycle-counts/${sessionId}/variance-report`);
 
     document.getElementById('varianceSessionId').value = sessionId;
     document.getElementById('varianceSessionNumber').textContent = report.session.session_number;
@@ -787,7 +787,7 @@ async function approveSelectedVariances() {
 
     if (!confirm(`Approve ${itemIds.length} variance(s)? This will create inventory adjustments.`)) return;
 
-    await apiCall(`/cycle-counts/${sessionId}/approve-variances`, {
+    await authenticatedFetch(`/cycle-counts/${sessionId}/approve-variances`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ item_ids: itemIds }),
@@ -826,7 +826,7 @@ async function completeSession() {
   if (!confirm('Complete this cycle count session? All variances must be reviewed first.')) return;
 
   try {
-    await apiCall(`/cycle-counts/${sessionId}/complete`, { method: 'POST' });
+    await authenticatedFetch(`/cycle-counts/${sessionId}/complete`, { method: 'POST' });
 
     showNotification('Cycle count session completed successfully', 'success');
     bootstrap.Modal.getInstance(document.getElementById('countEntryModal')).hide();
@@ -841,7 +841,7 @@ async function completeSession() {
 // View session details
 async function viewSessionDetails(sessionId) {
   try {
-    const session = await apiCall(`/cycle-counts/${sessionId}`);
+    const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
 
     document.getElementById('detailSessionNumber').textContent = session.session_number;
     document.getElementById('detailLocation').textContent = session.location || 'All Locations';

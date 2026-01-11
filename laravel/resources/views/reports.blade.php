@@ -584,7 +584,7 @@ async function loadLowStockReport() {
     document.getElementById('lowStockLoading').style.display = 'block';
     document.getElementById('lowStockContent').style.display = 'none';
 
-    const response = await apiCall('/reports/low-stock');
+    const response = await authenticatedFetch('/reports/low-stock');
 
     // Update summary cards
     document.getElementById('lowStockCount').textContent = response.summary.low_stock_count;
@@ -627,7 +627,7 @@ async function loadCommittedReport() {
     document.getElementById('committedLoading').style.display = 'block';
     document.getElementById('committedContent').style.display = 'none';
 
-    const response = await apiCall('/reports/committed-parts');
+    const response = await authenticatedFetch('/reports/committed-parts');
 
     // Update summary cards
     document.getElementById('committedProductsCount').textContent = response.summary.total_products;
@@ -671,7 +671,7 @@ async function loadVelocityReport() {
     document.getElementById('velocityLoading').style.display = 'block';
     document.getElementById('velocityContent').style.display = 'none';
 
-    const response = await apiCall(`/reports/velocity?days=${days}`);
+    const response = await authenticatedFetch(`/reports/velocity?days=${days}`);
 
     // Update summary cards
     document.getElementById('fastMovers').textContent = response.summary.fast_movers;
@@ -722,7 +722,7 @@ async function loadReorderReport() {
     document.getElementById('reorderLoading').style.display = 'block';
     document.getElementById('reorderContent').style.display = 'none';
 
-    const response = await apiCall('/reports/reorder-recommendations');
+    const response = await authenticatedFetch('/reports/reorder-recommendations');
 
     // Update summary cards
     document.getElementById('itemsToReorder').textContent = response.summary.items_to_reorder;
@@ -765,7 +765,7 @@ async function loadObsoleteReport() {
     document.getElementById('obsoleteLoading').style.display = 'block';
     document.getElementById('obsoleteContent').style.display = 'none';
 
-    const response = await apiCall(`/reports/obsolete?inactive_days=${days}`);
+    const response = await authenticatedFetch(`/reports/obsolete?inactive_days=${days}`);
 
     // Update summary cards
     document.getElementById('obsoleteItems').textContent = response.summary.total_items;
@@ -808,7 +808,7 @@ async function loadUsageReport() {
     document.getElementById('usageLoading').style.display = 'block';
     document.getElementById('usageContent').style.display = 'none';
 
-    const response = await apiCall(`/reports/usage-analytics?days=${days}`);
+    const response = await authenticatedFetch(`/reports/usage-analytics?days=${days}`);
 
     // Update summary cards
     document.getElementById('totalReceipts').textContent = response.summary.total_receipts;
