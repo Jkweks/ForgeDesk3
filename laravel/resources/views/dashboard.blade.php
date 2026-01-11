@@ -184,6 +184,11 @@
                 <i class="ti ti-history me-1"></i>Activity
               </button>
             </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="configurator-tab" data-bs-toggle="tab" data-bs-target="#configurator" type="button" role="tab">
+                <i class="ti ti-box-model me-1"></i>Configurator <span class="badge text-bg-info ms-1" id="bomCount">0</span>
+              </button>
+            </li>
           </ul>
 
           <!-- Tab Content -->
@@ -578,6 +583,160 @@
               </div>
             </div>
           </div>
+
+            <!-- Configurator Tab -->
+            <div class="tab-pane fade" id="configurator" role="tabpanel">
+              <!-- Configurator Settings -->
+              <div class="mb-4">
+                <h4 class="mb-3"><i class="ti ti-settings me-2"></i>Configurator Settings</h4>
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="form-check form-switch mb-2">
+                      <input class="form-check-input" type="checkbox" id="configuratorAvailable" disabled>
+                      <label class="form-check-label" for="configuratorAvailable">
+                        <strong>Configurator Available</strong>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Type</strong></label>
+                    <div id="configuratorType" class="text-muted">-</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Use Path</strong></label>
+                    <div id="configuratorUsePath" class="text-muted">-</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Dimensions</strong></label>
+                    <div id="configuratorDimensions" class="text-muted">-</div>
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- BOM (Required Parts) -->
+              <div class="mb-3">
+                <div class="row g-2 align-items-center">
+                  <div class="col">
+                    <h4 class="mb-0"><i class="ti ti-list-details me-2"></i>Bill of Materials (BOM)</h4>
+                    <p class="text-muted mb-0">Parts required to build this product</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" onclick="showAddRequiredPartForm()">
+                      <i class="ti ti-plus me-1"></i>Add Part
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="checkBOMAvailability(currentProductId)">
+                      <i class="ti ti-check me-1"></i>Check Availability
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="explodeBOM(currentProductId)">
+                      <i class="ti ti-sitemap me-1"></i>Explode BOM
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add Required Part Form (Hidden by default) -->
+              <div class="card mb-3" id="addRequiredPartForm" style="display: none;">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Add Required Part</h5>
+                </div>
+                <div class="card-body">
+                  <form id="requiredPartForm">
+                    <input type="hidden" id="requiredPartId">
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label required">Part/Product</label>
+                        <select class="form-select" id="requiredProductId" required>
+                          <option value="">Search and select...</option>
+                        </select>
+                        <small class="form-hint">Select the part needed</small>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label required">Quantity</label>
+                        <input type="number" class="form-control" id="requiredQuantity" step="0.01" min="0" required>
+                        <small class="form-hint">Quantity per unit</small>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Sort Order</label>
+                        <input type="number" class="form-control" id="requiredSortOrder" value="0">
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label required">Finish Policy</label>
+                        <select class="form-select" id="requiredFinishPolicy" required>
+                          <option value="same_as_parent">Same as Parent</option>
+                          <option value="specific">Specific Finish</option>
+                          <option value="any">Any Finish</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4" id="specificFinishGroup" style="display: none;">
+                        <label class="form-label">Specific Finish</label>
+                        <select class="form-select" id="requiredSpecificFinish">
+                          <option value="">Select...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Optional Part</label>
+                        <div class="form-check form-switch mt-2">
+                          <input class="form-check-input" type="checkbox" id="requiredIsOptional">
+                          <label class="form-check-label" for="requiredIsOptional">Is Optional</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-12">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="requiredNotes" rows="2"></textarea>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-12">
+                        <button type="button" class="btn" onclick="hideRequiredPartForm()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Part</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <!-- BOM List -->
+              <div class="loading" id="bomLoading" style="display: none;">
+                <div class="text-muted">Loading BOM...</div>
+              </div>
+
+              <div id="bomContent">
+                <div class="table-responsive">
+                  <table class="table table-vcenter">
+                    <thead>
+                      <tr>
+                        <th>Part SKU</th>
+                        <th>Description</th>
+                        <th class="text-end">Qty/Unit</th>
+                        <th>Finish Policy</th>
+                        <th>Optional</th>
+                        <th>Notes</th>
+                        <th class="w-1">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bomTableBody">
+                      <tr>
+                        <td colspan="7" class="text-center text-muted">No parts in BOM</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Where Used -->
+              <div class="mt-4">
+                <h5 class="mb-3"><i class="ti ti-arrow-up me-2"></i>Where Used</h5>
+                <div id="whereUsedContent">
+                  <p class="text-muted">Loading where-used information...</p>
+                </div>
+              </div>
+            </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-link" data-bs-dismiss="modal">Close</button>
@@ -1276,6 +1435,16 @@
         await loadProductLocations(id);
         await loadProductReservations(id);
         await loadProductActivity(id);
+        await loadProductBOM(id);
+
+        // Populate configurator settings
+        document.getElementById('configuratorAvailable').checked = product.configurator_available || false;
+        document.getElementById('configuratorType').textContent = product.configurator_type || '-';
+        document.getElementById('configuratorUsePath').textContent = product.configurator_use_path || '-';
+        const dimensions = [];
+        if (product.dimension_height) dimensions.push(`H: ${product.dimension_height}`);
+        if (product.dimension_depth) dimensions.push(`D: ${product.dimension_depth}`);
+        document.getElementById('configuratorDimensions').textContent = dimensions.length > 0 ? dimensions.join(', ') : '-';
 
         // Show modal
         showModal(document.getElementById('viewProductModal'));
@@ -1712,6 +1881,305 @@
         console.error('Error exporting transactions:', error);
         showNotification('Error exporting transactions', 'danger');
       }
+
+    // ========== CONFIGURATOR & BOM ==========
+    let currentBOM = [];
+    let allProducts = []; // For part selector
+
+    async function loadProductBOM(productId) {
+      try {
+        document.getElementById('bomLoading').style.display = 'block';
+        document.getElementById('bomContent').style.display = 'none';
+
+        const response = await apiCall(`/products/${productId}/required-parts`);
+        currentBOM = response;
+        renderBOM();
+
+        document.getElementById('bomCount').textContent = currentBOM.length;
+        document.getElementById('bomLoading').style.display = 'none';
+        document.getElementById('bomContent').style.display = 'block';
+
+        // Load where-used
+        loadWhereUsed(productId);
+      } catch (error) {
+        console.error('Error loading BOM:', error);
+        document.getElementById('bomLoading').style.display = 'none';
+        document.getElementById('bomContent').innerHTML = '<div class="alert alert-danger">Error loading BOM</div>';
+      }
+    }
+
+    function renderBOM() {
+      const tbody = document.getElementById('bomTableBody');
+
+      if (currentBOM.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No parts in BOM</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentBOM.map(part => {
+        const finishPolicyBadge = getFinishPolicyBadge(part.finish_policy, part.specific_finish);
+        const optionalBadge = part.is_optional
+          ? '<span class="badge text-bg-secondary">Optional</span>'
+          : '<span class="badge text-bg-success">Required</span>';
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(part.required_product.sku)}</strong></td>
+            <td>${escapeHtml(part.required_product.description)}</td>
+            <td class="text-end">${part.quantity}</td>
+            <td>${finishPolicyBadge}</td>
+            <td>${optionalBadge}</td>
+            <td><small>${part.notes ? escapeHtml(part.notes) : '-'}</small></td>
+            <td>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-ghost-primary" onclick="editRequiredPart(${part.id})">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost-danger" onclick="deleteRequiredPart(${part.id})">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getFinishPolicyBadge(policy, specificFinish) {
+      const badges = {
+        'same_as_parent': '<span class="badge text-bg-primary">Same as Parent</span>',
+        'specific': `<span class="badge text-bg-info">Specific: ${specificFinish || '?'}</span>`,
+        'any': '<span class="badge text-bg-secondary">Any</span>',
+      };
+      return badges[policy] || policy;
+    }
+
+    async function loadWhereUsed(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/where-used`);
+        const whereUsed = response;
+
+        const container = document.getElementById('whereUsedContent');
+
+        if (whereUsed.length === 0) {
+          container.innerHTML = '<p class="text-muted">This part is not used in any other products</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Product SKU</th>
+                  <th>Description</th>
+                  <th class="text-end">Quantity</th>
+                  <th>Finish Policy</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${whereUsed.map(item => `
+                  <tr>
+                    <td>${escapeHtml(item.sku)}</td>
+                    <td>${escapeHtml(item.description)}</td>
+                    <td class="text-end">${item.quantity}</td>
+                    <td>${getFinishPolicyBadge(item.finish_policy)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error loading where-used:', error);
+        document.getElementById('whereUsedContent').innerHTML = '<p class="text-danger">Error loading where-used information</p>';
+      }
+    }
+
+    function showAddRequiredPartForm() {
+      document.getElementById('requiredPartId').value = '';
+      document.getElementById('requiredPartForm').reset();
+      document.getElementById('addRequiredPartForm').style.display = 'block';
+      document.getElementById('specificFinishGroup').style.display = 'none';
+
+      // Load product list for selector
+      loadProductsForSelector();
+    }
+
+    function hideRequiredPartForm() {
+      document.getElementById('addRequiredPartForm').style.display = 'none';
+    }
+
+    async function loadProductsForSelector() {
+      try {
+        const response = await apiCall('/products?per_page=all&is_active=1');
+        allProducts = response.data || response;
+
+        const select = document.getElementById('requiredProductId');
+        select.innerHTML = '<option value="">Search and select...</option>';
+
+        allProducts.forEach(product => {
+          const option = document.createElement('option');
+          option.value = product.id;
+          option.textContent = `${product.sku} - ${product.description}`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading products:', error);
+      }
+    }
+
+    // Handle finish policy change
+    document.addEventListener('DOMContentLoaded', () => {
+      const finishPolicySelect = document.getElementById('requiredFinishPolicy');
+      if (finishPolicySelect) {
+        finishPolicySelect.addEventListener('change', function() {
+          const specificGroup = document.getElementById('specificFinishGroup');
+          if (this.value === 'specific') {
+            specificGroup.style.display = 'block';
+            // Populate finish codes
+            const finishSelect = document.getElementById('requiredSpecificFinish');
+            finishSelect.innerHTML = '<option value="">Select...</option>';
+            Object.entries(finishCodes).forEach(([code, name]) => {
+              const option = document.createElement('option');
+              option.value = code;
+              option.textContent = `${code} - ${name}`;
+              finishSelect.appendChild(option);
+            });
+          } else {
+            specificGroup.style.display = 'none';
+          }
+        });
+      }
+
+      // Handle form submission
+      const requiredPartForm = document.getElementById('requiredPartForm');
+      if (requiredPartForm) {
+        requiredPartForm.addEventListener('submit', handleRequiredPartSubmit);
+      }
+    });
+
+    async function handleRequiredPartSubmit(e) {
+      e.preventDefault();
+
+      const formData = {
+        required_product_id: parseInt(document.getElementById('requiredProductId').value),
+        quantity: parseFloat(document.getElementById('requiredQuantity').value),
+        finish_policy: document.getElementById('requiredFinishPolicy').value,
+        specific_finish: document.getElementById('requiredSpecificFinish').value || null,
+        is_optional: document.getElementById('requiredIsOptional').checked,
+        notes: document.getElementById('requiredNotes').value || null,
+        sort_order: parseInt(document.getElementById('requiredSortOrder').value) || 0,
+      };
+
+      try {
+        const partId = document.getElementById('requiredPartId').value;
+
+        if (partId) {
+          // Update existing part
+          await apiCall(`/products/${currentProductId}/required-parts/${partId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+          });
+          showNotification('Required part updated successfully', 'success');
+        } else {
+          // Add new part
+          await apiCall(`/products/${currentProductId}/required-parts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+          });
+          showNotification('Required part added successfully', 'success');
+        }
+
+        hideRequiredPartForm();
+        loadProductBOM(currentProductId);
+      } catch (error) {
+        console.error('Error saving required part:', error);
+        showNotification(error.message || 'Error saving required part', 'danger');
+      }
+    }
+
+    async function editRequiredPart(partId) {
+      const part = currentBOM.find(p => p.id === partId);
+      if (!part) return;
+
+      document.getElementById('requiredPartId').value = part.id;
+      document.getElementById('requiredProductId').value = part.required_product_id;
+      document.getElementById('requiredQuantity').value = part.quantity;
+      document.getElementById('requiredFinishPolicy').value = part.finish_policy;
+      document.getElementById('requiredSpecificFinish').value = part.specific_finish || '';
+      document.getElementById('requiredIsOptional').checked = part.is_optional;
+      document.getElementById('requiredNotes').value = part.notes || '';
+      document.getElementById('requiredSortOrder').value = part.sort_order || 0;
+
+      if (part.finish_policy === 'specific') {
+        document.getElementById('specificFinishGroup').style.display = 'block';
+      }
+
+      document.getElementById('addRequiredPartForm').style.display = 'block';
+      await loadProductsForSelector();
+    }
+
+    async function deleteRequiredPart(partId) {
+      if (!confirm('Are you sure you want to remove this part from the BOM?')) {
+        return;
+      }
+
+      try {
+        await apiCall(`/products/${currentProductId}/required-parts/${partId}`, {
+          method: 'DELETE',
+        });
+        showNotification('Required part removed successfully', 'success');
+        loadProductBOM(currentProductId);
+      } catch (error) {
+        console.error('Error deleting required part:', error);
+        showNotification(error.message || 'Error deleting required part', 'danger');
+      }
+    }
+
+    async function explodeBOM(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/bom-explosion?quantity=1`);
+
+        // Display explosion results in a modal or alert
+        let message = `BOM Explosion for ${response.product.sku}\n\n`;
+        message += `Total unique parts: ${response.total_parts}\n\n`;
+        message += 'Summary:\n';
+        response.summary.forEach(part => {
+          message += `- ${part.sku}: ${part.total_quantity} ${part.finish ? '(' + part.finish + ')' : ''}\n`;
+        });
+
+        alert(message);
+      } catch (error) {
+        console.error('Error exploding BOM:', error);
+        showNotification('Error exploding BOM', 'danger');
+      }
+    }
+
+    async function checkBOMAvailability(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/bom-availability?quantity=1`);
+
+        let message = `BOM Availability Check\n\n`;
+        message += response.all_available ? '✓ All parts available!\n\n' : '⚠ Some parts not available\n\n';
+
+        response.parts.forEach(part => {
+          const icon = part.is_available ? '✓' : '✗';
+          message += `${icon} ${part.sku}: Need ${part.required}, Have ${part.available}`;
+          if (part.shortage > 0) {
+            message += ` (Short: ${part.shortage})`;
+          }
+          message += '\n';
+        });
+
+        alert(message);
+      } catch (error) {
+        console.error('Error checking availability:', error);
+        showNotification('Error checking BOM availability', 'danger');
+      }
+    }
     }
     async function loadReservationStatistics(productId) {
       try {
