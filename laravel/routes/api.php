@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\InventoryTransactionController;
 use App\Http\Controllers\Api\RequiredPartsController;
 use App\Http\Controllers\Api\ReportsController;
+use App\Http\Controllers\Api\PurchaseOrderController;
+use App\Http\Controllers\Api\CycleCountController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -141,6 +143,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/obsolete', [ReportsController::class, 'obsoleteInventory']);
         Route::get('/reports/usage-analytics', [ReportsController::class, 'usageAnalytics']);
         Route::get('/reports/export', [ReportsController::class, 'exportReport']);
+
+        // Purchase Orders
+        Route::apiResource('purchase-orders', PurchaseOrderController::class);
+        Route::post('/purchase-orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit']);
+        Route::post('/purchase-orders/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+        Route::post('/purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+        Route::post('/purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
+        Route::get('/purchase-orders-open', [PurchaseOrderController::class, 'open']);
+        Route::get('/purchase-orders-statistics', [PurchaseOrderController::class, 'statistics']);
+
+        // Cycle Counting
+        Route::apiResource('cycle-counts', CycleCountController::class);
+        Route::post('/cycle-counts/{cycleCountSession}/start', [CycleCountController::class, 'start']);
+        Route::post('/cycle-counts/{cycleCountSession}/record-count', [CycleCountController::class, 'recordCount']);
+        Route::post('/cycle-counts/{cycleCountSession}/approve-variances', [CycleCountController::class, 'approveVariances']);
+        Route::post('/cycle-counts/{cycleCountSession}/complete', [CycleCountController::class, 'complete']);
+        Route::post('/cycle-counts/{cycleCountSession}/cancel', [CycleCountController::class, 'cancel']);
+        Route::get('/cycle-counts/{cycleCountSession}/variance-report', [CycleCountController::class, 'varianceReport']);
+        Route::get('/cycle-counts-active', [CycleCountController::class, 'active']);
+        Route::get('/cycle-counts-statistics', [CycleCountController::class, 'statistics']);
 
         // Orders
         Route::apiResource('orders', OrderController::class);
