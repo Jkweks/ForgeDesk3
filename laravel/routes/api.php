@@ -14,6 +14,10 @@ use App\Http\Controllers\Api\MaintenanceTaskController;
 use App\Http\Controllers\Api\MaintenanceRecordController;
 use App\Http\Controllers\Api\InventoryLocationController;
 use App\Http\Controllers\Api\JobReservationController;
+use App\Http\Controllers\Api\SupplierController;
+use App\Http\Controllers\Api\InventoryTransactionController;
+use App\Http\Controllers\Api\RequiredPartsController;
+use App\Http\Controllers\Api\ReportsController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -128,6 +132,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{product}/bom-availability', [RequiredPartsController::class, 'checkAvailability']);
         Route::post('/products/{product}/required-parts/sort-order', [RequiredPartsController::class, 'updateSortOrder']);
         Route::get('/products/{product}/where-used', [RequiredPartsController::class, 'whereUsed']);
+
+        // Reports & Analytics
+        Route::get('/reports/low-stock', [ReportsController::class, 'lowStockReport']);
+        Route::get('/reports/committed-parts', [ReportsController::class, 'committedPartsReport']);
+        Route::get('/reports/velocity', [ReportsController::class, 'stockVelocityAnalysis']);
+        Route::get('/reports/reorder-recommendations', [ReportsController::class, 'reorderRecommendations']);
+        Route::get('/reports/obsolete', [ReportsController::class, 'obsoleteInventory']);
+        Route::get('/reports/usage-analytics', [ReportsController::class, 'usageAnalytics']);
+        Route::get('/reports/export', [ReportsController::class, 'exportReport']);
 
         // Orders
         Route::apiResource('orders', OrderController::class);
