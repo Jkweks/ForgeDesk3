@@ -46,6 +46,11 @@ class MaintenanceRecord extends Model
         return $this->belongsTo(Asset::class);
     }
 
+    public function performer()
+    {
+        return $this->belongsTo(User::class, 'performed_by');
+    }
+
     protected static function booted()
     {
         static::created(function ($record) {

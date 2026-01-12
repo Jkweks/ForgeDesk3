@@ -11,18 +11,27 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query()->with(['inventoryLocations']);
+        $query = Product::query()->with(['inventoryLocations', 'supplier', 'category']);
 
         if ($request->has('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
                 $q->where('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('part_number', 'like', "%{$search}%");
             });
         }
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        }
+
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        if ($request->has('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
         }
 
         if ($request->has('location')) {
@@ -41,7 +50,7 @@ class ProductController extends Controller
             'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
-            'category' => 'nullable|max:255',
+            'category_id' => 'nullable|exists:categories,id',
             'location' => 'nullable|max:255',
 
             // Pricing
@@ -66,7 +75,7 @@ class ProductController extends Controller
             'order_multiple' => 'nullable|integer|min:1',
 
             // Supplier
-            'supplier' => 'nullable|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
 
@@ -117,7 +126,7 @@ class ProductController extends Controller
             'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
-            'category' => 'nullable|max:255',
+            'category_id' => 'nullable|exists:categories,id',
             'location' => 'nullable|max:255',
 
             // Pricing
@@ -141,7 +150,7 @@ class ProductController extends Controller
             'order_multiple' => 'nullable|integer|min:1',
 
             // Supplier
-            'supplier' => 'nullable|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
 

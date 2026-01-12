@@ -41,6 +41,11 @@ class MaintenanceTask extends Model
         return $this->hasMany(MaintenanceRecord::class, 'task_id');
     }
 
+    public function assignedUser()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
     public function getNextDueDateAttribute()
     {
         if (!$this->start_date || !$this->interval_count || !$this->interval_unit) {
