@@ -37,6 +37,39 @@
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
+
+    /* Modal scrolling styles */
+    .modal-content {
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-body {
+      overflow-y: auto;
+      max-height: calc(90vh - 120px);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(99, 102, 241, 0.5) rgba(0, 0, 0, 0.1);
+    }
+    .modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    .modal-body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+    .modal-body::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.5);
+      border-radius: 4px;
+      transition: background 0.2s ease;
+    }
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.8);
+    }
+    .modal-header,
+    .modal-footer {
+      flex-shrink: 0;
+    }
+
     @yield('styles')
   </style>
 </head>
