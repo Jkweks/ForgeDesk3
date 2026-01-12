@@ -133,16 +133,15 @@ class CycleCountController extends Controller
                         ->where('location', $request->location)
                         ->first();
 
-                    if ($location) {
-                        $session->items()->create([
-                            'product_id' => $product->id,
-                            'location_id' => $location->id,
-                            'system_quantity' => $location->quantity,
-                            'counted_quantity' => null,
-                            'variance' => 0,
-                            'variance_status' => 'pending',
-                        ]);
-                    }
+                    // Create item even if location doesn't exist yet (system qty = 0)
+                    $session->items()->create([
+                        'product_id' => $product->id,
+                        'location_id' => $location ? $location->id : null,
+                        'system_quantity' => $location ? $location->quantity : 0,
+                        'counted_quantity' => null,
+                        'variance' => 0,
+                        'variance_status' => 'pending',
+                    ]);
                 } else {
                     // Product-level count
                     $session->items()->create([
