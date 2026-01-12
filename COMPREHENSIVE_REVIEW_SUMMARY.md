@@ -48,10 +48,14 @@ This document summarizes a complete review of the ForgeDesk3 system, including d
 
 #### **FIXED: products table**
 - **Issue**: `category` and `supplier` fields were stored as STRINGS
-- **Fix**: Already fixed in migration `2026_01_06_023718_add_missing_fields_to_products_table.php`
+- **Initial Fix**: Migration `2026_01_06_023718_add_missing_fields_to_products_table.php`
   - Added `category_id` as foreignId referencing categories table
   - Added `supplier_id` as foreignId referencing suppliers table
-  - Old string fields remain for backward compatibility but are no longer used
+- **Critical Production Fix**: Migration `2026_01_12_000002_migrate_and_drop_old_product_string_columns.php`
+  - **Problem**: Old string columns conflicted with relationship methods, causing "Attempt to read property name on string" errors in reports
+  - **Solution**: Migrates any existing string data to foreign keys, then drops old columns
+  - Ensures `$product->supplier` always returns Supplier object (not string)
+  - Ensures `$product->category` always returns Category object (not string)
 - **Controller Update**: Updated ProductController validation rules to use `category_id` and `supplier_id`
 - **Model Update**: Removed old string fields from fillable array to prevent accidental use
 
@@ -281,11 +285,20 @@ php artisan migrate:status
 ```
 
 ### Data Migration Notes:
-The new migration creates `*_old` columns to preserve existing data. If you have production data in:
+
+**Maintenance Tables:**
+The maintenance migration creates `*_old` columns to preserve existing data. If you have production data in:
 - `maintenance_tasks.assigned_to` (as names/strings)
 - `maintenance_records.performed_by` (as names/strings)
 
 You'll need to map these to actual user IDs and populate the new foreign key columns.
+
+**Products Table (CRITICAL):**
+Migration `2026_01_12_000002_migrate_and_drop_old_product_string_columns.php` automatically:
+- Migrates any string category/supplier names to foreign keys by matching names
+- Drops the old conflicting string columns
+- This fixes the "Attempt to read property name on string" error in reports
+- **This migration must run AFTER categories and suppliers are populated**
 
 ---
 
@@ -328,6 +341,7 @@ The frontend code will need to be updated to:
 6. Completed all ReportsController export methods (4 stub methods now functional)
 7. Updated frontend supplier field from text input to foreign key dropdown
 8. Fixed product details view to display relationship data correctly
+9. **CRITICAL FIX**: Migrated and dropped old string columns that were causing reports errors
 
 ### ✅ Verified Working:
 1. All database relationships properly configured
@@ -497,11 +511,12 @@ async function loadConfigurations() {
 
 ### Backend:
 1. `/laravel/database/migrations/2026_01_12_000001_fix_maintenance_foreign_keys.php` (NEW)
-2. `/laravel/app/Models/MaintenanceTask.php` (UPDATED - added assignedUser relationship)
-3. `/laravel/app/Models/MaintenanceRecord.php` (UPDATED - added performer relationship)
-4. `/laravel/app/Models/Product.php` (UPDATED - removed old string fields from fillable)
-5. `/laravel/app/Http/Controllers/Api/ProductController.php` (UPDATED - foreign keys, search, filters)
-6. `/laravel/app/Http/Controllers/Api/ReportsController.php` (UPDATED - completed all export methods)
+2. `/laravel/database/migrations/2026_01_12_000002_migrate_and_drop_old_product_string_columns.php` (NEW - CRITICAL FIX)
+3. `/laravel/app/Models/MaintenanceTask.php` (UPDATED - added assignedUser relationship)
+4. `/laravel/app/Models/MaintenanceRecord.php` (UPDATED - added performer relationship)
+5. `/laravel/app/Models/Product.php` (UPDATED - removed old string fields from fillable)
+6. `/laravel/app/Http/Controllers/Api/ProductController.php` (UPDATED - foreign keys, search, filters)
+7. `/laravel/app/Http/Controllers/Api/ReportsController.php` (UPDATED - completed all export methods)
 
 ### Frontend:
 7. `/laravel/resources/views/dashboard.blade.php` (UPDATED - supplier dropdown, relationship data display)
