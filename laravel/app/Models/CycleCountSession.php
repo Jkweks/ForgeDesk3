@@ -29,6 +29,14 @@ class CycleCountSession extends Model
         'completed_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'total_items',
+        'counted_items',
+        'variance_items',
+        'accuracy_percentage',
+        'progress_percentage',
+    ];
+
     // Relationships
     public function category()
     {

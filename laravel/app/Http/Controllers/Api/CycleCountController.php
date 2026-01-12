@@ -110,7 +110,7 @@ class CycleCountController extends Controller
             ]);
 
             // Determine which products to include
-            if ($request->has('product_ids') && count($request->product_ids) > 0) {
+            if ($request->has('product_ids') && is_array($request->product_ids) && count($request->product_ids) > 0) {
                 // Specific products
                 $products = Product::whereIn('id', $request->product_ids)->get();
             } else {

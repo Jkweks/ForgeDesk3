@@ -60,11 +60,11 @@ Route::post('/logout', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
-
     Route::prefix('v1')->group(function () {
+        // Current user
+        Route::get('/user', function (Request $request) {
+            return $request->user();
+        });
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/inventory/{status}', [DashboardController::class, 'inventoryByStatus']);
