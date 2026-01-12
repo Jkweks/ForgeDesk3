@@ -684,6 +684,10 @@ async function enterCounts(sessionId) {
     const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
     currentSession = session;
 
+    console.log('Session loaded:', session);
+    console.log('Session items:', session.items);
+    console.log('Items count:', session.items ? session.items.length : 0);
+
     document.getElementById('countSessionId').value = session.id;
     document.getElementById('countSessionNumber').textContent = session.session_number;
     document.getElementById('countLocation').textContent = session.location || 'All Locations';
@@ -692,6 +696,13 @@ async function enterCounts(sessionId) {
 
     // Render count items
     const tbody = document.getElementById('countEntryTable');
+
+    if (!session.items || session.items.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No items to count</td></tr>';
+      safeShowModal('countEntryModal');
+      return;
+    }
+
     tbody.innerHTML = session.items.map(item => {
       const variance = item.counted_quantity !== null
         ? item.counted_quantity - item.system_quantity
