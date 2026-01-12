@@ -223,6 +223,15 @@
       modalElement.removeAttribute('aria-hidden');
       document.body.classList.add('modal-open');
 
+      // Close on backdrop click
+      backdrop.addEventListener('click', () => safeHideModal(modalId));
+
+      // Add close button listeners
+      const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
+      closeButtons.forEach(btn => {
+        btn.onclick = () => safeHideModal(modalId);
+      });
+
       return null;
     }
 
