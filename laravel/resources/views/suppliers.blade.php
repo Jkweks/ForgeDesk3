@@ -398,7 +398,7 @@
         renderSuppliers();
       } catch (error) {
         console.error('Error loading suppliers:', error);
-        showAlert('Error loading suppliers', 'danger');
+        showNotification('Error loading suppliers', 'danger');
       }
     }
 
@@ -577,7 +577,7 @@
         safeShowModal('supplierModal');
       } catch (error) {
         console.error('Error loading supplier:', error);
-        showAlert('Error loading supplier', 'danger');
+        showNotification('Error loading supplier', 'danger');
       }
     }
 
@@ -650,7 +650,7 @@
         safeShowModal('viewSupplierModal');
       } catch (error) {
         console.error('Error loading supplier details:', error);
-        showAlert('Error loading supplier details', 'danger');
+        showNotification('Error loading supplier details', 'danger');
       }
     }
 
@@ -738,14 +738,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
-          showAlert('Supplier updated successfully', 'success');
+          showNotification('Supplier updated successfully', 'success');
         } else {
           await authenticatedFetch('/suppliers', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
-          showAlert('Supplier created successfully', 'success');
+          showNotification('Supplier created successfully', 'success');
         }
 
         safeHideModal('supplierModal');
@@ -753,7 +753,7 @@
         loadStatistics(); // Refresh statistics
       } catch (error) {
         console.error('Error saving supplier:', error);
-        showAlert(error.message || 'Error saving supplier', 'danger');
+        showNotification(error.message || 'Error saving supplier', 'danger');
       }
     }
 
@@ -766,28 +766,13 @@
         await authenticatedFetch(`/suppliers/${id}`, {
           method: 'DELETE',
         });
-        showAlert('Supplier deleted successfully', 'success');
+        showNotification('Supplier deleted successfully', 'success');
         loadSuppliers();
         loadStatistics();
       } catch (error) {
         console.error('Error deleting supplier:', error);
-        showAlert(error.message || 'Error deleting supplier', 'danger');
+        showNotification(error.message || 'Error deleting supplier', 'danger');
       }
-    }
-
-    function showAlert(message, type = 'info') {
-      const alert = document.createElement('div');
-      alert.className = `alert alert-${type} alert-dismissible fade show`;
-      alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-
-      document.querySelector('.container-xl').insertBefore(alert, document.querySelector('.row'));
-
-      setTimeout(() => {
-        alert.remove();
-      }, 5000);
     }
 
     function escapeHtml(text) {

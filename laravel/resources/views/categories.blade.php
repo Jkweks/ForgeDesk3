@@ -309,7 +309,7 @@
         updateStats();
       } catch (error) {
         console.error('Error loading categories:', error);
-        showAlert('Error loading categories', 'danger');
+        showNotification('Error loading categories', 'danger');
       }
     }
 
@@ -490,7 +490,7 @@
         safeShowModal('categoryModal');
       } catch (error) {
         console.error('Error loading category:', error);
-        showAlert('Error loading category', 'danger');
+        showNotification('Error loading category', 'danger');
       }
     }
 
@@ -539,14 +539,14 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
-          showAlert('Category updated successfully', 'success');
+          showNotification('Category updated successfully', 'success');
         } else {
           await authenticatedFetch('/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData),
           });
-          showAlert('Category created successfully', 'success');
+          showNotification('Category created successfully', 'success');
         }
 
         safeHideModal('categoryModal');
@@ -554,7 +554,7 @@
         loadSystems(); // Refresh systems list
       } catch (error) {
         console.error('Error saving category:', error);
-        showAlert(error.message || 'Error saving category', 'danger');
+        showNotification(error.message || 'Error saving category', 'danger');
       }
     }
 
@@ -567,27 +567,12 @@
         await authenticatedFetch(`/categories/${id}`, {
           method: 'DELETE',
         });
-        showAlert('Category deleted successfully', 'success');
+        showNotification('Category deleted successfully', 'success');
         loadCategories();
       } catch (error) {
         console.error('Error deleting category:', error);
-        showAlert(error.message || 'Error deleting category', 'danger');
+        showNotification(error.message || 'Error deleting category', 'danger');
       }
-    }
-
-    function showAlert(message, type = 'info') {
-      const alert = document.createElement('div');
-      alert.className = `alert alert-${type} alert-dismissible fade show`;
-      alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-
-      document.querySelector('.container-xl').insertBefore(alert, document.querySelector('.row'));
-
-      setTimeout(() => {
-        alert.remove();
-      }, 5000);
     }
 
     function escapeHtml(text) {
