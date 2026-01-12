@@ -74,14 +74,39 @@
             </div>
           </div>
 
+
+          <!-- Category Breakdown Widget -->
+          <div class="row mb-3">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h3 class="card-title">Category Breakdown</h3>
+                  <div class="card-actions">
+                    <a href="/categories" class="btn btn-sm">Manage Categories</a>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row" id="categoryBreakdown">
+                    <div class="col-12 text-muted">
+                      <div class="text-center">Loading category data...</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Inventory Table -->
           <div class="row">
             <div class="col-12">
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">Inventory Snapshot</h3>
-                  <div class="ms-auto">
-                    <input type="text" class="form-control form-control-sm" placeholder="Search..." id="searchInput">
+                  <div class="ms-auto d-flex gap-2">
+                    <select class="form-select form-select-sm" id="categoryFilter" style="width: auto;">
+                      <option value="">All Categories</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm" placeholder="Search..." id="searchInput" style="min-width: 200px;">
                   </div>
                 </div>
                 <div class="card-body">
@@ -157,6 +182,11 @@
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab">
                 <i class="ti ti-history me-1"></i>Activity
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="configurator-tab" data-bs-toggle="tab" data-bs-target="#configurator" type="button" role="tab">
+                <i class="ti ti-box-model me-1"></i>Configurator <span class="badge text-bg-info ms-1" id="bomCount">0</span>
               </button>
             </li>
           </ul>
@@ -499,11 +529,214 @@
 
             <!-- Activity Tab -->
             <div class="tab-pane fade" id="activity" role="tabpanel">
+              <div class="mb-3">
+                <div class="row g-2 align-items-center">
+                  <div class="col">
+                    <h3 class="mb-0">Activity History</h3>
+                    <p class="text-muted mb-0">All inventory transactions for this product</p>
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select form-select-sm" id="activityTypeFilter" onchange="loadProductActivity(currentProductId)">
+                      <option value="">All Types</option>
+                      <option value="receipt">Receipts</option>
+                      <option value="shipment">Shipments</option>
+                      <option value="adjustment">Adjustments</option>
+                      <option value="transfer">Transfers</option>
+                      <option value="return">Returns</option>
+                      <option value="cycle_count">Cycle Counts</option>
+                    </select>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" onclick="exportProductTransactions(currentProductId)">
+                      <i class="ti ti-download me-1"></i>Export
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="loading" id="activityLoading" style="display: none;">
+                <div class="text-muted">Loading activity...</div>
+              </div>
+
               <div id="activityContent">
-                <p class="text-muted">Activity history coming soon...</p>
+                <div class="table-responsive">
+                  <table class="table table-sm table-vcenter">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th class="text-end">Quantity</th>
+                        <th class="text-end">Before</th>
+                        <th class="text-end">After</th>
+                        <th>Reference</th>
+                        <th>User</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody id="activityTableBody">
+                      <tr>
+                        <td colspan="8" class="text-center text-muted">No activity records</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
+
+            <!-- Configurator Tab -->
+            <div class="tab-pane fade" id="configurator" role="tabpanel">
+              <!-- Configurator Settings -->
+              <div class="mb-4">
+                <h4 class="mb-3"><i class="ti ti-settings me-2"></i>Configurator Settings</h4>
+                <div class="row">
+                  <div class="col-md-3">
+                    <div class="form-check form-switch mb-2">
+                      <input class="form-check-input" type="checkbox" id="configuratorAvailable" disabled>
+                      <label class="form-check-label" for="configuratorAvailable">
+                        <strong>Configurator Available</strong>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Type</strong></label>
+                    <div id="configuratorType" class="text-muted">-</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Use Path</strong></label>
+                    <div id="configuratorUsePath" class="text-muted">-</div>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label"><strong>Dimensions</strong></label>
+                    <div id="configuratorDimensions" class="text-muted">-</div>
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- BOM (Required Parts) -->
+              <div class="mb-3">
+                <div class="row g-2 align-items-center">
+                  <div class="col">
+                    <h4 class="mb-0"><i class="ti ti-list-details me-2"></i>Bill of Materials (BOM)</h4>
+                    <p class="text-muted mb-0">Parts required to build this product</p>
+                  </div>
+                  <div class="col-auto">
+                    <button class="btn btn-sm btn-primary" onclick="showAddRequiredPartForm()">
+                      <i class="ti ti-plus me-1"></i>Add Part
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="checkBOMAvailability(currentProductId)">
+                      <i class="ti ti-check me-1"></i>Check Availability
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="explodeBOM(currentProductId)">
+                      <i class="ti ti-sitemap me-1"></i>Explode BOM
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add Required Part Form (Hidden by default) -->
+              <div class="card mb-3" id="addRequiredPartForm" style="display: none;">
+                <div class="card-header">
+                  <h5 class="card-title mb-0">Add Required Part</h5>
+                </div>
+                <div class="card-body">
+                  <form id="requiredPartForm">
+                    <input type="hidden" id="requiredPartId">
+                    <div class="row mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label required">Part/Product</label>
+                        <select class="form-select" id="requiredProductId" required>
+                          <option value="">Search and select...</option>
+                        </select>
+                        <small class="form-hint">Select the part needed</small>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label required">Quantity</label>
+                        <input type="number" class="form-control" id="requiredQuantity" step="0.01" min="0" required>
+                        <small class="form-hint">Quantity per unit</small>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label">Sort Order</label>
+                        <input type="number" class="form-control" id="requiredSortOrder" value="0">
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-4">
+                        <label class="form-label required">Finish Policy</label>
+                        <select class="form-select" id="requiredFinishPolicy" required>
+                          <option value="same_as_parent">Same as Parent</option>
+                          <option value="specific">Specific Finish</option>
+                          <option value="any">Any Finish</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4" id="specificFinishGroup" style="display: none;">
+                        <label class="form-label">Specific Finish</label>
+                        <select class="form-select" id="requiredSpecificFinish">
+                          <option value="">Select...</option>
+                        </select>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Optional Part</label>
+                        <div class="form-check form-switch mt-2">
+                          <input class="form-check-input" type="checkbox" id="requiredIsOptional">
+                          <label class="form-check-label" for="requiredIsOptional">Is Optional</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="row mb-3">
+                      <div class="col-md-12">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="requiredNotes" rows="2"></textarea>
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-12">
+                        <button type="button" class="btn" onclick="hideRequiredPartForm()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Part</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+
+              <!-- BOM List -->
+              <div class="loading" id="bomLoading" style="display: none;">
+                <div class="text-muted">Loading BOM...</div>
+              </div>
+
+              <div id="bomContent">
+                <div class="table-responsive">
+                  <table class="table table-vcenter">
+                    <thead>
+                      <tr>
+                        <th>Part SKU</th>
+                        <th>Description</th>
+                        <th class="text-end">Qty/Unit</th>
+                        <th>Finish Policy</th>
+                        <th>Optional</th>
+                        <th>Notes</th>
+                        <th class="w-1">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="bomTableBody">
+                      <tr>
+                        <td colspan="7" class="text-center text-muted">No parts in BOM</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Where Used -->
+              <div class="mt-4">
+                <h5 class="mb-3"><i class="ti ti-arrow-up me-2"></i>Where Used</h5>
+                <div id="whereUsedContent">
+                  <p class="text-muted">Loading where-used information...</p>
+                </div>
+              </div>
+            </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-link" data-bs-dismiss="modal">Close</button>
@@ -549,7 +782,10 @@
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Category</label>
-                <input type="text" class="form-control" name="category" id="productCategory" placeholder="Hardware">
+                <select class="form-select" name="category_id" id="productCategoryId">
+                  <option value="">Select category...</option>
+                </select>
+                <small class="form-hint">Product category</small>
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Location</label>
@@ -921,17 +1157,22 @@
 @endsection
 
 @push('scripts')
-  @include('partials.auth-scripts')
   <script>
     // Dashboard-specific state
     let currentTab = 'all';
+    let currentCategoryFilter = '';
 
     async function loadDashboard() {
       try {
         document.getElementById('loadingIndicator').style.display = 'block';
         document.getElementById('inventoryTableContainer').style.display = 'none';
 
-        const response = await apiCall('/dashboard');
+        // Build URL with category filter if selected
+        let url = '/dashboard';
+        if (currentCategoryFilter) {
+          url += `?category_id=${currentCategoryFilter}`;
+        }
+        const response = await apiCall(url);
         const data = await response.json();
 
         document.getElementById('statSkus').textContent = data.stats.skus_tracked.toLocaleString();
@@ -1001,6 +1242,7 @@
         currentTab = e.target.dataset.tab;
         if (currentTab === 'all') {
           loadDashboard();
+      loadCategoryBreakdown();
         } else {
           await loadByStatus(currentTab);
         }
@@ -1009,7 +1251,11 @@
 
     async function loadByStatus(status) {
       try {
-        const response = await apiCall(`/dashboard/inventory/${status}`);
+        let url = `/dashboard/inventory/${status}`;
+        if (currentCategoryFilter) {
+          url += `?category_id=${currentCategoryFilter}`;
+        }
+        const response = await apiCall(url);
         const data = await response.json();
         renderInventoryTable(data.data);
       } catch (error) {
@@ -1019,9 +1265,32 @@
 
     async function exportProducts() {
       try {
-        window.location.href = `${API_BASE}/export/products`;
+        const response = await fetch(`${API_BASE}/export/products`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'text/csv'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showNotification('Products exported successfully', 'success');
       } catch (error) {
-        alert('Export failed: ' + error.message);
+        console.error('Export failed:', error);
+        showNotification('Export failed: ' + error.message, 'danger');
       }
     }
 
@@ -1187,6 +1456,17 @@
         // Load locations and reservations
         await loadProductLocations(id);
         await loadProductReservations(id);
+        await loadProductActivity(id);
+        await loadProductBOM(id);
+
+        // Populate configurator settings
+        document.getElementById('configuratorAvailable').checked = product.configurator_available || false;
+        document.getElementById('configuratorType').textContent = product.configurator_type || '-';
+        document.getElementById('configuratorUsePath').textContent = product.configurator_use_path || '-';
+        const dimensions = [];
+        if (product.dimension_height) dimensions.push(`H: ${product.dimension_height}`);
+        if (product.dimension_depth) dimensions.push(`D: ${product.dimension_depth}`);
+        document.getElementById('configuratorDimensions').textContent = dimensions.length > 0 ? dimensions.join(', ') : '-';
 
         // Show modal
         showModal(document.getElementById('viewProductModal'));
@@ -1407,6 +1687,7 @@
           hideLocationForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save location', 'danger');
@@ -1496,6 +1777,7 @@
           hideTransferForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to transfer inventory', 'danger');
@@ -1533,6 +1815,414 @@
       } catch (error) {
         console.error('Error loading reservations:', error);
         showNotification('Failed to load reservations', 'danger');
+      }
+    }
+
+    // ========== ACTIVITY/TRANSACTIONS ==========
+    let currentProductTransactions = [];
+
+    async function loadProductActivity(productId) {
+      try {
+        document.getElementById('activityLoading').style.display = 'block';
+        document.getElementById('activityContent').style.display = 'none';
+
+        const typeFilter = document.getElementById('activityTypeFilter').value;
+        let url = `/products/${productId}/transactions?per_page=all`;
+
+        if (typeFilter) {
+          url += `&type=${typeFilter}`;
+        }
+
+        const response = await apiCall(url);
+        currentProductTransactions = response;
+        renderProductActivity();
+
+        document.getElementById('activityLoading').style.display = 'none';
+        document.getElementById('activityContent').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading product activity:', error);
+        document.getElementById('activityLoading').style.display = 'none';
+        document.getElementById('activityContent').innerHTML = '<div class="alert alert-danger">Error loading activity</div>';
+      }
+    }
+
+    function renderProductActivity() {
+      const tbody = document.getElementById('activityTableBody');
+
+      if (currentProductTransactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No activity records</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentProductTransactions.map(transaction => {
+        const date = new Date(transaction.transaction_date);
+        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'});
+
+        const typeBadge = getTransactionTypeBadge(transaction.type);
+        const quantityClass = transaction.quantity >= 0 ? 'text-success' : 'text-danger';
+        const quantitySign = transaction.quantity >= 0 ? '+' : '';
+
+        return `
+          <tr>
+            <td><small>${formattedDate}</small></td>
+            <td>${typeBadge}</td>
+            <td class="text-end ${quantityClass}"><strong>${quantitySign}${transaction.quantity}</strong></td>
+            <td class="text-end">${transaction.quantity_before}</td>
+            <td class="text-end">${transaction.quantity_after}</td>
+            <td>${transaction.reference_number ? escapeHtml(transaction.reference_number) : '-'}</td>
+            <td><small>${transaction.user ? escapeHtml(transaction.user.name) : '-'}</small></td>
+            <td><small>${transaction.notes ? escapeHtml(transaction.notes) : '-'}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getTransactionTypeBadge(type) {
+      const badges = {
+        'receipt': '<span class="badge text-bg-success">Receipt</span>',
+        'shipment': '<span class="badge text-bg-info">Shipment</span>',
+        'adjustment': '<span class="badge text-bg-warning">Adjustment</span>',
+        'transfer': '<span class="badge text-bg-primary">Transfer</span>',
+        'return': '<span class="badge text-bg-secondary">Return</span>',
+        'cycle_count': '<span class="badge text-bg-purple">Cycle Count</span>',
+      };
+      return badges[type] || '<span class="badge">' + type + '</span>';
+    }
+
+    async function exportProductTransactions(productId) {
+      try {
+        const typeFilter = document.getElementById('activityTypeFilter').value;
+        let url = `/transactions-export?product_id=${productId}`;
+
+        if (typeFilter) {
+          url += `&type=${typeFilter}`;
+        }
+
+        const response = await fetch(`${API_BASE}${url}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Accept': 'text/csv'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Export failed');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `transactions_export_${productId}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
+
+        showNotification('Transactions exported successfully', 'success');
+      } catch (error) {
+        console.error('Error exporting transactions:', error);
+        showNotification('Error exporting transactions: ' + error.message, 'danger');
+      }
+    }
+
+    // ========== CONFIGURATOR & BOM ==========
+    let currentBOM = [];
+    let allProducts = []; // For part selector
+
+    async function loadProductBOM(productId) {
+      try {
+        document.getElementById('bomLoading').style.display = 'block';
+        document.getElementById('bomContent').style.display = 'none';
+
+        const response = await apiCall(`/products/${productId}/required-parts`);
+        currentBOM = response;
+        renderBOM();
+
+        document.getElementById('bomCount').textContent = currentBOM.length;
+        document.getElementById('bomLoading').style.display = 'none';
+        document.getElementById('bomContent').style.display = 'block';
+
+        // Load where-used
+        loadWhereUsed(productId);
+      } catch (error) {
+        console.error('Error loading BOM:', error);
+        document.getElementById('bomLoading').style.display = 'none';
+        document.getElementById('bomContent').innerHTML = '<div class="alert alert-danger">Error loading BOM</div>';
+      }
+    }
+
+    function renderBOM() {
+      const tbody = document.getElementById('bomTableBody');
+
+      if (currentBOM.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No parts in BOM</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = currentBOM.map(part => {
+        const finishPolicyBadge = getFinishPolicyBadge(part.finish_policy, part.specific_finish);
+        const optionalBadge = part.is_optional
+          ? '<span class="badge text-bg-secondary">Optional</span>'
+          : '<span class="badge text-bg-success">Required</span>';
+
+        return `
+          <tr>
+            <td><strong>${escapeHtml(part.required_product.sku)}</strong></td>
+            <td>${escapeHtml(part.required_product.description)}</td>
+            <td class="text-end">${part.quantity}</td>
+            <td>${finishPolicyBadge}</td>
+            <td>${optionalBadge}</td>
+            <td><small>${part.notes ? escapeHtml(part.notes) : '-'}</small></td>
+            <td>
+              <div class="btn-group">
+                <button class="btn btn-sm btn-ghost-primary" onclick="editRequiredPart(${part.id})">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-ghost-danger" onclick="deleteRequiredPart(${part.id})">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getFinishPolicyBadge(policy, specificFinish) {
+      const badges = {
+        'same_as_parent': '<span class="badge text-bg-primary">Same as Parent</span>',
+        'specific': `<span class="badge text-bg-info">Specific: ${specificFinish || '?'}</span>`,
+        'any': '<span class="badge text-bg-secondary">Any</span>',
+      };
+      return badges[policy] || policy;
+    }
+
+    async function loadWhereUsed(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/where-used`);
+        const whereUsed = response;
+
+        const container = document.getElementById('whereUsedContent');
+
+        if (whereUsed.length === 0) {
+          container.innerHTML = '<p class="text-muted">This part is not used in any other products</p>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="table-responsive">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Product SKU</th>
+                  <th>Description</th>
+                  <th class="text-end">Quantity</th>
+                  <th>Finish Policy</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${whereUsed.map(item => `
+                  <tr>
+                    <td>${escapeHtml(item.sku)}</td>
+                    <td>${escapeHtml(item.description)}</td>
+                    <td class="text-end">${item.quantity}</td>
+                    <td>${getFinishPolicyBadge(item.finish_policy)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (error) {
+        console.error('Error loading where-used:', error);
+        document.getElementById('whereUsedContent').innerHTML = '<p class="text-danger">Error loading where-used information</p>';
+      }
+    }
+
+    function showAddRequiredPartForm() {
+      document.getElementById('requiredPartId').value = '';
+      document.getElementById('requiredPartForm').reset();
+      document.getElementById('addRequiredPartForm').style.display = 'block';
+      document.getElementById('specificFinishGroup').style.display = 'none';
+
+      // Load product list for selector
+      loadProductsForSelector();
+    }
+
+    function hideRequiredPartForm() {
+      document.getElementById('addRequiredPartForm').style.display = 'none';
+    }
+
+    async function loadProductsForSelector() {
+      try {
+        const response = await apiCall('/products?per_page=all&is_active=1');
+        allProducts = response.data || response;
+
+        const select = document.getElementById('requiredProductId');
+        select.innerHTML = '<option value="">Search and select...</option>';
+
+        allProducts.forEach(product => {
+          const option = document.createElement('option');
+          option.value = product.id;
+          option.textContent = `${product.sku} - ${product.description}`;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading products:', error);
+      }
+    }
+
+    // Handle finish policy change
+    document.addEventListener('DOMContentLoaded', () => {
+      const finishPolicySelect = document.getElementById('requiredFinishPolicy');
+      if (finishPolicySelect) {
+        finishPolicySelect.addEventListener('change', function() {
+          const specificGroup = document.getElementById('specificFinishGroup');
+          if (this.value === 'specific') {
+            specificGroup.style.display = 'block';
+            // Populate finish codes
+            const finishSelect = document.getElementById('requiredSpecificFinish');
+            finishSelect.innerHTML = '<option value="">Select...</option>';
+            Object.entries(finishCodes).forEach(([code, name]) => {
+              const option = document.createElement('option');
+              option.value = code;
+              option.textContent = `${code} - ${name}`;
+              finishSelect.appendChild(option);
+            });
+          } else {
+            specificGroup.style.display = 'none';
+          }
+        });
+      }
+
+      // Handle form submission
+      const requiredPartForm = document.getElementById('requiredPartForm');
+      if (requiredPartForm) {
+        requiredPartForm.addEventListener('submit', handleRequiredPartSubmit);
+      }
+    });
+
+    async function handleRequiredPartSubmit(e) {
+      e.preventDefault();
+
+      const formData = {
+        required_product_id: parseInt(document.getElementById('requiredProductId').value),
+        quantity: parseFloat(document.getElementById('requiredQuantity').value),
+        finish_policy: document.getElementById('requiredFinishPolicy').value,
+        specific_finish: document.getElementById('requiredSpecificFinish').value || null,
+        is_optional: document.getElementById('requiredIsOptional').checked,
+        notes: document.getElementById('requiredNotes').value || null,
+        sort_order: parseInt(document.getElementById('requiredSortOrder').value) || 0,
+      };
+
+      try {
+        const partId = document.getElementById('requiredPartId').value;
+
+        if (partId) {
+          // Update existing part
+          await apiCall(`/products/${currentProductId}/required-parts/${partId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+          });
+          showNotification('Required part updated successfully', 'success');
+        } else {
+          // Add new part
+          await apiCall(`/products/${currentProductId}/required-parts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData),
+          });
+          showNotification('Required part added successfully', 'success');
+        }
+
+        hideRequiredPartForm();
+        loadProductBOM(currentProductId);
+      } catch (error) {
+        console.error('Error saving required part:', error);
+        showNotification(error.message || 'Error saving required part', 'danger');
+      }
+    }
+
+    async function editRequiredPart(partId) {
+      const part = currentBOM.find(p => p.id === partId);
+      if (!part) return;
+
+      document.getElementById('requiredPartId').value = part.id;
+      document.getElementById('requiredProductId').value = part.required_product_id;
+      document.getElementById('requiredQuantity').value = part.quantity;
+      document.getElementById('requiredFinishPolicy').value = part.finish_policy;
+      document.getElementById('requiredSpecificFinish').value = part.specific_finish || '';
+      document.getElementById('requiredIsOptional').checked = part.is_optional;
+      document.getElementById('requiredNotes').value = part.notes || '';
+      document.getElementById('requiredSortOrder').value = part.sort_order || 0;
+
+      if (part.finish_policy === 'specific') {
+        document.getElementById('specificFinishGroup').style.display = 'block';
+      }
+
+      document.getElementById('addRequiredPartForm').style.display = 'block';
+      await loadProductsForSelector();
+    }
+
+    async function deleteRequiredPart(partId) {
+      if (!confirm('Are you sure you want to remove this part from the BOM?')) {
+        return;
+      }
+
+      try {
+        await apiCall(`/products/${currentProductId}/required-parts/${partId}`, {
+          method: 'DELETE',
+        });
+        showNotification('Required part removed successfully', 'success');
+        loadProductBOM(currentProductId);
+      } catch (error) {
+        console.error('Error deleting required part:', error);
+        showNotification(error.message || 'Error deleting required part', 'danger');
+      }
+    }
+
+    async function explodeBOM(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/bom-explosion?quantity=1`);
+
+        // Display explosion results in a modal or alert
+        let message = `BOM Explosion for ${response.product.sku}\n\n`;
+        message += `Total unique parts: ${response.total_parts}\n\n`;
+        message += 'Summary:\n';
+        response.summary.forEach(part => {
+          message += `- ${part.sku}: ${part.total_quantity} ${part.finish ? '(' + part.finish + ')' : ''}\n`;
+        });
+
+        alert(message);
+      } catch (error) {
+        console.error('Error exploding BOM:', error);
+        showNotification('Error exploding BOM', 'danger');
+      }
+    }
+
+    async function checkBOMAvailability(productId) {
+      try {
+        const response = await apiCall(`/products/${productId}/bom-availability?quantity=1`);
+
+        let message = `BOM Availability Check\n\n`;
+        message += response.all_available ? '✓ All parts available!\n\n' : '⚠ Some parts not available\n\n';
+
+        response.parts.forEach(part => {
+          const icon = part.is_available ? '✓' : '✗';
+          message += `${icon} ${part.sku}: Need ${part.required}, Have ${part.available}`;
+          if (part.shortage > 0) {
+            message += ` (Short: ${part.shortage})`;
+          }
+          message += '\n';
+        });
+
+        alert(message);
+      } catch (error) {
+        console.error('Error checking availability:', error);
+        showNotification('Error checking BOM availability', 'danger');
       }
     }
 
@@ -1713,6 +2403,7 @@
           showNotification('Reservation released successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to release reservation', 'danger');
@@ -1755,6 +2446,7 @@
           showNotification('Reservation fulfilled successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to fulfill reservation', 'danger');
@@ -1830,6 +2522,7 @@
           hideReservationForm();
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save reservation', 'danger');
@@ -1847,6 +2540,7 @@
     // ========== CONFIGURATION DATA ==========
     let finishCodes = {};
     let unitOfMeasures = {};
+    let categories = [];
 
     async function loadConfigurations() {
       try {
@@ -1857,6 +2551,10 @@
         // Load UOMs
         const uomResponse = await apiCall('/unit-of-measures');
         unitOfMeasures = await uomResponse.json();
+
+        // Load categories
+        const categoriesResponse = await apiCall('/categories?per_page=all&with_parent=true');
+        categories = await categoriesResponse.json();
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
@@ -1883,9 +2581,34 @@
           });
         });
 
+        // Populate category dropdown
+        populateCategoryDropdown();
+
       } catch (error) {
         console.error('Error loading configurations:', error);
       }
+    }
+
+    function populateCategoryDropdown() {
+      const categorySelect = document.getElementById('productCategoryId');
+      categorySelect.innerHTML = '<option value="">Select category...</option>';
+
+      // Sort categories by name
+      const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+
+        // Show parent category if exists
+        if (category.parent) {
+          option.textContent = `${category.parent.name} > ${category.name}`;
+        } else {
+          option.textContent = category.name;
+        }
+
+        categorySelect.appendChild(option);
+      });
     }
 
     // Auto-generate SKU preview
@@ -1982,6 +2705,7 @@
           hideModal(document.getElementById('addProductModal'));
           showNotification('Product created successfully!', 'success');
           loadDashboard();
+      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           if (error.errors) {
@@ -2012,24 +2736,6 @@
         saveBtn.innerHTML = '<i class="ti ti-device-floppy icon"></i> Save Product';
       }
     });
-
-    // Notification system
-    function showNotification(message, type = 'info') {
-      const toast = document.createElement('div');
-      toast.className = `alert alert-${type} alert-dismissible position-fixed top-0 end-0 m-3`;
-      toast.style.zIndex = '9999';
-      toast.style.minWidth = '300px';
-      toast.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-      `;
-      document.body.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.add('fade');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
-    }
 
     // Theme settings from Tabler demo
     var themeConfig = {
@@ -2080,9 +2786,76 @@
 
     checkItems();
 
+
+    // Category filter event listener
+    document.getElementById('categoryFilter').addEventListener('change', function(e) {
+      currentCategoryFilter = e.target.value;
+      if (currentTab === 'all') {
+        loadDashboard();
+      loadCategoryBreakdown();
+      } else {
+        loadByStatus(currentTab);
+      }
+    });
+
+
+    // Load and render category breakdown
+    async function loadCategoryBreakdown() {
+      try {
+        const response = await apiCall('/categories?per_page=all');
+        const allCategories = await response.json();
+
+        // Get product counts for each category
+        const categoryStats = allCategories.filter(cat => cat.products_count > 0)
+          .sort((a, b) => b.products_count - a.products_count)
+          .slice(0, 6); // Top 6 categories
+
+        const container = document.getElementById('categoryBreakdown');
+
+        if (categoryStats.length === 0) {
+          container.innerHTML = '<div class="col-12 text-muted"><div class="text-center">No categories with products yet</div></div>';
+          return;
+        }
+
+        container.innerHTML = categoryStats.map(category => `
+          <div class="col-sm-6 col-lg-2">
+            <a href="#" class="text-decoration-none" onclick="filterByCategory(${category.id}); return false;">
+              <div class="card card-sm card-link">
+                <div class="card-body">
+                  <div class="subheader">${htmlEscape(category.name)}</div>
+                  <div class="h2 mb-0">${category.products_count}</div>
+                  <div class="text-muted small">${category.products_count === 1 ? 'product' : 'products'}</div>
+                </div>
+              </div>
+            </a>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading category breakdown:', error);
+      }
+    }
+
+    function filterByCategory(categoryId) {
+      const categoryFilter = document.getElementById('categoryFilter');
+      categoryFilter.value = categoryId;
+      currentCategoryFilter = categoryId;
+      if (currentTab === 'all') {
+        loadDashboard();
+      loadCategoryBreakdown();
+      } else {
+        loadByStatus(currentTab);
+      }
+    }
+
+    function htmlEscape(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
     // Initialize dashboard if authenticated
     if (authToken) {
       loadDashboard();
+      loadCategoryBreakdown();
       loadConfigurations(); // Load finish codes and UOMs
     }
   </script>

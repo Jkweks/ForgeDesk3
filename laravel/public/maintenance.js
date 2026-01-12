@@ -1,143 +1,11 @@
-// API Configuration
-const API_BASE = '/api/v1';
-let authToken = null;
+// API_BASE, authToken, authenticatedFetch, showModal, hideModal, and showNotification
+// are all provided by auth-scripts.blade.php
 
 // State
 let machines = [];
 let assets = [];
 let tasks = [];
 let records = [];
-
-// Bootstrap Modal Helper - handles initialization safely
-function showModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = new window.bootstrap.Modal(modalElement);
-      modal.show();
-      return true;
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available, using fallback:', e);
-  }
-
-  // Fallback: manually show modal without Bootstrap
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop fade show';
-  backdrop.id = 'modal-backdrop-' + modalElement.id;
-  document.body.appendChild(backdrop);
-
-  modalElement.style.display = 'block';
-  modalElement.classList.add('show');
-  modalElement.removeAttribute('aria-hidden');
-  modalElement.setAttribute('aria-modal', 'true');
-  document.body.classList.add('modal-open');
-
-  // Close on backdrop click
-  backdrop.addEventListener('click', () => hideModal(modalElement));
-
-  // Add close button listeners
-  const closeButtons = modalElement.querySelectorAll('[data-bs-dismiss="modal"]');
-  closeButtons.forEach(btn => {
-    btn.onclick = () => hideModal(modalElement);
-  });
-
-  return false;
-}
-
-function hideModal(modalElement) {
-  try {
-    if (window.bootstrap && window.bootstrap.Modal) {
-      const modal = window.bootstrap.Modal.getInstance(modalElement);
-      if (modal) {
-        modal.hide();
-        return;
-      }
-    }
-  } catch (e) {
-    console.warn('Bootstrap not available for hide, using fallback:', e);
-  }
-
-  // Fallback: manually hide modal
-  modalElement.style.display = 'none';
-  modalElement.classList.remove('show');
-  modalElement.setAttribute('aria-hidden', 'true');
-  modalElement.removeAttribute('aria-modal');
-  document.body.classList.remove('modal-open');
-
-  const backdrop = document.getElementById('modal-backdrop-' + modalElement.id);
-  if (backdrop) {
-    backdrop.remove();
-  }
-}
-
-// Authentication
-function checkAuth() {
-  authToken = localStorage.getItem('authToken');
-  if (authToken) {
-    document.getElementById('loginPage').classList.remove('active');
-    document.getElementById('app').classList.add('active');
-    initApp();
-  } else {
-    document.getElementById('loginPage').classList.add('active');
-    document.getElementById('app').classList.remove('active');
-  }
-}
-
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-
-  try {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      authToken = data.token;
-      localStorage.setItem('authToken', authToken);
-      checkAuth();
-    } else {
-      document.getElementById('loginError').textContent = 'Invalid credentials';
-      document.getElementById('loginError').style.display = 'block';
-    }
-  } catch (error) {
-    console.error('Login error:', error);
-    document.getElementById('loginError').textContent = 'Login failed';
-    document.getElementById('loginError').style.display = 'block';
-  }
-});
-
-document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
-  e.preventDefault();
-  localStorage.removeItem('authToken');
-  authToken = null;
-  checkAuth();
-});
-
-// API Helper
-async function apiCall(endpoint, options = {}) {
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': `Bearer ${authToken}`,
-    ...options.headers
-  };
-
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers
-  });
-
-  if (!response.ok) {
-    throw new Error(`API call failed: ${response.statusText}`);
-  }
-
-  return response.json();
-}
 
 // Initialize App
 async function initApp() {
@@ -151,7 +19,7 @@ async function initApp() {
 // Load Dashboard Stats
 async function loadDashboard() {
   try {
-    const data = await apiCall('/maintenance/dashboard');
+    const data = await authenticatedFetch('/maintenance/dashboard');
     document.getElementById('dashMachineCount').textContent = data.machine_count;
     document.getElementById('dashActiveTaskCount').textContent = data.active_task_count;
     document.getElementById('dashOverdueCount').textContent = data.overdue_task_count;
@@ -164,7 +32,7 @@ async function loadDashboard() {
 // Machines
 async function loadMachines() {
   try {
-    machines = await apiCall('/machines');
+    machines = await authenticatedFetch('/machines');
     renderMachines();
   } catch (error) {
     console.error('Failed to load machines:', error);
@@ -221,7 +89,7 @@ async function deleteMachine(id) {
   if (!confirm('Are you sure you want to delete this machine?')) return;
 
   try {
-    await apiCall(`/machines/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/machines/${id}`, { method: 'DELETE' });
     await loadMachines();
     await loadDashboard();
   } catch (error) {
@@ -246,9 +114,9 @@ document.getElementById('machineForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/machines/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/machines/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/machines', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/machines', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('machineModal'));
@@ -263,7 +131,7 @@ document.getElementById('machineForm').addEventListener('submit', async (e) => {
 // Assets
 async function loadAssets() {
   try {
-    assets = await apiCall('/assets');
+    assets = await authenticatedFetch('/assets');
     renderAssets();
   } catch (error) {
     console.error('Failed to load assets:', error);
@@ -328,7 +196,7 @@ async function deleteAsset(id) {
   if (!confirm('Are you sure you want to delete this asset?')) return;
 
   try {
-    await apiCall(`/assets/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/assets/${id}`, { method: 'DELETE' });
     await loadAssets();
   } catch (error) {
     console.error('Failed to delete asset:', error);
@@ -352,9 +220,9 @@ document.getElementById('assetForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/assets/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/assets', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/assets', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('assetModal'));
@@ -368,7 +236,7 @@ document.getElementById('assetForm').addEventListener('submit', async (e) => {
 // Tasks
 async function loadTasks() {
   try {
-    tasks = await apiCall('/maintenance-tasks');
+    tasks = await authenticatedFetch('/maintenance-tasks');
     renderTasks();
     populateTaskDropdowns();
   } catch (error) {
@@ -446,7 +314,7 @@ async function deleteTask(id) {
   if (!confirm('Are you sure you want to delete this task?')) return;
 
   try {
-    await apiCall(`/maintenance-tasks/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/maintenance-tasks/${id}`, { method: 'DELETE' });
     await loadTasks();
     await loadDashboard();
   } catch (error) {
@@ -474,9 +342,9 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/maintenance-tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/maintenance-tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/maintenance-tasks', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/maintenance-tasks', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('taskModal'));
@@ -491,7 +359,7 @@ document.getElementById('taskForm').addEventListener('submit', async (e) => {
 // Service Records
 async function loadRecords() {
   try {
-    records = await apiCall('/maintenance-records');
+    records = await authenticatedFetch('/maintenance-records');
     renderRecords();
   } catch (error) {
     console.error('Failed to load records:', error);
@@ -560,7 +428,7 @@ async function deleteRecord(id) {
   if (!confirm('Are you sure you want to delete this record?')) return;
 
   try {
-    await apiCall(`/maintenance-records/${id}`, { method: 'DELETE' });
+    await authenticatedFetch(`/maintenance-records/${id}`, { method: 'DELETE' });
     await loadRecords();
     await loadDashboard();
   } catch (error) {
@@ -590,9 +458,9 @@ document.getElementById('recordForm').addEventListener('submit', async (e) => {
 
   try {
     if (id) {
-      await apiCall(`/maintenance-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+      await authenticatedFetch(`/maintenance-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
     } else {
-      await apiCall('/maintenance-records', { method: 'POST', body: JSON.stringify(data) });
+      await authenticatedFetch('/maintenance-records', { method: 'POST', body: JSON.stringify(data) });
     }
 
     hideModal(document.getElementById('recordModal'));
@@ -604,7 +472,10 @@ document.getElementById('recordForm').addEventListener('submit', async (e) => {
   }
 });
 
-// Initialize on page load
+// Initialize on page load (auth is handled by auth-scripts.blade.php)
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuth();
+  // Only initialize if user is authenticated (auth-scripts.blade.php shows/hides login)
+  if (authToken) {
+    initApp();
+  }
 });

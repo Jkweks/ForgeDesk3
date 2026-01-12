@@ -26,9 +26,33 @@
                     <a class="dropdown-item" href="#">Low Stock</a>
                     <a class="dropdown-item" href="#">Critical Stock</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#">Categories</a>
-                    <a class="dropdown-item" href="#">Suppliers</a>
+                    <a class="dropdown-item" href="/categories">Categories</a>
+                    <a class="dropdown-item" href="/suppliers">Suppliers</a>
                   </div>
+                </li>
+                <li class="nav-item dropdown {{ Request::is('purchase-orders') || Request::is('cycle-counting') ? 'active' : '' }}">
+                  <a class="nav-link dropdown-toggle" href="#navbar-operations" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9l5 5v7h-5v-4m0 4h-5v-7l5 -5m1 1v-6a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v17h-8" /><path d="M13 7l0 .01" /><path d="M17 7l0 .01" /><path d="M17 11l0 .01" /><path d="M17 15l0 .01" /></svg>
+                    </span>
+                    <span class="nav-link-title">Operations</span>
+                  </a>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="/purchase-orders">
+                      <i class="ti ti-shopping-cart me-2"></i>Purchase Orders
+                    </a>
+                    <a class="dropdown-item" href="/cycle-counting">
+                      <i class="ti ti-clipboard-check me-2"></i>Cycle Counting
+                    </a>
+                  </div>
+                </li>
+                <li class="nav-item {{ Request::is('reports') ? 'active' : '' }}">
+                  <a class="nav-link" href="/reports" {{ Request::is('reports') ? 'aria-current=page' : '' }}>
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M9 8m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M15 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v14a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z" /><path d="M4 20l14 0" /></svg>
+                    </span>
+                    <span class="nav-link-title">Reports</span>
+                  </a>
                 </li>
                 <li class="nav-item dropdown {{ Request::is('maintenance*') ? 'active' : '' }}">
                   <a class="nav-link dropdown-toggle" href="#navbar-maintenance" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">

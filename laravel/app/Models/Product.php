@@ -118,6 +118,16 @@ class Product extends Model
         return $this->hasMany(RequiredPart::class, 'required_product_id');
     }
 
+    public function purchaseOrderItems()
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function cycleCountItems()
+    {
+        return $this->hasMany(CycleCountItem::class);
+    }
+
     public function getQuantityAvailableAttribute()
     {
         return $this->quantity_on_hand - $this->quantity_committed;

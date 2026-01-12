@@ -85,6 +85,18 @@
     return response;
   }
 
+  // Authenticated Fetch - returns JSON directly (convenience wrapper)
+  async function authenticatedFetch(endpoint, options = {}) {
+    const response = await apiCall(endpoint, options);
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Request failed' }));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
   // Authentication
   function showApp() {
     document.getElementById('loginPage').classList.remove('active');
