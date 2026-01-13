@@ -79,45 +79,55 @@ class ComprehensiveSeeder extends Seeder
         DB::statement('SET session_replication_role = replica');
 
         try {
-            // Maintenance tables
-            DB::table('maintenance_records')->truncate();
-            DB::table('maintenance_tasks')->truncate();
-            DB::table('machines')->truncate();
+            // Tables to truncate (in order to avoid FK issues)
+            $tablesToTruncate = [
+                'maintenance_records',
+                'maintenance_tasks',
+                'machines',
+                'cycle_count_items',  // Fixed: was cycle_count_lines
+                'cycle_count_sessions',
+                'inventory_transaction_lines',
+                'inventory_transactions',
+                'purchase_order_lines',
+                'purchase_orders',
+                'job_reservation_items',
+                'job_reservations',
+                'inventory_locations',
+                'storage_locations',
+                'required_parts',
+                'products',
+                'categories',
+                'suppliers',
+            ];
 
-            // Cycle counts
-            DB::table('cycle_count_lines')->truncate();
-            DB::table('cycle_count_sessions')->truncate();
+            foreach ($tablesToTruncate as $table) {
+                if ($this->tableExists($table)) {
+                    try {
+                        DB::table($table)->truncate();
+                    } catch (\Exception $e) {
+                        $this->command->warn("  ⚠ Could not truncate {$table}: " . $e->getMessage());
+                    }
+                }
+            }
 
-            // Transactions
-            DB::table('inventory_transaction_lines')->truncate();
-            DB::table('inventory_transactions')->truncate();
-
-            // Purchase orders
-            DB::table('purchase_order_lines')->truncate();
-            DB::table('purchase_orders')->truncate();
-
-            // Job reservations
-            DB::table('job_reservation_items')->truncate();
-            DB::table('job_reservations')->truncate();
-
-            // Inventory and locations
-            DB::table('inventory_locations')->truncate();
-            DB::table('storage_locations')->truncate();
-            DB::table('required_parts')->truncate();
-            DB::table('products')->truncate();
-
-            // Categories and suppliers
-            DB::table('categories')->truncate();
-            DB::table('suppliers')->truncate();
-
-            // Users (keep admin)
-            DB::table('users')->whereNotIn('email', ['admin@forgedesk.com'])->delete();
+            // Users (keep admin) - use delete instead of truncate
+            if ($this->tableExists('users')) {
+                DB::table('users')->whereNotIn('email', ['admin@forgedesk.com'])->delete();
+            }
         } finally {
             // Re-enable foreign key checks
             DB::statement('SET session_replication_role = DEFAULT');
         }
 
         $this->command->warn('  ✓ All data purged');
+    }
+
+    /**
+     * Check if a table exists in the database
+     */
+    private function tableExists(string $table): bool
+    {
+        return DB::getSchemaBuilder()->hasTable($table);
     }
 
     /**
@@ -1117,28 +1127,40 @@ class ComprehensiveSeeder extends Seeder
     {
         $sessions = [
             CycleCountSession::create([
-                'name' => 'Monthly Count - January 2026',
-                'description' => 'Full inventory count for month end',
+                'session_number' => 'CC-2026-001',
+                'location' => null,
+                'category_id' => null,
                 'status' => 'completed',
                 'scheduled_date' => now()->subDays(15),
                 'started_at' => now()->subDays(15),
                 'completed_at' => now()->subDays(14),
+                'assigned_to' => null,
+                'reviewed_by' => null,
+                'notes' => 'Full inventory count for month end',
             ]),
             CycleCountSession::create([
-                'name' => 'Aisle 2 Spot Check',
-                'description' => 'Hardware section verification',
+                'session_number' => 'CC-2026-002',
+                'location' => 'Aisle 2',
+                'category_id' => null,
                 'status' => 'in_progress',
                 'scheduled_date' => now(),
                 'started_at' => now(),
                 'completed_at' => null,
+                'assigned_to' => null,
+                'reviewed_by' => null,
+                'notes' => 'Hardware section verification',
             ]),
             CycleCountSession::create([
-                'name' => 'Q1 2026 Full Count',
-                'description' => 'Quarterly physical inventory',
-                'status' => 'scheduled',
+                'session_number' => 'CC-2026-003',
+                'location' => null,
+                'category_id' => null,
+                'status' => 'planned',
                 'scheduled_date' => now()->addDays(30),
                 'started_at' => null,
                 'completed_at' => null,
+                'assigned_to' => null,
+                'reviewed_by' => null,
+                'notes' => 'Quarterly physical inventory',
             ]),
         ];
 
@@ -1147,17 +1169,24 @@ class ComprehensiveSeeder extends Seeder
         $selectedProducts = collect($products)->random(min(10, count($products)));
 
         foreach ($selectedProducts as $product) {
-            $expectedQty = $product->quantity_on_hand;
-            $countedQty = $expectedQty + rand(-2, 2); // Small variance
-            $variance = $countedQty - $expectedQty;
+            $systemQty = $product->quantity_on_hand;
+            $countedQty = $systemQty + rand(-2, 2); // Small variance
+            $variance = $countedQty - $systemQty;
+            $varianceStatus = abs($variance) <= 1 ? 'within_tolerance' : 'requires_review';
 
-            DB::table('cycle_count_lines')->insert([
+            DB::table('cycle_count_items')->insert([
                 'session_id' => $completedSession->id,
                 'product_id' => $product->id,
-                'expected_quantity' => $expectedQty,
+                'location_id' => null,
+                'system_quantity' => $systemQty,
                 'counted_quantity' => $countedQty,
                 'variance' => $variance,
+                'variance_status' => $varianceStatus,
+                'count_notes' => null,
+                'counted_by' => null,
                 'counted_at' => now()->subDays(14),
+                'adjustment_created' => false,
+                'transaction_id' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
