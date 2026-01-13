@@ -444,7 +444,6 @@ class ComprehensiveSeeder extends Seeder
         $tubelite = $suppliers[0];
 
         $products[] = Product::create([
-            'name' => 'T400 Top Rail - BL',
             'sku' => 'T400-TR-BL',
             'part_number' => 'T400-TR',
             'finish' => 'BL',
@@ -453,10 +452,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Tubelite 400 Series Top Rail, Black finish',
             'quantity_on_hand' => 150,
             'quantity_committed' => 20,
-            'quantity_on_order' => 50,
+            'on_order_qty' => 50,
             'unit_price' => 45.50,
             'reorder_point' => 30,
-            'reorder_quantity' => 100,
             'safety_stock' => 20,
             'lead_time_days' => 14,
             'unit_of_measure' => 'EA',
@@ -465,7 +463,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'T400 Bottom Rail - BL',
             'sku' => 'T400-BR-BL',
             'part_number' => 'T400-BR',
             'finish' => 'BL',
@@ -474,10 +471,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Tubelite 400 Series Bottom Rail, Black finish',
             'quantity_on_hand' => 135,
             'quantity_committed' => 18,
-            'quantity_on_order' => 0,
+            'on_order_qty' => 0,
             'unit_price' => 42.00,
             'reorder_point' => 30,
-            'reorder_quantity' => 100,
             'safety_stock' => 20,
             'lead_time_days' => 14,
             'unit_of_measure' => 'EA',
@@ -486,7 +482,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'T400 Stile - C2',
             'sku' => 'T400-ST-C2',
             'part_number' => 'T400-ST',
             'finish' => 'C2',
@@ -495,10 +490,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Tubelite 400 Series Stile, Clear anodized',
             'quantity_on_hand' => 85,
             'quantity_committed' => 30,
-            'quantity_on_order' => 100,
+            'on_order_qty' => 100,
             'unit_price' => 52.75,
             'reorder_point' => 40,
-            'reorder_quantity' => 120,
             'safety_stock' => 25,
             'lead_time_days' => 14,
             'unit_of_measure' => 'EA',
@@ -511,7 +505,6 @@ class ComprehensiveSeeder extends Seeder
         $hardwareSupplier = $suppliers[3];
 
         $products[] = Product::create([
-            'name' => 'Continuous Hinge - 83" - Dark Bronze',
             'sku' => 'HINGE-CONT-83-DB',
             'part_number' => 'HINGE-CONT-83',
             'finish' => 'DB',
@@ -520,10 +513,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => '83 inch continuous hinge, dark bronze finish',
             'quantity_on_hand' => 42,
             'quantity_committed' => 12,
-            'quantity_on_order' => 25,
+            'on_order_qty' => 25,
             'unit_price' => 89.50,
             'reorder_point' => 15,
-            'reorder_quantity' => 50,
             'safety_stock' => 10,
             'lead_time_days' => 7,
             'unit_of_measure' => 'EA',
@@ -532,7 +524,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'Mortise Lock - Grade 1 - Satin Chrome',
             'sku' => 'LOCK-MORT-G1-SC',
             'part_number' => 'LOCK-MORT-G1',
             'finish' => 'SC',
@@ -541,10 +532,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Grade 1 mortise lockset, satin chrome',
             'quantity_on_hand' => 28,
             'quantity_committed' => 8,
-            'quantity_on_order' => 0,
+            'on_order_qty' => 0,
             'unit_price' => 245.00,
             'reorder_point' => 12,
-            'reorder_quantity' => 30,
             'safety_stock' => 8,
             'lead_time_days' => 7,
             'unit_of_measure' => 'EA',
@@ -553,7 +543,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'Door Closer - Heavy Duty - Aluminum',
             'sku' => 'CLOSER-HD-AL',
             'part_number' => 'CLOSER-HD',
             'finish' => 'AL',
@@ -562,10 +551,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Heavy duty door closer, aluminum finish',
             'quantity_on_hand' => 15,
             'quantity_committed' => 6,
-            'quantity_on_order' => 20,
+            'on_order_qty' => 20,
             'unit_price' => 178.50,
             'reorder_point' => 10,
-            'reorder_quantity' => 25,
             'safety_stock' => 5,
             'lead_time_days' => 7,
             'unit_of_measure' => 'EA',
@@ -574,7 +562,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'Panic Device - Rim Type - Dark Bronze',
             'sku' => 'PANIC-RIM-DB',
             'part_number' => 'PANIC-RIM',
             'finish' => 'DB',
@@ -583,10 +570,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Rim type panic exit device, dark bronze',
             'quantity_on_hand' => 8,
             'quantity_committed' => 4,
-            'quantity_on_order' => 15,
+            'on_order_qty' => 15,
             'unit_price' => 425.00,
             'reorder_point' => 8,
-            'reorder_quantity' => 20,
             'safety_stock' => 4,
             'lead_time_days' => 7,
             'unit_of_measure' => 'EA',
@@ -598,7 +584,6 @@ class ComprehensiveSeeder extends Seeder
         $glassSupplier = $suppliers[4];
 
         $products[] = Product::create([
-            'name' => 'Tempered Glass - 1/4" - Clear',
             'sku' => 'GLASS-TEMP-025-CLR',
             'part_number' => 'GLASS-TEMP-025',
             'finish' => 'CLR',
@@ -607,10 +592,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => '1/4 inch tempered glass, clear',
             'quantity_on_hand' => 65,
             'quantity_committed' => 15,
-            'quantity_on_order' => 30,
+            'on_order_qty' => 30,
             'unit_price' => 125.00,
             'reorder_point' => 20,
-            'reorder_quantity' => 50,
             'safety_stock' => 12,
             'lead_time_days' => 10,
             'unit_of_measure' => 'SF',
@@ -619,7 +603,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'Tempered Glass - 1/2" - Low-E',
             'sku' => 'GLASS-TEMP-050-LOWE',
             'part_number' => 'GLASS-TEMP-050',
             'finish' => 'LOWE',
@@ -628,10 +611,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => '1/2 inch tempered glass with Low-E coating',
             'quantity_on_hand' => 42,
             'quantity_committed' => 12,
-            'quantity_on_order' => 40,
+            'on_order_qty' => 40,
             'unit_price' => 185.00,
             'reorder_point' => 18,
-            'reorder_quantity' => 45,
             'safety_stock' => 10,
             'lead_time_days' => 10,
             'unit_of_measure' => 'SF',
@@ -644,7 +626,6 @@ class ComprehensiveSeeder extends Seeder
         $kawneer = $suppliers[1];
 
         $products[] = Product::create([
-            'name' => 'Powder Coating - Black - 50lb',
             'sku' => 'POWDER-BL-50',
             'part_number' => 'POWDER-BL',
             'finish' => null,
@@ -653,10 +634,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Black powder coating material, 50lb bag',
             'quantity_on_hand' => 125,
             'quantity_committed' => 0,
-            'quantity_on_order' => 0,
+            'on_order_qty' => 0,
             'unit_price' => 95.00,
             'reorder_point' => 30,
-            'reorder_quantity' => 80,
             'safety_stock' => 20,
             'lead_time_days' => 21,
             'unit_of_measure' => 'BAG',
@@ -668,7 +648,6 @@ class ComprehensiveSeeder extends Seeder
         $electricalCategory = $categories[3];
 
         $products[] = Product::create([
-            'name' => 'Card Reader - Proximity',
             'sku' => 'CARD-PROX-001',
             'part_number' => 'CARD-PROX',
             'finish' => null,
@@ -677,10 +656,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Proximity card reader for access control',
             'quantity_on_hand' => 18,
             'quantity_committed' => 3,
-            'quantity_on_order' => 12,
+            'on_order_qty' => 12,
             'unit_price' => 145.00,
             'reorder_point' => 8,
-            'reorder_quantity' => 15,
             'safety_stock' => 5,
             'lead_time_days' => 28,
             'unit_of_measure' => 'EA',
@@ -692,7 +670,6 @@ class ComprehensiveSeeder extends Seeder
         $assemblyCategory = $categories[4];
 
         $products[] = Product::create([
-            'name' => 'Stainless Steel Screws #10 - 1" - 100 Pack',
             'sku' => 'SCREW-SS-10-1-100',
             'part_number' => 'SCREW-SS-10-1',
             'finish' => null,
@@ -701,10 +678,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => '#10 x 1" stainless steel screws, box of 100',
             'quantity_on_hand' => 245,
             'quantity_committed' => 30,
-            'quantity_on_order' => 0,
+            'on_order_qty' => 0,
             'unit_price' => 12.50,
             'reorder_point' => 50,
-            'reorder_quantity' => 200,
             'safety_stock' => 30,
             'lead_time_days' => 7,
             'unit_of_measure' => 'BOX',
@@ -713,7 +689,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'EPDM Gasket - 1/4" x 100ft Roll',
             'sku' => 'GASKET-EPDM-025-100',
             'part_number' => 'GASKET-EPDM-025',
             'finish' => null,
@@ -722,10 +697,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => '1/4" EPDM gasket material, 100ft roll',
             'quantity_on_hand' => 32,
             'quantity_committed' => 8,
-            'quantity_on_order' => 20,
+            'on_order_qty' => 20,
             'unit_price' => 78.00,
             'reorder_point' => 12,
-            'reorder_quantity' => 25,
             'safety_stock' => 8,
             'lead_time_days' => 14,
             'unit_of_measure' => 'ROLL',
@@ -734,7 +708,6 @@ class ComprehensiveSeeder extends Seeder
         ]);
 
         $products[] = Product::create([
-            'name' => 'Weatherstripping - Silicone - 50ft Roll',
             'sku' => 'WEATHER-SIL-50',
             'part_number' => 'WEATHER-SIL',
             'finish' => null,
@@ -743,10 +716,9 @@ class ComprehensiveSeeder extends Seeder
             'description' => 'Silicone weatherstripping, 50ft roll',
             'quantity_on_hand' => 28,
             'quantity_committed' => 5,
-            'quantity_on_order' => 0,
+            'on_order_qty' => 0,
             'unit_price' => 45.00,
             'reorder_point' => 10,
-            'reorder_quantity' => 20,
             'safety_stock' => 6,
             'lead_time_days' => 21,
             'unit_of_measure' => 'ROLL',
