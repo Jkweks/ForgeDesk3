@@ -75,43 +75,47 @@ class ComprehensiveSeeder extends Seeder
      */
     private function purgeAllData(): void
     {
-        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        // Disable foreign key checks (PostgreSQL compatible)
+        DB::statement('SET session_replication_role = replica');
 
-        // Maintenance tables
-        DB::table('maintenance_records')->truncate();
-        DB::table('maintenance_tasks')->truncate();
-        DB::table('machines')->truncate();
+        try {
+            // Maintenance tables
+            DB::table('maintenance_records')->truncate();
+            DB::table('maintenance_tasks')->truncate();
+            DB::table('machines')->truncate();
 
-        // Cycle counts
-        DB::table('cycle_count_lines')->truncate();
-        DB::table('cycle_count_sessions')->truncate();
+            // Cycle counts
+            DB::table('cycle_count_lines')->truncate();
+            DB::table('cycle_count_sessions')->truncate();
 
-        // Transactions
-        DB::table('inventory_transaction_lines')->truncate();
-        DB::table('inventory_transactions')->truncate();
+            // Transactions
+            DB::table('inventory_transaction_lines')->truncate();
+            DB::table('inventory_transactions')->truncate();
 
-        // Purchase orders
-        DB::table('purchase_order_lines')->truncate();
-        DB::table('purchase_orders')->truncate();
+            // Purchase orders
+            DB::table('purchase_order_lines')->truncate();
+            DB::table('purchase_orders')->truncate();
 
-        // Job reservations
-        DB::table('job_reservation_items')->truncate();
-        DB::table('job_reservations')->truncate();
+            // Job reservations
+            DB::table('job_reservation_items')->truncate();
+            DB::table('job_reservations')->truncate();
 
-        // Inventory and locations
-        DB::table('inventory_locations')->truncate();
-        DB::table('storage_locations')->truncate();
-        DB::table('required_parts')->truncate();
-        DB::table('products')->truncate();
+            // Inventory and locations
+            DB::table('inventory_locations')->truncate();
+            DB::table('storage_locations')->truncate();
+            DB::table('required_parts')->truncate();
+            DB::table('products')->truncate();
 
-        // Categories and suppliers
-        DB::table('categories')->truncate();
-        DB::table('suppliers')->truncate();
+            // Categories and suppliers
+            DB::table('categories')->truncate();
+            DB::table('suppliers')->truncate();
 
-        // Users (keep admin)
-        DB::table('users')->whereNotIn('email', ['admin@forgedesk.com'])->delete();
-
-        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            // Users (keep admin)
+            DB::table('users')->whereNotIn('email', ['admin@forgedesk.com'])->delete();
+        } finally {
+            // Re-enable foreign key checks
+            DB::statement('SET session_replication_role = DEFAULT');
+        }
 
         $this->command->warn('  ✓ All data purged');
     }
