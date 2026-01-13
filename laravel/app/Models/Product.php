@@ -12,12 +12,12 @@ class Product extends Model
 
     protected $fillable = [
         'sku', 'part_number', 'finish', 'description', 'long_description',
-        'category', 'category_id', 'location',
+        'category_id', 'location',
         'unit_cost', 'unit_price', 'quantity_on_hand', 'quantity_committed',
         'minimum_quantity', 'reorder_point', 'safety_stock', 'average_daily_use',
         'on_order_qty', 'maximum_quantity', 'unit_of_measure',
         'pack_size', 'purchase_uom', 'stock_uom', 'min_order_qty', 'order_multiple',
-        'supplier', 'supplier_id', 'supplier_sku', 'supplier_contact', 'lead_time_days',
+        'supplier_id', 'supplier_sku', 'supplier_contact', 'lead_time_days',
         'is_active', 'is_discontinued', 'status',
         'configurator_available', 'configurator_type', 'configurator_use_path',
         'dimension_height', 'dimension_depth',

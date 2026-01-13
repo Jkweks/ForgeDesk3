@@ -910,8 +910,11 @@
             <h5 class="mb-3"><i class="ti ti-truck-delivery me-2"></i>Supplier</h5>
             <div class="row mb-3">
               <div class="col-lg-6">
-                <label class="form-label">Supplier Name</label>
-                <input type="text" class="form-control" name="supplier" id="productSupplier" placeholder="Supplier name">
+                <label class="form-label">Supplier</label>
+                <select class="form-select" name="supplier_id" id="productSupplierId">
+                  <option value="">Select supplier...</option>
+                </select>
+                <small class="form-hint">Product supplier</small>
               </div>
               <div class="col-lg-6">
                 <label class="form-label">Supplier SKU</label>
@@ -1428,7 +1431,7 @@
           <div class="row mb-3">
             <div class="col-md-4">
               <label class="form-label fw-bold">Supplier</label>
-              <p>${product.supplier || '-'}</p>
+              <p>${product.supplier ? product.supplier.name : '-'}</p>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-bold">Supplier SKU</label>
@@ -1444,7 +1447,7 @@
           <div class="row">
             <div class="col-md-6">
               <label class="form-label fw-bold">Category</label>
-              <p>${product.category || '-'}</p>
+              <p>${product.category ? product.category.name : '-'}</p>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
@@ -2541,6 +2544,7 @@
     let finishCodes = {};
     let unitOfMeasures = {};
     let categories = [];
+    let suppliers = [];
 
     async function loadConfigurations() {
       try {
@@ -2555,6 +2559,10 @@
         // Load categories
         const categoriesResponse = await apiCall('/categories?per_page=all&with_parent=true');
         categories = await categoriesResponse.json();
+
+        // Load suppliers
+        const suppliersResponse = await apiCall('/suppliers?per_page=all');
+        suppliers = await suppliersResponse.json();
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
@@ -2584,6 +2592,9 @@
         // Populate category dropdown
         populateCategoryDropdown();
 
+        // Populate supplier dropdown
+        populateSupplierDropdown();
+
       } catch (error) {
         console.error('Error loading configurations:', error);
       }
@@ -2608,6 +2619,24 @@
         }
 
         categorySelect.appendChild(option);
+      });
+    }
+
+    function populateSupplierDropdown() {
+      const supplierSelect = document.getElementById('productSupplierId');
+      supplierSelect.innerHTML = '<option value="">Select supplier...</option>';
+
+      // Sort suppliers by name
+      const sortedSuppliers = [...suppliers].sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedSuppliers.forEach(supplier => {
+        const option = document.createElement('option');
+        option.value = supplier.id;
+        option.textContent = supplier.name;
+        if (supplier.code) {
+          option.textContent += ` (${supplier.code})`;
+        }
+        supplierSelect.appendChild(option);
       });
     }
 

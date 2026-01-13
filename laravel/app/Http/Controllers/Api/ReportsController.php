@@ -385,9 +385,47 @@ class ReportsController extends Controller
         ]);
     }
 
-    // Additional export methods would go here...
-    private function exportCommitted() { /* Similar to exportLowStock */ }
-    private function exportVelocity($request) { /* Similar to exportLowStock */ }
-    private function exportReorder() { /* Similar to exportLowStock */ }
-    private function exportObsolete($request) { /* Similar to exportLowStock */ }
+    private function exportCommitted()
+    {
+        $data = $this->committedPartsReport(request());
+        $items = collect($data->original['committed_products']);
+
+        return $this->generateCSV($items, 'committed_parts_report', [
+            'SKU', 'Description', 'Category', 'Supplier', 'On Hand', 'Committed',
+            'Available', 'Unit Cost', 'Total Value'
+        ]);
+    }
+
+    private function exportVelocity($request)
+    {
+        $data = $this->stockVelocityAnalysis($request);
+        $items = collect($data->original['products']);
+
+        return $this->generateCSV($items, 'velocity_analysis_report', [
+            'SKU', 'Description', 'Category', 'On Hand', 'Available', 'Receipts',
+            'Shipments', 'Turnover Rate', 'Velocity', 'Days Until Stockout'
+        ]);
+    }
+
+    private function exportReorder()
+    {
+        $data = $this->reorderRecommendations(request());
+        $items = collect($data->original['recommendations']);
+
+        return $this->generateCSV($items, 'reorder_recommendations_report', [
+            'SKU', 'Description', 'Category', 'Supplier', 'Available', 'Reorder Point',
+            'Shortage', 'Recommended Qty', 'Recommended Value', 'Status', 'Lead Time Days'
+        ]);
+    }
+
+    private function exportObsolete($request)
+    {
+        $data = $this->obsoleteInventory($request);
+        $items = collect($data->original['obsolete_candidates']);
+
+        return $this->generateCSV($items, 'obsolete_inventory_report', [
+            'SKU', 'Description', 'Category', 'On Hand', 'Unit Cost', 'Total Value',
+            'Last Shipment Date', 'Days Since Last Use', 'Used in BOM'
+        ]);
+    }
 }
