@@ -764,10 +764,13 @@ class ComprehensiveSeeder extends Seeder
                 }
 
                 if ($qty > 0) {
+                    // Use full path to ensure uniqueness (e.g., "Aisle 1 → Rack A → Shelf 3 → Bin 4")
+                    $locationPath = $location->full_path ?? $location->name;
+
                     InventoryLocation::create([
                         'product_id' => $product->id,
                         'storage_location_id' => $location->id,
-                        'location' => $location->name, // Keep for backward compatibility
+                        'location' => $locationPath, // Use unique full path
                         'quantity' => $qty,
                         'quantity_committed' => $isPrimary ? $product->quantity_committed : 0,
                         'is_primary' => $isPrimary,
