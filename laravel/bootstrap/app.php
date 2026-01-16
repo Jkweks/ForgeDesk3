@@ -15,7 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust all proxies for reverse proxy setup (nginx proxy manager)
         $middleware->trustProxies(
             at: '*',
-            headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_ALL
+            headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO |
+                     \Illuminate\Http\Request::HEADER_X_FORWARDED_PREFIX
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
