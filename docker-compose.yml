@@ -59,6 +59,10 @@ services:
       - REDIS_PORT=6379
       - TRUSTED_PROXIES=*
       - FORCE_HTTPS=true
+      - SESSION_DRIVER=database
+      - SESSION_SECURE_COOKIE=true
+      - SESSION_SAME_SITE=lax
+      - SANCTUM_STATEFUL_DOMAINS=your-domain.com,localhost,127.0.0.1
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,6 +109,10 @@ services:
       - REDIS_HOST=redis
       - TRUSTED_PROXIES=*
       - FORCE_HTTPS=true
+      - SESSION_DRIVER=database
+      - SESSION_SECURE_COOKIE=true
+      - SESSION_SAME_SITE=lax
+      - SANCTUM_STATEFUL_DOMAINS=your-domain.com,localhost,127.0.0.1
     depends_on:
       - postgres
       - redis
