@@ -18,6 +18,13 @@ class CycleCountController extends Controller
      */
     public function index(Request $request)
     {
+        // Debug: Check total count
+        $totalCount = CycleCountSession::count();
+        \Log::info('Cycle Count Sessions Index', [
+            'total_sessions_in_db' => $totalCount,
+            'request_filters' => $request->all(),
+        ]);
+
         $query = CycleCountSession::with(['category', 'assignedUser', 'reviewer']);
 
         // Filter by status
@@ -51,6 +58,8 @@ class CycleCountController extends Controller
         $sessions = $query->orderBy('scheduled_date', 'desc')
             ->paginate($request->get('per_page', 20));
 
+        \Log::info('Sessions returned', ['count' => $sessions->count()]);
+
         return response()->json($sessions);
     }
 
@@ -59,6 +68,24 @@ class CycleCountController extends Controller
      */
     public function show(CycleCountSession $cycleCountSession)
     {
+        // Debug: Check if the model has any attributes at all
+        \Log::info('Cycle Count Session Show - RAW MODEL', [
+            'exists' => $cycleCountSession->exists,
+            'id' => $cycleCountSession->id,
+            'session_number' => $cycleCountSession->session_number,
+            'status' => $cycleCountSession->status,
+            'attributes' => $cycleCountSession->getAttributes(),
+            'original' => $cycleCountSession->getOriginal(),
+        ]);
+
+        // If the model has no ID, it means it doesn't exist
+        if (!$cycleCountSession->id) {
+            \Log::error('Cycle Count Session has no ID - model binding returned empty model');
+            return response()->json([
+                'message' => 'Cycle count session not found'
+            ], 404);
+        }
+
         $cycleCountSession->load([
             'category',
             'assignedUser',
@@ -68,27 +95,7 @@ class CycleCountController extends Controller
             'items.counter'
         ]);
 
-        // Debug: Log the session data to see what we're returning
-        \Log::info('Cycle Count Session Show', [
-            'id' => $cycleCountSession->id,
-            'session_number' => $cycleCountSession->session_number,
-            'status' => $cycleCountSession->status,
-            'attributes' => $cycleCountSession->getAttributes(),
-            'relations_loaded' => array_keys($cycleCountSession->getRelations()),
-        ]);
-
-        // Explicitly return all attributes including ID
-        $response = $cycleCountSession->toArray();
-
-        // Ensure critical fields are present
-        if (!isset($response['id'])) {
-            \Log::error('Session ID missing from response', ['session' => $cycleCountSession, 'response' => $response]);
-            $response['id'] = $cycleCountSession->id;
-            $response['session_number'] = $cycleCountSession->session_number;
-            $response['status'] = $cycleCountSession->status;
-        }
-
-        return response()->json($response);
+        return response()->json($cycleCountSession);
     }
 
     /**
