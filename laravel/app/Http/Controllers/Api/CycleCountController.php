@@ -68,7 +68,27 @@ class CycleCountController extends Controller
             'items.counter'
         ]);
 
-        return response()->json($cycleCountSession);
+        // Debug: Log the session data to see what we're returning
+        \Log::info('Cycle Count Session Show', [
+            'id' => $cycleCountSession->id,
+            'session_number' => $cycleCountSession->session_number,
+            'status' => $cycleCountSession->status,
+            'attributes' => $cycleCountSession->getAttributes(),
+            'relations_loaded' => array_keys($cycleCountSession->getRelations()),
+        ]);
+
+        // Explicitly return all attributes including ID
+        $response = $cycleCountSession->toArray();
+
+        // Ensure critical fields are present
+        if (!isset($response['id'])) {
+            \Log::error('Session ID missing from response', ['session' => $cycleCountSession, 'response' => $response]);
+            $response['id'] = $cycleCountSession->id;
+            $response['session_number'] = $cycleCountSession->session_number;
+            $response['status'] = $cycleCountSession->status;
+        }
+
+        return response()->json($response);
     }
 
     /**

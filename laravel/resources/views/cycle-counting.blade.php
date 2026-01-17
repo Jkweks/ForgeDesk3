@@ -695,6 +695,7 @@ async function enterCounts(sessionId) {
     currentSession = session;
 
     console.log('Session loaded:', session);
+    console.log('Full session object keys:', Object.keys(session));
     console.log('Session ID:', session.id);
     console.log('Session items:', session.items);
     console.log('Items count:', session.items ? session.items.length : 0);
@@ -702,7 +703,14 @@ async function enterCounts(sessionId) {
     // Validate session has an ID
     if (!session.id) {
       console.error('Session has no ID:', session);
-      showNotification('Error: Session data is invalid', 'danger');
+      console.error('Session keys:', Object.keys(session));
+      console.error('Raw response:', JSON.stringify(session));
+      showNotification('Error: Session data is invalid. The session may have been deleted. Please refresh the page.', 'danger');
+
+      // Reload the sessions list to get fresh data
+      setTimeout(() => {
+        loadCycleCounts();
+      }, 2000);
       return;
     }
 
