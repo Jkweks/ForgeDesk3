@@ -241,6 +241,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-danger" id="cancelSessionBtn" onclick="cancelCurrentSession()" style="display: none;">
+          <i class="ti ti-x me-1"></i>Cancel Session
+        </button>
         <button type="button" class="btn btn-warning" onclick="showVarianceReview()">Review Variances</button>
         <button type="button" class="btn btn-success" onclick="completeSession()">Complete Session</button>
       </div>
@@ -681,12 +684,27 @@ async function createCycleCountSession() {
 // Enter counts
 async function enterCounts(sessionId) {
   try {
+    // Validate session ID parameter
+    if (!sessionId || sessionId === 'undefined') {
+      console.error('Invalid sessionId parameter:', sessionId);
+      showNotification('Error: Invalid session ID', 'danger');
+      return;
+    }
+
     const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
     currentSession = session;
 
     console.log('Session loaded:', session);
+    console.log('Session ID:', session.id);
     console.log('Session items:', session.items);
     console.log('Items count:', session.items ? session.items.length : 0);
+
+    // Validate session has an ID
+    if (!session.id) {
+      console.error('Session has no ID:', session);
+      showNotification('Error: Session data is invalid', 'danger');
+      return;
+    }
 
     document.getElementById('countSessionId').value = session.id;
     document.getElementById('countSessionNumber').textContent = session.session_number;
@@ -694,13 +712,50 @@ async function enterCounts(sessionId) {
     document.getElementById('countProgress').textContent = `${session.counted_items} / ${session.total_items} items`;
     document.getElementById('countVariances').textContent = `${session.variance_items} items`;
 
+    // Verify the value was set correctly
+    const setSessionId = document.getElementById('countSessionId').value;
+    console.log('countSessionId set to:', setSessionId);
+    if (!setSessionId) {
+      console.error('Failed to set countSessionId');
+      showNotification('Error: Failed to set session ID', 'danger');
+      return;
+    }
+
     // Render count items
     const tbody = document.getElementById('countEntryTable');
 
     if (!session.items || session.items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No items to count</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No items to count. This session may have been created with filters that matched no products.</td></tr>';
+
+      // Disable Complete button when there are no items
+      const completeButton = document.querySelector('#countEntryModal .btn-success[onclick="completeSession()"]');
+      if (completeButton) {
+        completeButton.disabled = true;
+        completeButton.title = 'Cannot complete session without items';
+      }
+
+      // Show Cancel button for empty sessions
+      const cancelButton = document.getElementById('cancelSessionBtn');
+      if (cancelButton) {
+        cancelButton.style.display = 'inline-block';
+      }
+
       safeShowModal('countEntryModal');
+      showNotification('Warning: This session has no items to count', 'warning');
       return;
+    }
+
+    // Enable Complete button when there are items
+    const completeButton = document.querySelector('#countEntryModal .btn-success[onclick="completeSession()"]');
+    if (completeButton) {
+      completeButton.disabled = false;
+      completeButton.title = '';
+    }
+
+    // Hide Cancel button when there are items
+    const cancelButton = document.getElementById('cancelSessionBtn');
+    if (cancelButton) {
+      cancelButton.style.display = 'none';
     }
 
     tbody.innerHTML = session.items.map(item => {
@@ -890,6 +945,19 @@ function toggleAllVariances(checkbox) {
 async function completeSession() {
   const sessionId = document.getElementById('countSessionId').value;
 
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    console.error('Invalid session ID:', sessionId);
+    showNotification('Error: Session ID is missing. Please close and reopen the count modal.', 'danger');
+    return;
+  }
+
+  // Check if current session has items
+  if (!currentSession || !currentSession.items || currentSession.items.length === 0) {
+    showNotification('Cannot complete session: No items to count', 'danger');
+    return;
+  }
+
   if (!confirm('Complete this cycle count session? All variances must be reviewed first.')) return;
 
   try {
@@ -902,6 +970,32 @@ async function completeSession() {
   } catch (error) {
     console.error('Error completing session:', error);
     showNotification(error.message || 'Error completing session', 'danger');
+  }
+}
+
+// Cancel current session
+async function cancelCurrentSession() {
+  const sessionId = document.getElementById('countSessionId').value;
+
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    console.error('Invalid session ID:', sessionId);
+    showNotification('Error: Session ID is missing', 'danger');
+    return;
+  }
+
+  if (!confirm('Cancel this cycle count session? This action cannot be undone.')) return;
+
+  try {
+    await authenticatedFetch(`/cycle-counts/${sessionId}/cancel`, { method: 'POST' });
+
+    showNotification('Cycle count session cancelled successfully', 'success');
+    safeHideModal('countEntryModal');
+    loadCycleCounts();
+    loadStatistics();
+  } catch (error) {
+    console.error('Error cancelling session:', error);
+    showNotification(error.message || 'Error cancelling session', 'danger');
   }
 }
 

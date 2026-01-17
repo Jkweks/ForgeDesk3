@@ -124,6 +124,15 @@ class CycleCountController extends Controller
                 $products = $query->get();
             }
 
+            // Validate we have products to count
+            if ($products->count() === 0) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'No products found matching the specified criteria. Please adjust your filters or select specific products.',
+                    'error' => 'No products to count'
+                ], 422);
+            }
+
             // Create cycle count items
             foreach ($products as $product) {
                 // Get system quantity
