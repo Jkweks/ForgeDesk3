@@ -510,12 +510,19 @@ async function loadCycleCounts() {
 function renderCycleCounts(sessions) {
   const tbody = document.getElementById('sessionTableBody');
 
+  console.log('Rendering cycle count sessions:', sessions.length, 'sessions');
+  if (sessions.length > 0) {
+    console.log('First session data:', sessions[0]);
+    console.log('First session ID:', sessions[0].id);
+  }
+
   if (sessions.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No cycle count sessions found</td></tr>';
     return;
   }
 
   tbody.innerHTML = sessions.map(session => {
+    console.log('Rendering session:', session.id, session.session_number);
     const statusBadge = getSessionStatusBadge(session.status);
     const progress = session.total_items > 0
       ? Math.round((session.counted_items / session.total_items) * 100)
@@ -691,7 +698,11 @@ async function enterCounts(sessionId) {
       return;
     }
 
-    const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
+    const apiUrl = `/cycle-counts/${sessionId}`;
+    console.log('Fetching cycle count session from:', apiUrl);
+    console.log('Full URL will be: /api/v1' + apiUrl);
+
+    const session = await authenticatedFetch(apiUrl);
     currentSession = session;
 
     console.log('Session loaded:', session);
