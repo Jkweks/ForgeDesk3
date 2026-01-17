@@ -29,10 +29,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-001',
-                'customer_name' => 'ABC Manufacturing',
+                'job_name' => 'ABC Manufacturing Project',
                 'quantity_reserved' => 50,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(5),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(5),
                 'status' => 'active',
                 'notes' => 'Priority customer - due soon',
             ]);
@@ -41,10 +42,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-015',
-                'customer_name' => 'XYZ Industries',
+                'job_name' => 'XYZ Industries Project',
                 'quantity_reserved' => 70,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(14),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(14),
                 'status' => 'active',
                 'notes' => 'Standard lead time',
             ]);
@@ -58,10 +60,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-008',
-                'customer_name' => 'BuildRight Construction',
+                'job_name' => 'BuildRight Construction',
                 'quantity_reserved' => 50,
                 'quantity_fulfilled' => 30,
-                'due_date' => Carbon::now()->addDays(7),
+                'reserved_date' => Carbon::now()->subDays(7),
+                'required_date' => Carbon::now()->addDays(7),
                 'status' => 'partially_fulfilled',
                 'notes' => 'First shipment sent, remainder pending',
             ]);
@@ -70,10 +73,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2023-095',
-                'customer_name' => 'Metro Builders',
+                'job_name' => 'Metro Builders',
                 'quantity_reserved' => 25,
                 'quantity_fulfilled' => 25,
-                'due_date' => Carbon::now()->subDays(3),
+                'reserved_date' => Carbon::now()->subDays(8),
+                'required_date' => Carbon::now()->subDays(3),
                 'status' => 'fulfilled',
                 'notes' => 'Completed on time',
             ]);
@@ -87,10 +91,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-003',
-                'customer_name' => 'Premier Doors Inc',
+                'job_name' => 'Premier Doors Inc',
                 'quantity_reserved' => 50,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->subDays(2), // OVERDUE!
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->subDays(2), // OVERDUE!
                 'status' => 'active',
                 'notes' => 'URGENT - Customer waiting, stock delayed',
             ]);
@@ -103,10 +108,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-012',
-                'customer_name' => 'Industrial Coatings Co',
+                'job_name' => 'Industrial Coatings Co',
                 'quantity_reserved' => 10,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(3),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(3),
                 'status' => 'active',
                 'notes' => 'Critical stock shortage',
             ]);
@@ -120,10 +126,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-020',
-                'customer_name' => 'MegaConstruct LLC',
+                'job_name' => 'MegaConstruct LLC',
                 'quantity_reserved' => 150,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(21),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(21),
                 'status' => 'active',
                 'notes' => 'Large commercial project - Phase 1',
             ]);
@@ -132,10 +139,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-018',
-                'customer_name' => 'Urban Development Group',
+                'job_name' => 'Urban Development Group',
                 'quantity_reserved' => 100,
                 'quantity_fulfilled' => 50,
-                'due_date' => Carbon::now()->addDays(10),
+                'reserved_date' => Carbon::now()->subDays(10),
+                'required_date' => Carbon::now()->addDays(10),
                 'status' => 'partially_fulfilled',
                 'notes' => 'Delivering in batches',
             ]);
@@ -144,10 +152,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-005',
-                'customer_name' => 'City Center Projects',
+                'job_name' => 'City Center Projects',
                 'quantity_reserved' => 75,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(15),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(15),
                 'status' => 'cancelled',
                 'notes' => 'Customer cancelled project - stock released',
             ]);
@@ -160,10 +169,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-022',
-                'customer_name' => 'FastFrame Systems',
+                'job_name' => 'FastFrame Systems',
                 'quantity_reserved' => 20,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(8),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(8),
                 'status' => 'active',
                 'notes' => 'Standard order',
             ]);
@@ -171,10 +181,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2024-024',
-                'customer_name' => 'Assembly Masters',
+                'job_name' => 'Assembly Masters',
                 'quantity_reserved' => 20,
                 'quantity_fulfilled' => 0,
-                'due_date' => Carbon::now()->addDays(12),
+                'reserved_date' => Carbon::now(),
+                'required_date' => Carbon::now()->addDays(12),
                 'status' => 'active',
                 'notes' => 'Repeat customer',
             ]);
@@ -183,10 +194,11 @@ class JobReservationSeeder extends Seeder
             JobReservation::create([
                 'product_id' => $product->id,
                 'job_number' => 'JOB-2023-088',
-                'customer_name' => 'QuickBuild LLC',
+                'job_name' => 'QuickBuild LLC',
                 'quantity_reserved' => 15,
                 'quantity_fulfilled' => 15,
-                'due_date' => Carbon::now()->subDays(5),
+                'reserved_date' => Carbon::now()->subDays(10),
+                'required_date' => Carbon::now()->subDays(5),
                 'status' => 'fulfilled',
                 'notes' => 'Delivered early',
             ]);
