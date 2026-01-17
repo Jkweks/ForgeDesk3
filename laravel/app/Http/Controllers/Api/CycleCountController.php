@@ -66,25 +66,24 @@ class CycleCountController extends Controller
     /**
      * Get a single cycle count session with all details
      */
-    public function show(CycleCountSession $cycleCountSession)
+    public function show($id)
     {
-        // Debug: Check if the model has any attributes at all
-        \Log::info('Cycle Count Session Show - RAW MODEL', [
-            'exists' => $cycleCountSession->exists,
-            'id' => $cycleCountSession->id,
-            'session_number' => $cycleCountSession->session_number,
-            'status' => $cycleCountSession->status,
-            'attributes' => $cycleCountSession->getAttributes(),
-            'original' => $cycleCountSession->getOriginal(),
-        ]);
+        \Log::info('Cycle Count Session Show - Looking for ID', ['id' => $id]);
 
-        // If the model has no ID, it means it doesn't exist
-        if (!$cycleCountSession->id) {
-            \Log::error('Cycle Count Session has no ID - model binding returned empty model');
+        $cycleCountSession = CycleCountSession::find($id);
+
+        if (!$cycleCountSession) {
+            \Log::error('Cycle count session not found', ['id' => $id]);
             return response()->json([
                 'message' => 'Cycle count session not found'
             ], 404);
         }
+
+        \Log::info('Cycle Count Session found', [
+            'id' => $cycleCountSession->id,
+            'session_number' => $cycleCountSession->session_number,
+            'status' => $cycleCountSession->status,
+        ]);
 
         $cycleCountSession->load([
             'category',
@@ -212,8 +211,10 @@ class CycleCountController extends Controller
     /**
      * Start a cycle count session
      */
-    public function start(CycleCountSession $cycleCountSession)
+    public function start($id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         if ($cycleCountSession->status !== 'planned') {
             return response()->json([
                 'message' => 'Only planned sessions can be started'
@@ -231,8 +232,10 @@ class CycleCountController extends Controller
     /**
      * Record count for an item
      */
-    public function recordCount(Request $request, CycleCountSession $cycleCountSession)
+    public function recordCount(Request $request, $id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         if (!in_array($cycleCountSession->status, ['planned', 'in_progress'])) {
             return response()->json([
                 'message' => 'Session must be planned or in progress to record counts'
@@ -282,8 +285,10 @@ class CycleCountController extends Controller
     /**
      * Approve variances and create adjustments
      */
-    public function approveVariances(Request $request, CycleCountSession $cycleCountSession)
+    public function approveVariances(Request $request, $id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         if ($cycleCountSession->status !== 'in_progress') {
             return response()->json([
                 'message' => 'Session must be in progress to approve variances'
@@ -338,8 +343,10 @@ class CycleCountController extends Controller
     /**
      * Complete a cycle count session
      */
-    public function complete(CycleCountSession $cycleCountSession)
+    public function complete($id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         if ($cycleCountSession->status !== 'in_progress') {
             return response()->json([
                 'message' => 'Only in-progress sessions can be completed'
@@ -380,8 +387,10 @@ class CycleCountController extends Controller
     /**
      * Cancel a cycle count session
      */
-    public function cancel(CycleCountSession $cycleCountSession)
+    public function cancel($id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         if ($cycleCountSession->status === 'completed') {
             return response()->json([
                 'message' => 'Cannot cancel completed sessions'
@@ -399,8 +408,10 @@ class CycleCountController extends Controller
     /**
      * Get variance report for a session
      */
-    public function varianceReport(CycleCountSession $cycleCountSession)
+    public function varianceReport($id)
     {
+        $cycleCountSession = CycleCountSession::findOrFail($id);
+
         $items = $cycleCountSession->items()
             ->with(['product', 'location', 'counter'])
             ->where('variance', '!=', 0)
