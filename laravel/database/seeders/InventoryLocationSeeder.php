@@ -25,19 +25,19 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('SP-2500-BL');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Warehouse A - Main',
+                'location' => 'Warehouse A - Main',
                 'quantity' => 250,
                 'notes' => 'Primary storage location',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Warehouse B - Overflow',
+                'location' => 'Warehouse B - Overflow',
                 'quantity' => 150,
                 'notes' => 'Secondary storage',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Production Floor',
+                'location' => 'Production Floor',
                 'quantity' => 50,
                 'notes' => 'Ready for immediate use',
             ]);
@@ -48,13 +48,13 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('AL-1820-RAW');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Warehouse B - Bay 5',
+                'location' => 'Warehouse B - Bay 5',
                 'quantity' => 200,
                 'notes' => 'Climate controlled storage',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Cutting Department',
+                'location' => 'Cutting Department',
                 'quantity' => 80,
                 'notes' => 'Active work in progress',
             ]);
@@ -65,19 +65,19 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('DH-3000-SS');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Warehouse C - Rack 8',
+                'location' => 'Warehouse C - Rack 8',
                 'quantity' => 90,
                 'notes' => 'Main inventory',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Assembly Line 1',
+                'location' => 'Assembly Line 1',
                 'quantity' => 40,
                 'notes' => 'In use for current jobs',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Quality Control',
+                'location' => 'Quality Control',
                 'quantity' => 20,
                 'notes' => 'Inspection hold',
             ]);
@@ -88,13 +88,13 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('PT-500-PW');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Paint Shop - Main Storage',
+                'location' => 'Paint Shop - Main Storage',
                 'quantity' => 30,
                 'notes' => 'Sealed containers',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Paint Shop - Active Bay',
+                'location' => 'Paint Shop - Active Bay',
                 'quantity' => 15,
                 'notes' => 'Currently in use - urgent reorder needed',
             ]);
@@ -105,19 +105,19 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('FP-250-CH');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Secure Storage - Vault A',
+                'location' => 'Secure Storage - Vault A',
                 'quantity' => 180,
                 'notes' => 'High value inventory',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Fabrication Floor',
+                'location' => 'Fabrication Floor',
                 'quantity' => 100,
                 'notes' => 'Active projects',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Shipping Dock',
+                'location' => 'Shipping Dock',
                 'quantity' => 40,
                 'notes' => 'Staged for delivery',
             ]);
@@ -128,19 +128,19 @@ class InventoryLocationSeeder extends Seeder
             $product = $products->get('BR-800-BR');
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Small Parts - Bin 15B',
+                'location' => 'Small Parts - Bin 15B',
                 'quantity' => 50,
                 'notes' => 'Main small parts storage',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'Assembly Station 3',
+                'location' => 'Assembly Station 3',
                 'quantity' => 25,
                 'notes' => 'Assembly line stock',
             ]);
             InventoryLocation::create([
                 'product_id' => $product->id,
-                'location_name' => 'QC Department',
+                'location' => 'QC Department',
                 'quantity' => 10,
                 'notes' => 'Quality samples',
             ]);
