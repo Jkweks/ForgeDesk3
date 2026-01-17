@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\MaintenanceTaskController;
 use App\Http\Controllers\Api\MaintenanceRecordController;
 use App\Http\Controllers\Api\InventoryLocationController;
+use App\Http\Controllers\Api\StorageLocationController;
+use App\Http\Controllers\Api\StorageLocationReconciliationController;
 use App\Http\Controllers\Api\JobReservationController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\InventoryTransactionController;
@@ -103,6 +105,26 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/products/{product}/locations/{location}/adjust', [InventoryLocationController::class, 'adjust']);
         Route::get('/products/{product}/locations/statistics', [InventoryLocationController::class, 'statistics']);
         Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
+
+        // Storage Locations (Hierarchical)
+        Route::apiResource('storage-locations', StorageLocationController::class);
+        Route::get('/storage-locations-tree', [StorageLocationController::class, 'tree']);
+        Route::get('/storage-locations/{storageLocation}/ancestors', [StorageLocationController::class, 'ancestors']);
+        Route::get('/storage-locations/{storageLocation}/descendants', [StorageLocationController::class, 'descendants']);
+        Route::get('/storage-locations/{storageLocation}/statistics', [StorageLocationController::class, 'statistics']);
+        Route::post('/storage-locations/{storageLocation}/move', [StorageLocationController::class, 'move']);
+        Route::post('/storage-locations-parse', [StorageLocationController::class, 'parse']);
+        Route::post('/storage-locations-search', [StorageLocationController::class, 'search']);
+        Route::post('/storage-locations-bulk-create', [StorageLocationController::class, 'bulkCreateFromPath']);
+
+        // Storage Location Reconciliation
+        Route::get('/storage-locations-reconciliation/status', [StorageLocationReconciliationController::class, 'status']);
+        Route::get('/storage-locations-reconciliation/report', [StorageLocationReconciliationController::class, 'report']);
+        Route::post('/storage-locations-reconciliation/migrate', [StorageLocationReconciliationController::class, 'migrateStringLocations']);
+        Route::post('/storage-locations-reconciliation/fix-orphaned', [StorageLocationReconciliationController::class, 'fixOrphaned']);
+        Route::post('/storage-locations-reconciliation/cleanup-empty', [StorageLocationReconciliationController::class, 'cleanupEmpty']);
+        Route::post('/storage-locations-reconciliation/fix-duplicates', [StorageLocationReconciliationController::class, 'fixDuplicates']);
+        Route::post('/storage-locations-reconciliation/sync-quantities', [StorageLocationReconciliationController::class, 'syncQuantities']);
 
         // Job Reservations
         Route::get('/products/{product}/reservations', [JobReservationController::class, 'index']);

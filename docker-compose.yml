@@ -45,6 +45,10 @@ services:
       - ./laravel:/var/www/html
       - ./php/php.ini:/usr/local/etc/php/conf.d/custom.ini
     environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=base64:iyZ6CKq6BFWIi/rPxhpSqogh36tGy188jres1ianWzw=
+      - APP_URL=https://tfd.kweks.co
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -53,6 +57,12 @@ services:
       - DB_PASSWORD=forgedesk_secure_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - TRUSTED_PROXIES=*
+      - FORCE_HTTPS=true
+      - SESSION_DRIVER=database
+      - SESSION_SECURE_COOKIE=true
+      - SESSION_SAME_SITE=lax
+      - SANCTUM_STATEFUL_DOMAINS=your-domain.com,localhost,127.0.0.1
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +96,10 @@ services:
     volumes:
       - ./laravel:/var/www/html
     environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_KEY=base64:iyZ6CKq6BFWIi/rPxhpSqogh36tGy188jres1ianWzw=
+      - APP_URL=https://tfd.kweks.co
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -93,6 +107,12 @@ services:
       - DB_USERNAME=forgedesk
       - DB_PASSWORD=forgedesk_secure_password
       - REDIS_HOST=redis
+      - TRUSTED_PROXIES=*
+      - FORCE_HTTPS=true
+      - SESSION_DRIVER=database
+      - SESSION_SECURE_COOKIE=true
+      - SESSION_SAME_SITE=lax
+      - SANCTUM_STATEFUL_DOMAINS=your-domain.com,localhost,127.0.0.1
     depends_on:
       - postgres
       - redis
