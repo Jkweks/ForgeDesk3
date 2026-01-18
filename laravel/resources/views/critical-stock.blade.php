@@ -168,8 +168,7 @@
         if (search) params.append('search', search);
         if (category) params.append('category_id', category);
 
-        const response = await authenticatedFetch(`/products?${params}`);
-        const data = await response.json();
+        const data = await authenticatedFetch(`/products?${params}`);
 
         // Calculate stats
         const criticalCount = data.data.filter(p => p.status === 'critical').length;
@@ -247,8 +246,7 @@
 
     async function loadCategories() {
       try {
-        const response = await authenticatedFetch(`/categories`);
-        const categories = await response.json();
+        const categories = await authenticatedFetch(`/categories`);
 
         const select = document.getElementById('categoryFilter');
         categories.forEach(category => {
