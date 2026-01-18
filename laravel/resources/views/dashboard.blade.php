@@ -795,11 +795,11 @@
                 <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
               </div>
               <div class="col-lg-3">
-                <label class="form-label">Category</label>
-                <select class="form-select" name="category_id" id="productCategoryId">
-                  <option value="">Select category...</option>
+                <label class="form-label">Categories/Systems</label>
+                <select class="form-select" name="category_ids" id="productCategoryIds" multiple size="4">
+                  <!-- Options loaded dynamically -->
                 </select>
-                <small class="form-hint">Product category</small>
+                <small class="form-hint">Hold Ctrl/Cmd to select multiple</small>
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Location</label>
@@ -1559,11 +1559,14 @@
               <input type="text" class="form-control" name="description" value="${product.description}" required>
             </div>
             <div class="col-lg-3">
-              <label class="form-label">Category</label>
-              <select class="form-select" name="category_id">
-                <option value="">Select category...</option>
-                ${categories.map(c => `<option value="${c.id}" ${product.category_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+              <label class="form-label">Categories/Systems</label>
+              <select class="form-select" name="category_ids" multiple size="4">
+                ${categories.map(c => {
+                  const isSelected = product.categories && product.categories.some(cat => cat.id === c.id);
+                  return `<option value="${c.id}" ${isSelected ? 'selected' : ''}>${c.name}</option>`;
+                }).join('')}
               </select>
+              <small class="form-hint">Hold Ctrl/Cmd to select multiple</small>
             </div>
             <div class="col-lg-3">
               <label class="form-label">Status</label>
@@ -1673,10 +1676,25 @@
         formData.forEach((value, key) => {
           if (key === 'is_active') {
             data[key] = value === '1';
-          } else if (value !== '') {
+          } else if (key !== 'category_ids' && value !== '') {
             data[key] = value;
           }
         });
+
+        // Handle multiple category selection
+        const categorySelect = form.querySelector('[name="category_ids"]');
+        if (categorySelect) {
+          const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
+          if (selectedCategories.length > 0) {
+            data.category_ids = selectedCategories;
+            // Keep first selected as primary, or use the first category from current product
+            data.primary_category_id = selectedCategories[0];
+          } else {
+            data.category_ids = [];
+          }
+        }
+        // Remove old single category_id if present
+        delete data.category_id;
 
         const response = await apiCall(`/products/${currentProductId}`, {
           method: 'PUT',
@@ -2836,8 +2854,9 @@
     }
 
     function populateCategoryDropdown() {
-      const categorySelect = document.getElementById('productCategoryId');
-      categorySelect.innerHTML = '<option value="">Select category...</option>';
+      const categorySelect = document.getElementById('productCategoryIds');
+      if (!categorySelect) return;
+      categorySelect.innerHTML = '';
 
       // Sort categories by name
       const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
@@ -2950,6 +2969,16 @@
           data[key] = value;
         }
       });
+
+      // Handle multiple category selection
+      const categorySelect = document.getElementById('productCategoryIds');
+      const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
+      if (selectedCategories.length > 0) {
+        data.category_ids = selectedCategories;
+        data.primary_category_id = selectedCategories[0]; // First selected is primary
+      }
+      // Remove old single category_id if present
+      delete data.category_id;
 
       // Clear previous errors
       document.getElementById('formError').style.display = 'none';
