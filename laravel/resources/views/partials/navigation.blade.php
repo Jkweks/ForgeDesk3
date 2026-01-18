@@ -23,8 +23,8 @@
                   </a>
                   <div class="dropdown-menu">
                     <a class="dropdown-item" href="/">All Products</a>
-                    <a class="dropdown-item" href="#">Low Stock</a>
-                    <a class="dropdown-item" href="#">Critical Stock</a>
+                    <a class="dropdown-item" href="/low-stock">Low Stock</a>
+                    <a class="dropdown-item" href="/critical-stock">Critical Stock</a>
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="/categories">Categories</a>
                     <a class="dropdown-item" href="/suppliers">Suppliers</a>
@@ -43,6 +43,9 @@
                     </a>
                     <a class="dropdown-item" href="/cycle-counting">
                       <i class="ti ti-clipboard-check me-2"></i>Cycle Counting
+                    </a>
+                    <a class="dropdown-item" href="/storage-locations">
+                      <i class="ti ti-map-pin me-2"></i>Storage Locations
                     </a>
                   </div>
                 </li>

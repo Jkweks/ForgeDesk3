@@ -104,6 +104,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/products/{product}/locations/statistics', [InventoryLocationController::class, 'statistics']);
         Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
 
+        // Storage Locations (Master Location Management)
+        Route::apiResource('storage-locations', App\Http\Controllers\Api\StorageLocationController::class);
+        Route::get('/storage-locations-stats', [App\Http\Controllers\Api\StorageLocationController::class, 'withStats']);
+        Route::get('/storage-locations-names', [App\Http\Controllers\Api\StorageLocationController::class, 'locationNames']);
+
         // Job Reservations
         Route::get('/products/{product}/reservations', [JobReservationController::class, 'index']);
         Route::get('/products/{product}/reservations/active', [JobReservationController::class, 'active']);
