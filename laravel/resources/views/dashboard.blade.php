@@ -1526,10 +1526,10 @@
     async function renderEditForm(product) {
       // Load options for dropdowns
       const [finishes, categories, suppliers, uoms] = await Promise.all([
-        apiCall('/products/finish-codes').then(r => r.json()),
-        apiCall('/categories').then(r => r.json()),
-        apiCall('/suppliers').then(r => r.json()),
-        apiCall('/products/unit-of-measures').then(r => r.json())
+        apiCall('/finish-codes').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
+        apiCall('/categories').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
+        apiCall('/suppliers').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
+        apiCall('/unit-of-measures').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => [])
       ]);
 
       document.getElementById('productEditForm').innerHTML = `
@@ -2064,7 +2064,8 @@
         }
 
         const response = await apiCall(url);
-        currentProductTransactions = response;
+        const data = await response.json();
+        currentProductTransactions = Array.isArray(data) ? data : (data.data || []);
         renderProductActivity();
 
         document.getElementById('activityLoading').style.display = 'none';
@@ -2167,7 +2168,8 @@
         document.getElementById('bomContent').style.display = 'none';
 
         const response = await apiCall(`/products/${productId}/required-parts`);
-        currentBOM = response;
+        const data = await response.json();
+        currentBOM = Array.isArray(data) ? data : (data.data || []);
         renderBOM();
 
         document.getElementById('bomCount').textContent = currentBOM.length;
@@ -2232,7 +2234,8 @@
     async function loadWhereUsed(productId) {
       try {
         const response = await apiCall(`/products/${productId}/where-used`);
-        const whereUsed = response;
+        const data = await response.json();
+        const whereUsed = Array.isArray(data) ? data : (data.data || []);
 
         const container = document.getElementById('whereUsedContent');
 
@@ -2777,19 +2780,23 @@
       try {
         // Load finish codes
         const finishResponse = await apiCall('/finish-codes');
-        finishCodes = await finishResponse.json();
+        const finishData = await finishResponse.json();
+        finishCodes = Array.isArray(finishData) ? finishData : [];
 
         // Load UOMs
         const uomResponse = await apiCall('/unit-of-measures');
-        unitOfMeasures = await uomResponse.json();
+        const uomData = await uomResponse.json();
+        unitOfMeasures = Array.isArray(uomData) ? uomData : [];
 
         // Load categories
         const categoriesResponse = await apiCall('/categories?per_page=all&with_parent=true');
-        categories = await categoriesResponse.json();
+        const categoriesData = await categoriesResponse.json();
+        categories = Array.isArray(categoriesData) ? categoriesData : [];
 
         // Load suppliers
         const suppliersResponse = await apiCall('/suppliers?per_page=all');
-        suppliers = await suppliersResponse.json();
+        const suppliersData = await suppliersResponse.json();
+        suppliers = Array.isArray(suppliersData) ? suppliersData : [];
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
@@ -3113,6 +3120,16 @@
       loadDashboard();
       loadCategoryBreakdown();
       loadConfigurations(); // Load finish codes and UOMs
+
+      // Check for product ID in URL and auto-open modal
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('product');
+      if (productId) {
+        // Wait for dashboard to load, then open product
+        setTimeout(() => viewProduct(parseInt(productId)), 500);
+        // Clear the URL parameter
+        window.history.replaceState({}, document.title, '/');
+      }
     }
   </script>
 @endpush
