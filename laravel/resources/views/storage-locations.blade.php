@@ -220,7 +220,7 @@
 
 @endsection
 
-@section('scripts')
+@push('scripts')
   <script>
     const API_BASE = '/api/v1';
     let currentLocations = [];
@@ -482,4 +482,4 @@
       };
     }
   </script>
-@endsection
+@endpush

@@ -136,7 +136,7 @@
 
 @endsection
 
-@section('scripts')
+@push('scripts')
   <script>
     const API_BASE = '/api/v1';
 
@@ -330,4 +330,4 @@
       };
     }
   </script>
-@endsection
+@endpush
