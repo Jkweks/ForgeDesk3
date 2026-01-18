@@ -1744,14 +1744,15 @@
 
     async function loadAllLocations() {
       try {
-        const response = await apiCall('/locations');
-        const locations = await response.json();
+        // Load from storage locations (master list)
+        const response = await apiCall('/storage-locations-names');
+        const locationNames = await response.json();
 
         const datalist = document.getElementById('existingLocations');
         datalist.innerHTML = '';
-        locations.forEach(location => {
+        locationNames.forEach(locationName => {
           const option = document.createElement('option');
-          option.value = location;
+          option.value = locationName;
           datalist.appendChild(option);
         });
       } catch (error) {

@@ -220,41 +220,30 @@
 
 @endsection
 
+
 @push('scripts')
   <script>
     let currentLocations = [];
+    let editingLocationId = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       loadLocations();
 
       // Search functionality
       document.getElementById('searchInput').addEventListener('input', debounce(filterLocations, 300));
+
+      // Form submission
+      document.getElementById('locationForm').addEventListener('submit', handleLocationFormSubmit);
     });
 
     async function loadLocations() {
       try {
-        currentLocations = await authenticatedFetch(`/locations`);
+        currentLocations = await authenticatedFetch(`/storage-locations-stats`);
 
-        // Calculate location stats
-        const locationsMap = {};
-        currentLocations.forEach(loc => {
-          if (!locationsMap[loc.location]) {
-            locationsMap[loc.location] = {
-              name: loc.location,
-              products: 0,
-              totalQuantity: 0,
-              totalValue: 0
-            };
-          }
-          locationsMap[loc.location].products++;
-          locationsMap[loc.location].totalQuantity += parseFloat(loc.quantity || 0);
-          locationsMap[loc.location].totalValue += parseFloat(loc.quantity || 0) * parseFloat(loc.product?.unit_cost || 0);
-        });
-
-        const locationsList = Object.values(locationsMap);
-        const totalLocations = locationsList.length;
-        const inUse = locationsList.filter(l => l.products > 0).length;
-        const totalCapacity = locationsList.reduce((sum, l) => sum + l.totalQuantity, 0);
+        // Calculate aggregated stats
+        const totalLocations = currentLocations.length;
+        const inUse = currentLocations.filter(l => l.stats.products_count > 0).length;
+        const totalCapacity = currentLocations.reduce((sum, l) => sum + (l.stats.total_quantity || 0), 0);
         const utilization = totalLocations > 0 ? ((inUse / totalLocations) * 100).toFixed(1) : 0;
 
         document.getElementById('statTotalLocations').textContent = totalLocations.toLocaleString();
@@ -262,7 +251,7 @@
         document.getElementById('statTotalCapacity').textContent = totalCapacity.toLocaleString();
         document.getElementById('statUtilization').textContent = `${utilization}%`;
 
-        renderLocationsTable(locationsList);
+        renderLocationsTable(currentLocations);
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('locationsTableContainer').style.display = 'block';
@@ -281,11 +270,14 @@
         return;
       }
 
-      // Sort by name
-      locations.sort((a, b) => a.name.localeCompare(b.name));
+      // Sort by sort_order then name
+      locations.sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+        return a.name.localeCompare(b.name);
+      });
 
       locations.forEach(location => {
-        const statusBadge = location.products > 0
+        const statusBadge = location.stats.products_count > 0
           ? '<span class="badge text-bg-success">In Use</span>'
           : '<span class="badge text-bg-secondary">Empty</span>';
 
@@ -294,16 +286,26 @@
             <td>
               <div class="d-flex align-items-center">
                 <span class="avatar avatar-sm me-2"><i class="ti ti-map-pin"></i></span>
-                <strong>${location.name}</strong>
+                <div>
+                  <strong>${location.name}</strong>
+                  ${location.code ? `<br><small class="text-muted">${location.code}</small>` : ''}
+                  ${location.full_address ? `<br><small class="text-muted">${location.full_address}</small>` : ''}
+                </div>
               </div>
             </td>
-            <td class="text-end">${location.products.toLocaleString()}</td>
-            <td class="text-end">${location.totalQuantity.toLocaleString()}</td>
-            <td class="text-end">$${location.totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td class="text-end">${location.stats.products_count.toLocaleString()}</td>
+            <td class="text-end">${location.stats.total_quantity.toLocaleString()}</td>
+            <td class="text-end">$${location.stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${statusBadge}</td>
             <td class="table-actions">
-              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="viewLocationDetails('${location.name}')" title="View">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>
+              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="viewLocationDetails(${location.id})" title="View">
+                <i class="ti ti-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editLocation(${location.id})" title="Edit">
+                <i class="ti ti-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${location.id}, '${location.name.replace(/'/g, "\\'")}')" title="Delete">
+                <i class="ti ti-trash"></i>
               </button>
             </td>
           </tr>
@@ -315,74 +317,93 @@
     function filterLocations() {
       const search = document.getElementById('searchInput').value.toLowerCase();
 
-      // Re-aggregate from currentLocations
-      const locationsMap = {};
-      currentLocations.forEach(loc => {
-        if (!locationsMap[loc.location]) {
-          locationsMap[loc.location] = {
-            name: loc.location,
-            products: 0,
-            totalQuantity: 0,
-            totalValue: 0
-          };
-        }
-        locationsMap[loc.location].products++;
-        locationsMap[loc.location].totalQuantity += parseFloat(loc.quantity || 0);
-        locationsMap[loc.location].totalValue += parseFloat(loc.quantity || 0) * parseFloat(loc.product?.unit_cost || 0);
-      });
-
-      let locationsList = Object.values(locationsMap);
+      let filteredLocations = currentLocations;
 
       if (search) {
-        locationsList = locationsList.filter(loc =>
-          loc.name.toLowerCase().includes(search)
+        filteredLocations = currentLocations.filter(loc =>
+          loc.name.toLowerCase().includes(search) ||
+          (loc.code && loc.code.toLowerCase().includes(search)) ||
+          (loc.description && loc.description.toLowerCase().includes(search))
         );
       }
 
-      renderLocationsTable(locationsList);
+      renderLocationsTable(filteredLocations);
     }
 
-    async function viewLocationDetails(locationName) {
+    async function viewLocationDetails(locationId) {
       try {
-        // Filter currentLocations for this specific location
-        const locationItems = currentLocations.filter(loc => loc.location === locationName);
+        const location = currentLocations.find(l => l.id === locationId);
+        if (!location) return;
 
-        document.getElementById('viewLocationModalTitle').textContent = `Location: ${locationName}`;
-
-        const totalProducts = locationItems.length;
-        const totalQuantity = locationItems.reduce((sum, item) => sum + parseFloat(item.quantity || 0), 0);
-        const totalValue = locationItems.reduce((sum, item) =>
-          sum + (parseFloat(item.quantity || 0) * parseFloat(item.product?.unit_cost || 0)), 0);
+        document.getElementById('viewLocationModalTitle').textContent = `Location: ${location.name}`;
 
         document.getElementById('locationDetailsView').innerHTML = `
           <div class="row mb-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">Location Name</label>
-              <p><i class="ti ti-map-pin me-2"></i>${locationName}</p>
+              <p><i class="ti ti-map-pin me-2"></i>${location.name}</p>
             </div>
             <div class="col-md-3">
+              <label class="form-label fw-bold">Code</label>
+              <p>${location.code || '-'}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Type</label>
+              <p><span class="badge text-bg-azure">${location.type}</span></p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Status</label>
+              <p>${location.is_active ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-secondary">Inactive</span>'}</p>
+            </div>
+          </div>
+          ${location.full_address ? `
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Full Address</label>
+              <p>${location.full_address}</p>
+            </div>
+          </div>
+          ` : ''}
+          ${location.description ? `
+          <div class="row mb-3">
+            <div class="col-md-12">
+              <label class="form-label fw-bold">Description</label>
+              <p>${location.description}</p>
+            </div>
+          </div>
+          ` : ''}
+          <div class="row mb-3">
+            <div class="col-md-3">
               <label class="form-label fw-bold">Products Stored</label>
-              <p>${totalProducts.toLocaleString()}</p>
+              <p>${location.stats.products_count.toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Quantity</label>
-              <p>${totalQuantity.toLocaleString()}</p>
+              <p>${location.stats.total_quantity.toLocaleString()}</p>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-bold">Available</label>
+              <p class="text-success">${location.stats.total_available.toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Value</label>
-              <p>$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+              <p>$${location.stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
           </div>
         `;
 
-        // Render products table
+        // Render products table (would need to fetch inventory_locations for this location)
         const tbody = document.getElementById('locationProductsTableBody');
-        tbody.innerHTML = '';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Loading products...</td></tr>';
 
-        if (locationItems.length === 0) {
+        // Fetch detailed inventory for this location
+        const inventoryLocs = await authenticatedFetch(`/locations?filter[location]=${encodeURIComponent(location.name)}`);
+
+        if (!inventoryLocs || inventoryLocs.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products at this location</td></tr>';
         } else {
-          locationItems.forEach(item => {
+          tbody.innerHTML = '';
+          inventoryLocs.forEach(item => {
             const product = item.product;
             const available = parseFloat(item.quantity || 0) - parseFloat(item.quantity_committed || 0);
             const value = parseFloat(item.quantity || 0) * parseFloat(product?.unit_cost || 0);
@@ -411,46 +432,128 @@
     }
 
     function showAddLocationModal() {
+      editingLocationId = null;
       document.getElementById('locationForm').reset();
       document.getElementById('locationModalTitle').textContent = 'Add Storage Location';
+      document.getElementById('locationName').value = '';
+      document.getElementById('locationActive').checked = true;
       showModal(document.getElementById('addLocationModal'));
     }
 
-    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+    async function editLocation(locationId) {
+      try {
+        const location = currentLocations.find(l => l.id === locationId);
+        if (!location) return;
+
+        editingLocationId = locationId;
+        document.getElementById('locationModalTitle').textContent = 'Edit Storage Location';
+
+        // Populate form
+        document.getElementById('locationName').value = location.name || '';
+        document.getElementById('locationDescription').value = location.description || '';
+        document.getElementById('locationType').value = location.type || 'bin';
+        document.getElementById('locationAisle').value = location.aisle || '';
+        document.getElementById('locationBay').value = location.bay || '';
+        document.getElementById('locationLevel').value = location.level || '';
+        document.getElementById('locationPosition').value = location.position || '';
+        document.getElementById('locationActive').checked = location.is_active;
+
+        showModal(document.getElementById('addLocationModal'));
+      } catch (error) {
+        console.error('Error loading location for edit:', error);
+        showNotification('Failed to load location', 'danger');
+      }
+    }
+
+    async function handleLocationFormSubmit(e) {
       e.preventDefault();
-      showNotification('Location creation feature coming soon. Locations are currently auto-created when adding inventory.', 'info');
-      hideModal(document.getElementById('addLocationModal'));
-    });
+
+      const formData = new FormData(e.target);
+      const data = {
+        name: formData.get('name'),
+        type: formData.get('type'),
+        description: formData.get('description'),
+        aisle: formData.get('aisle'),
+        bay: formData.get('bay'),
+        level: formData.get('level'),
+        position: formData.get('position'),
+        is_active: formData.get('is_active') === 'on',
+      };
+
+      try {
+        let response;
+        if (editingLocationId) {
+          // Update existing location
+          response = await apiCall(`/storage-locations/${editingLocationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } else {
+          // Create new location
+          response = await apiCall(`/storage-locations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        }
+
+        if (response.ok) {
+          showNotification(editingLocationId ? 'Location updated successfully' : 'Location created successfully', 'success');
+          hideModal(document.getElementById('addLocationModal'));
+          loadLocations(); // Reload the list
+        } else {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to save location');
+        }
+      } catch (error) {
+        console.error('Error saving location:', error);
+        showNotification('Failed to save location: ' + error.message, 'danger');
+      }
+    }
+
+    async function deleteLocation(locationId, locationName) {
+      if (!confirm(`Are you sure you want to delete location "${locationName}"? This action cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const response = await apiCall(`/storage-locations/${locationId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          showNotification('Location deleted successfully', 'success');
+          loadLocations(); // Reload the list
+        } else {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to delete location');
+        }
+      } catch (error) {
+        console.error('Error deleting location:', error);
+        showNotification('Failed to delete location: ' + error.message, 'danger');
+      }
+    }
 
     async function exportLocations() {
       try {
-        const locationsMap = {};
-        currentLocations.forEach(loc => {
-          if (!locationsMap[loc.location]) {
-            locationsMap[loc.location] = {
-              name: loc.location,
-              products: 0,
-              totalQuantity: 0,
-              totalValue: 0
-            };
-          }
-          locationsMap[loc.location].products++;
-          locationsMap[loc.location].totalQuantity += parseFloat(loc.quantity || 0);
-          locationsMap[loc.location].totalValue += parseFloat(loc.quantity || 0) * parseFloat(loc.product?.unit_cost || 0);
-        });
-
-        const locationsList = Object.values(locationsMap);
-
         // Create CSV
-        const headers = ['Location Name', 'Products Stored', 'Total Quantity', 'Total Value'];
-        const rows = locationsList.map(loc => [
+        const headers = ['Name', 'Code', 'Type', 'Aisle', 'Bay', 'Level', 'Position', 'Products Stored', 'Total Quantity', 'Total Value', 'Status'];
+        const rows = currentLocations.map(loc => [
           loc.name,
-          loc.products,
-          loc.totalQuantity,
-          loc.totalValue.toFixed(2)
+          loc.code || '',
+          loc.type,
+          loc.aisle || '',
+          loc.bay || '',
+          loc.level || '',
+          loc.position || '',
+          loc.stats.products_count,
+          loc.stats.total_quantity,
+          loc.stats.total_value.toFixed(2),
+          loc.is_active ? 'Active' : 'Inactive'
         ]);
 
-        const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+        const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
