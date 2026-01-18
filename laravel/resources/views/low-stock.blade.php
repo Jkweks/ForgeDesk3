@@ -115,8 +115,6 @@
 
 @push('scripts')
   <script>
-    const API_BASE = '/api/v1';
-
     document.addEventListener('DOMContentLoaded', () => {
       loadLowStockItems();
       loadCategories();
