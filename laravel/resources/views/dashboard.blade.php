@@ -195,7 +195,21 @@
           <div class="tab-content" id="productTabContent">
             <!-- Details Tab -->
             <div class="tab-pane fade show active" id="details" role="tabpanel">
+              <div class="mb-3">
+                <div class="d-flex justify-content-end">
+                  <button class="btn btn-primary" id="editProductBtn" onclick="toggleEditMode()">
+                    <i class="ti ti-edit me-1"></i>Edit Product
+                  </button>
+                  <div id="editProductActions" style="display: none;">
+                    <button class="btn btn-primary me-2" onclick="saveProductChanges()">
+                      <i class="ti ti-check me-1"></i>Save Changes
+                    </button>
+                    <button class="btn btn-link" onclick="cancelEditMode()">Cancel</button>
+                  </div>
+                </div>
+              </div>
               <div id="productDetailsView"></div>
+              <div id="productEditForm" style="display: none;"></div>
             </div>
 
             <!-- Locations Tab -->
@@ -1476,6 +1490,219 @@
       } catch (error) {
         console.error('Error loading product:', error);
         showNotification('Failed to load product details', 'danger');
+      }
+    }
+
+    let currentProductData = null;
+    let isEditMode = false;
+
+    async function toggleEditMode() {
+      isEditMode = true;
+      document.getElementById('editProductBtn').style.display = 'none';
+      document.getElementById('editProductActions').style.display = 'block';
+      document.getElementById('productDetailsView').style.display = 'none';
+      document.getElementById('productEditForm').style.display = 'block';
+
+      // Load fresh product data
+      try {
+        const response = await apiCall(`/products/${currentProductId}`);
+        currentProductData = await response.json();
+        renderEditForm(currentProductData);
+      } catch (error) {
+        console.error('Error loading product for edit:', error);
+        showNotification('Failed to load product for editing', 'danger');
+        cancelEditMode();
+      }
+    }
+
+    function cancelEditMode() {
+      isEditMode = false;
+      document.getElementById('editProductBtn').style.display = 'block';
+      document.getElementById('editProductActions').style.display = 'none';
+      document.getElementById('productDetailsView').style.display = 'block';
+      document.getElementById('productEditForm').style.display = 'none';
+    }
+
+    async function renderEditForm(product) {
+      // Load options for dropdowns
+      const [finishes, categories, suppliers, uoms] = await Promise.all([
+        apiCall('/products/finish-codes').then(r => r.json()),
+        apiCall('/categories').then(r => r.json()),
+        apiCall('/suppliers').then(r => r.json()),
+        apiCall('/products/unit-of-measures').then(r => r.json())
+      ]);
+
+      document.getElementById('productEditForm').innerHTML = `
+        <form id="editProductFormElement">
+          <!-- Basic Info -->
+          <h5 class="mb-3"><i class="ti ti-info-circle me-2"></i>Basic Information</h5>
+          <div class="row mb-3">
+            <div class="col-lg-4">
+              <label class="form-label">Part Number</label>
+              <input type="text" class="form-control" name="part_number" value="${product.part_number || ''}" placeholder="e.g., ABC-123">
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label">Finish</label>
+              <select class="form-select" name="finish" id="editProductFinish">
+                <option value="">None</option>
+                ${finishes.map(f => `<option value="${f.code}" ${product.finish === f.code ? 'selected' : ''}>${f.code} - ${f.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label required">SKU</label>
+              <input type="text" class="form-control" name="sku" value="${product.sku}" required readonly>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-lg-6">
+              <label class="form-label required">Description</label>
+              <input type="text" class="form-control" name="description" value="${product.description}" required>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label">Category</label>
+              <select class="form-select" name="category_id">
+                <option value="">Select category...</option>
+                ${categories.map(c => `<option value="${c.id}" ${product.category_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="is_active">
+                <option value="1" ${product.is_active ? 'selected' : ''}>Active</option>
+                <option value="0" ${!product.is_active ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Long Description</label>
+            <textarea class="form-control" name="long_description" rows="2">${product.long_description || ''}</textarea>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-currency-dollar me-2"></i>Pricing</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Unit Cost</label>
+              <input type="number" step="0.01" class="form-control" name="unit_cost" value="${product.unit_cost || '0.00'}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Unit Price</label>
+              <input type="number" step="0.01" class="form-control" name="unit_price" value="${product.unit_price || '0.00'}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-package me-2"></i>Stock Management</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label">Reorder Point</label>
+              <input type="number" step="0.01" class="form-control" name="reorder_point" value="${product.reorder_point || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Safety Stock</label>
+              <input type="number" step="0.01" class="form-control" name="safety_stock" value="${product.safety_stock || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Avg Daily Use</label>
+              <input type="number" step="0.01" class="form-control" name="average_daily_use" value="${product.average_daily_use || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Lead Time (days)</label>
+              <input type="number" class="form-control" name="lead_time_days" value="${product.lead_time_days || ''}">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Minimum Quantity</label>
+              <input type="number" step="0.01" class="form-control" name="minimum_quantity" value="${product.minimum_quantity || '0'}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Maximum Quantity</label>
+              <input type="number" step="0.01" class="form-control" name="maximum_quantity" value="${product.maximum_quantity || ''}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-ruler me-2"></i>Unit of Measure</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label">Stock UOM</label>
+              <select class="form-select" name="unit_of_measure">
+                ${uoms.map(u => `<option value="${u.code}" ${product.unit_of_measure === u.code ? 'selected' : ''}>${u.code} - ${u.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Pack Size</label>
+              <input type="number" step="0.01" class="form-control" name="pack_size" value="${product.pack_size || '1'}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Min Order Qty</label>
+              <input type="number" step="0.01" class="form-control" name="min_order_qty" value="${product.min_order_qty || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Order Multiple</label>
+              <input type="number" step="0.01" class="form-control" name="order_multiple" value="${product.order_multiple || ''}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-truck me-2"></i>Supplier</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Supplier</label>
+              <select class="form-select" name="supplier_id">
+                <option value="">Select supplier...</option>
+                ${suppliers.map(s => `<option value="${s.id}" ${product.supplier_id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Supplier SKU</label>
+              <input type="text" class="form-control" name="supplier_sku" value="${product.supplier_sku || ''}">
+            </div>
+          </div>
+        </form>
+      `;
+    }
+
+    async function saveProductChanges() {
+      try {
+        const form = document.getElementById('editProductFormElement');
+        const formData = new FormData(form);
+        const data = {};
+
+        formData.forEach((value, key) => {
+          if (key === 'is_active') {
+            data[key] = value === '1';
+          } else if (value !== '') {
+            data[key] = value;
+          }
+        });
+
+        const response = await apiCall(`/products/${currentProductId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const updatedProduct = await response.json();
+          showNotification('Product updated successfully', 'success');
+          cancelEditMode();
+
+          // Reload the product view with updated data
+          await viewProduct(currentProductId);
+
+          // Refresh the dashboard table
+          loadDashboard();
+        } else {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to update product');
+        }
+      } catch (error) {
+        console.error('Error saving product:', error);
+        showNotification('Failed to save changes: ' + error.message, 'danger');
       }
     }
 
