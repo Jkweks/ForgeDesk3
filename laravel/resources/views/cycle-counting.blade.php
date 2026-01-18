@@ -510,19 +510,12 @@ async function loadCycleCounts() {
 function renderCycleCounts(sessions) {
   const tbody = document.getElementById('sessionTableBody');
 
-  console.log('Rendering cycle count sessions:', sessions.length, 'sessions');
-  if (sessions.length > 0) {
-    console.log('First session data:', sessions[0]);
-    console.log('First session ID:', sessions[0].id);
-  }
-
   if (sessions.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No cycle count sessions found</td></tr>';
     return;
   }
 
   tbody.innerHTML = sessions.map(session => {
-    console.log('Rendering session:', session.id, session.session_number);
     const statusBadge = getSessionStatusBadge(session.status);
     const progress = session.total_items > 0
       ? Math.round((session.counted_items / session.total_items) * 100)
@@ -693,32 +686,16 @@ async function enterCounts(sessionId) {
   try {
     // Validate session ID parameter
     if (!sessionId || sessionId === 'undefined') {
-      console.error('Invalid sessionId parameter:', sessionId);
       showNotification('Error: Invalid session ID', 'danger');
       return;
     }
 
-    const apiUrl = `/cycle-counts/${sessionId}`;
-    console.log('Fetching cycle count session from:', apiUrl);
-    console.log('Full URL will be: /api/v1' + apiUrl);
-
-    const session = await authenticatedFetch(apiUrl);
+    const session = await authenticatedFetch(`/cycle-counts/${sessionId}`);
     currentSession = session;
-
-    console.log('Session loaded:', session);
-    console.log('Full session object keys:', Object.keys(session));
-    console.log('Session ID:', session.id);
-    console.log('Session items:', session.items);
-    console.log('Items count:', session.items ? session.items.length : 0);
 
     // Validate session has an ID
     if (!session.id) {
-      console.error('Session has no ID:', session);
-      console.error('Session keys:', Object.keys(session));
-      console.error('Raw response:', JSON.stringify(session));
       showNotification('Error: Session data is invalid. The session may have been deleted. Please refresh the page.', 'danger');
-
-      // Reload the sessions list to get fresh data
       setTimeout(() => {
         loadCycleCounts();
       }, 2000);
@@ -730,15 +707,6 @@ async function enterCounts(sessionId) {
     document.getElementById('countLocation').textContent = session.location || 'All Locations';
     document.getElementById('countProgress').textContent = `${session.counted_items} / ${session.total_items} items`;
     document.getElementById('countVariances').textContent = `${session.variance_items} items`;
-
-    // Verify the value was set correctly
-    const setSessionId = document.getElementById('countSessionId').value;
-    console.log('countSessionId set to:', setSessionId);
-    if (!setSessionId) {
-      console.error('Failed to set countSessionId');
-      showNotification('Error: Failed to set session ID', 'danger');
-      return;
-    }
 
     // Render count items
     const tbody = document.getElementById('countEntryTable');
@@ -966,7 +934,6 @@ async function completeSession() {
 
   // Validate session ID
   if (!sessionId || sessionId === 'undefined' || sessionId === '') {
-    console.error('Invalid session ID:', sessionId);
     showNotification('Error: Session ID is missing. Please close and reopen the count modal.', 'danger');
     return;
   }
@@ -987,7 +954,6 @@ async function completeSession() {
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
-    console.error('Error completing session:', error);
     showNotification(error.message || 'Error completing session', 'danger');
   }
 }
@@ -998,7 +964,6 @@ async function cancelCurrentSession() {
 
   // Validate session ID
   if (!sessionId || sessionId === 'undefined' || sessionId === '') {
-    console.error('Invalid session ID:', sessionId);
     showNotification('Error: Session ID is missing', 'danger');
     return;
   }
@@ -1013,7 +978,6 @@ async function cancelCurrentSession() {
     loadCycleCounts();
     loadStatistics();
   } catch (error) {
-    console.error('Error cancelling session:', error);
     showNotification(error.message || 'Error cancelling session', 'danger');
   }
 }

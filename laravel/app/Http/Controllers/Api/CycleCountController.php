@@ -18,13 +18,6 @@ class CycleCountController extends Controller
      */
     public function index(Request $request)
     {
-        // Debug: Check total count
-        $totalCount = CycleCountSession::count();
-        \Log::info('Cycle Count Sessions Index', [
-            'total_sessions_in_db' => $totalCount,
-            'request_filters' => $request->all(),
-        ]);
-
         $query = CycleCountSession::with(['category', 'assignedUser', 'reviewer']);
 
         // Filter by status
@@ -58,8 +51,6 @@ class CycleCountController extends Controller
         $sessions = $query->orderBy('scheduled_date', 'desc')
             ->paginate($request->get('per_page', 20));
 
-        \Log::info('Sessions returned', ['count' => $sessions->count()]);
-
         return response()->json($sessions);
     }
 
@@ -68,22 +59,13 @@ class CycleCountController extends Controller
      */
     public function show($id)
     {
-        \Log::info('Cycle Count Session Show - Looking for ID', ['id' => $id]);
-
         $cycleCountSession = CycleCountSession::find($id);
 
         if (!$cycleCountSession) {
-            \Log::error('Cycle count session not found', ['id' => $id]);
             return response()->json([
                 'message' => 'Cycle count session not found'
             ], 404);
         }
-
-        \Log::info('Cycle Count Session found', [
-            'id' => $cycleCountSession->id,
-            'session_number' => $cycleCountSession->session_number,
-            'status' => $cycleCountSession->status,
-        ]);
 
         $cycleCountSession->load([
             'category',
