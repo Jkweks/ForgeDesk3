@@ -233,7 +233,7 @@
 
     async function loadLocations() {
       try {
-        const response = await authenticatedFetch(`${API_BASE}/locations`);
+        const response = await authenticatedFetch(`/locations`);
         currentLocations = await response.json();
 
         // Calculate location stats
