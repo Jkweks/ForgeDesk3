@@ -2790,8 +2790,8 @@
     });
 
     // ========== CONFIGURATION DATA ==========
-    let finishCodes = {};
-    let unitOfMeasures = {};
+    let finishCodes = [];
+    let unitOfMeasures = [];
     let categories = [];
     let suppliers = [];
 
@@ -2820,10 +2820,10 @@
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
         finishSelect.innerHTML = '<option value="">None</option>';
-        Object.entries(finishCodes).forEach(([code, name]) => {
+        finishCodes.forEach(finish => {
           const option = document.createElement('option');
-          option.value = code;
-          option.textContent = `${code} - ${name}`;
+          option.value = finish.code;
+          option.textContent = `${finish.code} - ${finish.name}`;
           finishSelect.appendChild(option);
         });
 
@@ -2834,10 +2834,10 @@
           const firstOption = select.querySelector('option').outerHTML; // Keep first option
           select.innerHTML = firstOption;
 
-          Object.entries(unitOfMeasures).forEach(([code, name]) => {
+          unitOfMeasures.forEach(uom => {
             const option = document.createElement('option');
-            option.value = code;
-            option.textContent = `${code} - ${name}`;
+            option.value = uom.code;
+            option.textContent = `${uom.code} - ${uom.name}`;
             select.appendChild(option);
           });
         });
