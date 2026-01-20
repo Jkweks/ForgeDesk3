@@ -1526,12 +1526,17 @@
     }
 
     async function renderEditForm(product) {
-      // Load options for dropdowns
-      const [finishes, categories, suppliers, uoms] = await Promise.all([
-        apiCall('/finish-codes').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
-        apiCall('/categories').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
-        apiCall('/suppliers').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
-        apiCall('/unit-of-measures').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => [])
+      // Use globally loaded configuration data instead of reloading
+      // If not loaded yet, load with proper parameters
+      const [finishes, cats, suppliers, uoms] = await Promise.all([
+        finishCodes.length > 0 ? Promise.resolve(finishCodes) :
+          apiCall('/finish-codes').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
+        categories.length > 0 ? Promise.resolve(categories) :
+          apiCall('/categories?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
+        suppliers.length > 0 ? Promise.resolve(suppliers) :
+          apiCall('/suppliers?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
+        unitOfMeasures.length > 0 ? Promise.resolve(unitOfMeasures) :
+          apiCall('/unit-of-measures').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => [])
       ]);
 
       document.getElementById('productEditForm').innerHTML = `
@@ -1563,7 +1568,7 @@
             <div class="col-lg-3">
               <label class="form-label">Categories/Systems</label>
               <select class="form-select" name="category_ids" multiple size="4">
-                ${categories.map(c => {
+                ${cats.map(c => {
                   const isSelected = product.categories && product.categories.some(cat => cat.id === c.id);
                   return `<option value="${c.id}" ${isSelected ? 'selected' : ''}>${c.name}</option>`;
                 }).join('')}
