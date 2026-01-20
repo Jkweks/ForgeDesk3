@@ -43,6 +43,15 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Debug logging
+        \Log::info('Product store request', [
+            'has_category_ids' => $request->has('category_ids'),
+            'category_ids' => $request->category_ids,
+            'category_ids_type' => gettype($request->category_ids),
+            'is_array' => is_array($request->category_ids),
+            'all_data' => $request->all()
+        ]);
+
         $validated = $request->validate([
             // Basic info
             'sku' => 'nullable|unique:products|max:255',
@@ -151,6 +160,16 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
+        // Debug logging
+        \Log::info('Product update request', [
+            'product_id' => $product->id,
+            'has_category_ids' => $request->has('category_ids'),
+            'category_ids' => $request->category_ids,
+            'category_ids_type' => gettype($request->category_ids),
+            'is_array' => is_array($request->category_ids),
+            'all_data' => $request->all()
+        ]);
+
         $validated = $request->validate([
             // Basic info
             'sku' => ['nullable', 'max:255', Rule::unique('products')->ignore($product->id)],
