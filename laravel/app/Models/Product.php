@@ -88,9 +88,39 @@ class Product extends Model
         return $this->belongsTo(Supplier::class);
     }
 
+    /**
+     * @deprecated Use categories() instead. Single category relationship kept for backward compatibility.
+     */
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Many-to-many relationship with categories
+     * Products can belong to multiple categories/systems
+     */
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_product')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get the primary category for this product
+     */
+    public function primaryCategory()
+    {
+        return $this->categories()->wherePivot('is_primary', true)->first();
+    }
+
+    /**
+     * Get all category names as a comma-separated string
+     */
+    public function getCategoryNamesAttribute()
+    {
+        return $this->categories->pluck('name')->join(', ');
     }
 
     public function inventoryLocations()

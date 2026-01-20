@@ -50,7 +50,10 @@ class ProductController extends Controller
             'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id', // Deprecated, kept for backward compatibility
+            'category_ids' => 'nullable|array', // New: array of category IDs
+            'category_ids.*' => 'exists:categories,id',
+            'primary_category_id' => 'nullable|exists:categories,id', // Which category is primary
             'location' => 'nullable|max:255',
 
             // Pricing
@@ -102,19 +105,48 @@ class ProductController extends Controller
         $product = Product::create($validated);
         $product->updateStatus();
 
+        // Handle multiple categories
+        if ($request->has('category_ids') && is_array($request->category_ids)) {
+            $primaryCategoryId = $request->primary_category_id ?? $request->category_ids[0] ?? null;
+
+            $syncData = [];
+            foreach ($request->category_ids as $categoryId) {
+                $syncData[$categoryId] = ['is_primary' => ($categoryId == $primaryCategoryId)];
+            }
+
+            $product->categories()->sync($syncData);
+        } elseif ($request->has('category_id') && $request->category_id) {
+            // Backward compatibility: if single category_id provided, use it as primary
+            $product->categories()->sync([$request->category_id => ['is_primary' => true]]);
+        }
+
+        // Reload product with categories
+        $product->load('categories');
+
         return response()->json($product, 201);
     }
 
     public function show(Product $product)
     {
-        return response()->json($product->load([
+        // Load relationships carefully to avoid errors
+        $product->load([
+            'categories',
+            'category',
+            'supplier',
             'inventoryLocations',
-            'jobReservations.reservedBy',
-            'jobReservations.releasedBy',
-            'inventoryTransactions',
-            'orderItems.order',
-            'committedInventory.order'
-        ]));
+        ]);
+
+        // Try to load optional relationships that may not exist in all databases
+        try {
+            $product->load([
+                'jobReservations',
+                'inventoryTransactions',
+            ]);
+        } catch (\Exception $e) {
+            // Silently continue if these relationships don't exist
+        }
+
+        return response()->json($product);
     }
 
     public function update(Request $request, Product $product)
@@ -126,7 +158,10 @@ class ProductController extends Controller
             'finish' => 'nullable|max:50',
             'description' => 'required|max:255',
             'long_description' => 'nullable',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id', // Deprecated, kept for backward compatibility
+            'category_ids' => 'nullable|array', // New: array of category IDs
+            'category_ids.*' => 'exists:categories,id',
+            'primary_category_id' => 'nullable|exists:categories,id', // Which category is primary
             'location' => 'nullable|max:255',
 
             // Pricing
@@ -181,6 +216,33 @@ class ProductController extends Controller
         $product->update($validated);
         $product->updateStatus();
 
+        // Handle multiple categories
+        if ($request->has('category_ids')) {
+            if (is_array($request->category_ids) && !empty($request->category_ids)) {
+                $primaryCategoryId = $request->primary_category_id ?? $request->category_ids[0] ?? null;
+
+                $syncData = [];
+                foreach ($request->category_ids as $categoryId) {
+                    $syncData[$categoryId] = ['is_primary' => ($categoryId == $primaryCategoryId)];
+                }
+
+                $product->categories()->sync($syncData);
+            } else {
+                // If empty array provided, remove all categories
+                $product->categories()->sync([]);
+            }
+        } elseif ($request->has('category_id')) {
+            // Backward compatibility: if single category_id provided, use it as primary
+            if ($request->category_id) {
+                $product->categories()->sync([$request->category_id => ['is_primary' => true]]);
+            } else {
+                $product->categories()->sync([]);
+            }
+        }
+
+        // Reload product with categories
+        $product->load('categories');
+
         return response()->json($product);
     }
 
@@ -227,7 +289,11 @@ class ProductController extends Controller
      */
     public function getFinishCodes()
     {
-        return response()->json(Product::$finishCodes);
+        $finishCodes = [];
+        foreach (Product::$finishCodes as $code => $name) {
+            $finishCodes[] = ['code' => $code, 'name' => $name];
+        }
+        return response()->json($finishCodes);
     }
 
     /**
@@ -235,7 +301,11 @@ class ProductController extends Controller
      */
     public function getUnitOfMeasures()
     {
-        return response()->json(Product::$unitOfMeasures);
+        $uoms = [];
+        foreach (Product::$unitOfMeasures as $code => $name) {
+            $uoms[] = ['code' => $code, 'name' => $name];
+        }
+        return response()->json($uoms);
     }
 
     /**

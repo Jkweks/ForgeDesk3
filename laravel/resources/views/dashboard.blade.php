@@ -195,7 +195,21 @@
           <div class="tab-content" id="productTabContent">
             <!-- Details Tab -->
             <div class="tab-pane fade show active" id="details" role="tabpanel">
+              <div class="mb-3">
+                <div class="d-flex justify-content-end">
+                  <button class="btn btn-primary" id="editProductBtn" onclick="toggleEditMode()">
+                    <i class="ti ti-edit me-1"></i>Edit Product
+                  </button>
+                  <div id="editProductActions" style="display: none;">
+                    <button class="btn btn-primary me-2" onclick="saveProductChanges()">
+                      <i class="ti ti-check me-1"></i>Save Changes
+                    </button>
+                    <button class="btn btn-link" onclick="cancelEditMode()">Cancel</button>
+                  </div>
+                </div>
+              </div>
               <div id="productDetailsView"></div>
+              <div id="productEditForm" style="display: none;"></div>
             </div>
 
             <!-- Locations Tab -->
@@ -781,15 +795,17 @@
                 <input type="text" class="form-control" name="description" id="productDescription" placeholder="Product description" required>
               </div>
               <div class="col-lg-3">
-                <label class="form-label">Category</label>
-                <select class="form-select" name="category_id" id="productCategoryId">
-                  <option value="">Select category...</option>
+                <label class="form-label">Categories/Systems</label>
+                <select class="form-select" name="category_ids" id="productCategoryIds" multiple size="4">
+                  <!-- Options loaded dynamically -->
                 </select>
-                <small class="form-hint">Product category</small>
+                <small class="form-hint">Hold Ctrl/Cmd to select multiple</small>
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Location</label>
-                <input type="text" class="form-control" name="location" id="productLocation" placeholder="A-12">
+                <input type="text" class="form-control" name="location" id="productLocation" placeholder="Choose from list" list="productLocationList">
+                <datalist id="productLocationList"></datalist>
+                <small class="form-hint">Choose from existing storage locations</small>
               </div>
             </div>
             <div class="mb-3">
@@ -1355,19 +1371,19 @@
           <div class="row mb-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">On Hand</label>
-              <p>${product.quantity_on_hand.toLocaleString()}</p>
+              <p>${(product.quantity_on_hand ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Committed</label>
-              <p>${product.quantity_committed.toLocaleString()}</p>
+              <p>${(product.quantity_committed ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Available</label>
-              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+              <p class="text-success fw-bold">${(product.quantity_available ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">On Order</label>
-              <p>${(product.on_order_qty || 0).toLocaleString()}</p>
+              <p>${(product.on_order_qty ?? 0).toLocaleString()}</p>
             </div>
           </div>
           ${needsReorder ? `
@@ -1446,8 +1462,10 @@
           <hr>
           <div class="row">
             <div class="col-md-6">
-              <label class="form-label fw-bold">Category</label>
-              <p>${product.category ? product.category.name : '-'}</p>
+              <label class="form-label fw-bold">Categories</label>
+              <p>${product.categories && product.categories.length > 0
+                ? product.categories.map(c => `<span class="badge text-bg-info me-1">${c.name}</span>`).join('')
+                : '-'}</p>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
@@ -1476,6 +1494,247 @@
       } catch (error) {
         console.error('Error loading product:', error);
         showNotification('Failed to load product details', 'danger');
+      }
+    }
+
+    let currentProductData = null;
+    let isEditMode = false;
+
+    async function toggleEditMode() {
+      isEditMode = true;
+      document.getElementById('editProductBtn').style.display = 'none';
+      document.getElementById('editProductActions').style.display = 'block';
+      document.getElementById('productDetailsView').style.display = 'none';
+      document.getElementById('productEditForm').style.display = 'block';
+
+      // Load fresh product data
+      try {
+        const response = await apiCall(`/products/${currentProductId}`);
+        currentProductData = await response.json();
+        renderEditForm(currentProductData);
+      } catch (error) {
+        console.error('Error loading product for edit:', error);
+        showNotification('Failed to load product for editing', 'danger');
+        cancelEditMode();
+      }
+    }
+
+    function cancelEditMode() {
+      isEditMode = false;
+      document.getElementById('editProductBtn').style.display = 'block';
+      document.getElementById('editProductActions').style.display = 'none';
+      document.getElementById('productDetailsView').style.display = 'block';
+      document.getElementById('productEditForm').style.display = 'none';
+    }
+
+    async function renderEditForm(product) {
+      // Store references to global config data before destructuring to avoid temporal dead zone
+      const globalFinishes = finishCodes;
+      const globalCategories = categories;
+      const globalSuppliers = suppliers;
+      const globalUoms = unitOfMeasures;
+
+      // Load options for dropdowns - use cached data if available
+      const [finishes, cats, sups, uoms] = await Promise.all([
+        globalFinishes.length > 0 ? Promise.resolve(globalFinishes) :
+          apiCall('/finish-codes').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
+        globalCategories.length > 0 ? Promise.resolve(globalCategories) :
+          apiCall('/categories?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
+        globalSuppliers.length > 0 ? Promise.resolve(globalSuppliers) :
+          apiCall('/suppliers?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
+        globalUoms.length > 0 ? Promise.resolve(globalUoms) :
+          apiCall('/unit-of-measures').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => [])
+      ]);
+
+      document.getElementById('productEditForm').innerHTML = `
+        <form id="editProductFormElement">
+          <!-- Basic Info -->
+          <h5 class="mb-3"><i class="ti ti-info-circle me-2"></i>Basic Information</h5>
+          <div class="row mb-3">
+            <div class="col-lg-4">
+              <label class="form-label">Part Number</label>
+              <input type="text" class="form-control" name="part_number" value="${product.part_number || ''}" placeholder="e.g., ABC-123">
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label">Finish</label>
+              <select class="form-select" name="finish" id="editProductFinish">
+                <option value="">None</option>
+                ${finishes.map(f => `<option value="${f.code}" ${product.finish === f.code ? 'selected' : ''}>${f.code} - ${f.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-lg-4">
+              <label class="form-label required">SKU</label>
+              <input type="text" class="form-control" name="sku" value="${product.sku}" required readonly>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-lg-6">
+              <label class="form-label required">Description</label>
+              <input type="text" class="form-control" name="description" value="${product.description}" required>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label">Categories/Systems</label>
+              <select class="form-select" name="category_ids" multiple size="4">
+                ${cats.map(c => {
+                  const isSelected = product.categories && product.categories.some(cat => cat.id === c.id);
+                  return `<option value="${c.id}" ${isSelected ? 'selected' : ''}>${c.name}</option>`;
+                }).join('')}
+              </select>
+              <small class="form-hint">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+            <div class="col-lg-3">
+              <label class="form-label">Status</label>
+              <select class="form-select" name="is_active">
+                <option value="1" ${product.is_active ? 'selected' : ''}>Active</option>
+                <option value="0" ${!product.is_active ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Long Description</label>
+            <textarea class="form-control" name="long_description" rows="2">${product.long_description || ''}</textarea>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-currency-dollar me-2"></i>Pricing</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Unit Cost</label>
+              <input type="number" step="0.01" class="form-control" name="unit_cost" value="${product.unit_cost || '0.00'}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Unit Price</label>
+              <input type="number" step="0.01" class="form-control" name="unit_price" value="${product.unit_price || '0.00'}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-package me-2"></i>Stock Management</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label">Reorder Point</label>
+              <input type="number" step="0.01" class="form-control" name="reorder_point" value="${product.reorder_point || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Safety Stock</label>
+              <input type="number" step="0.01" class="form-control" name="safety_stock" value="${product.safety_stock || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Avg Daily Use</label>
+              <input type="number" step="0.01" class="form-control" name="average_daily_use" value="${product.average_daily_use || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Lead Time (days)</label>
+              <input type="number" class="form-control" name="lead_time_days" value="${product.lead_time_days || ''}">
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Minimum Quantity</label>
+              <input type="number" step="0.01" class="form-control" name="minimum_quantity" value="${product.minimum_quantity || '0'}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Maximum Quantity</label>
+              <input type="number" step="0.01" class="form-control" name="maximum_quantity" value="${product.maximum_quantity || ''}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-ruler me-2"></i>Unit of Measure</h5>
+          <div class="row mb-3">
+            <div class="col-md-3">
+              <label class="form-label">Stock UOM</label>
+              <select class="form-select" name="unit_of_measure">
+                ${uoms.map(u => `<option value="${u.code}" ${product.unit_of_measure === u.code ? 'selected' : ''}>${u.code} - ${u.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Pack Size</label>
+              <input type="number" step="0.01" class="form-control" name="pack_size" value="${product.pack_size || '1'}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Min Order Qty</label>
+              <input type="number" step="0.01" class="form-control" name="min_order_qty" value="${product.min_order_qty || ''}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Order Multiple</label>
+              <input type="number" step="0.01" class="form-control" name="order_multiple" value="${product.order_multiple || ''}">
+            </div>
+          </div>
+
+          <hr>
+          <h5 class="mb-3"><i class="ti ti-truck me-2"></i>Supplier</h5>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Supplier</label>
+              <select class="form-select" name="supplier_id">
+                <option value="">Select supplier...</option>
+                ${sups.map(s => `<option value="${s.id}" ${product.supplier_id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Supplier SKU</label>
+              <input type="text" class="form-control" name="supplier_sku" value="${product.supplier_sku || ''}">
+            </div>
+          </div>
+        </form>
+      `;
+    }
+
+    async function saveProductChanges() {
+      try {
+        const form = document.getElementById('editProductFormElement');
+        const formData = new FormData(form);
+        const data = {};
+
+        formData.forEach((value, key) => {
+          if (key === 'is_active') {
+            data[key] = value === '1';
+          } else if (key !== 'category_ids' && value !== '') {
+            data[key] = value;
+          }
+        });
+
+        // Handle multiple category selection
+        const categorySelect = form.querySelector('[name="category_ids"]');
+        if (categorySelect) {
+          const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
+          if (selectedCategories.length > 0) {
+            data.category_ids = selectedCategories;
+            // Keep first selected as primary, or use the first category from current product
+            data.primary_category_id = selectedCategories[0];
+          } else {
+            data.category_ids = [];
+          }
+        }
+        // Remove old single category_id if present
+        delete data.category_id;
+
+        const response = await apiCall(`/products/${currentProductId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          const updatedProduct = await response.json();
+          showNotification('Product updated successfully', 'success');
+          cancelEditMode();
+
+          // Reload the product view with updated data
+          await viewProduct(currentProductId);
+
+          // Refresh the dashboard table
+          loadDashboard();
+        } else {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to update product');
+        }
+      } catch (error) {
+        console.error('Error saving product:', error);
+        showNotification('Failed to save changes: ' + error.message, 'danger');
       }
     }
 
@@ -1517,14 +1776,15 @@
 
     async function loadAllLocations() {
       try {
-        const response = await apiCall('/locations');
-        const locations = await response.json();
+        // Load from storage locations (master list)
+        const response = await apiCall('/storage-locations-names');
+        const locationNames = await response.json();
 
         const datalist = document.getElementById('existingLocations');
         datalist.innerHTML = '';
-        locations.forEach(location => {
+        locationNames.forEach(locationName => {
           const option = document.createElement('option');
-          option.value = location;
+          option.value = locationName;
           datalist.appendChild(option);
         });
       } catch (error) {
@@ -1837,7 +2097,8 @@
         }
 
         const response = await apiCall(url);
-        currentProductTransactions = response;
+        const data = await response.json();
+        currentProductTransactions = Array.isArray(data) ? data : (data.data || []);
         renderProductActivity();
 
         document.getElementById('activityLoading').style.display = 'none';
@@ -1940,7 +2201,8 @@
         document.getElementById('bomContent').style.display = 'none';
 
         const response = await apiCall(`/products/${productId}/required-parts`);
-        currentBOM = response;
+        const data = await response.json();
+        currentBOM = Array.isArray(data) ? data : (data.data || []);
         renderBOM();
 
         document.getElementById('bomCount').textContent = currentBOM.length;
@@ -2005,7 +2267,8 @@
     async function loadWhereUsed(productId) {
       try {
         const response = await apiCall(`/products/${productId}/where-used`);
-        const whereUsed = response;
+        const data = await response.json();
+        const whereUsed = Array.isArray(data) ? data : (data.data || []);
 
         const container = document.getElementById('whereUsedContent');
 
@@ -2541,8 +2804,8 @@
     });
 
     // ========== CONFIGURATION DATA ==========
-    let finishCodes = {};
-    let unitOfMeasures = {};
+    let finishCodes = [];
+    let unitOfMeasures = [];
     let categories = [];
     let suppliers = [];
 
@@ -2550,27 +2813,47 @@
       try {
         // Load finish codes
         const finishResponse = await apiCall('/finish-codes');
-        finishCodes = await finishResponse.json();
+        const finishData = await finishResponse.json();
+        finishCodes = Array.isArray(finishData) ? finishData : [];
 
         // Load UOMs
         const uomResponse = await apiCall('/unit-of-measures');
-        unitOfMeasures = await uomResponse.json();
+        const uomData = await uomResponse.json();
+        unitOfMeasures = Array.isArray(uomData) ? uomData : [];
 
         // Load categories
         const categoriesResponse = await apiCall('/categories?per_page=all&with_parent=true');
-        categories = await categoriesResponse.json();
+        const categoriesData = await categoriesResponse.json();
+        categories = Array.isArray(categoriesData) ? categoriesData : [];
 
         // Load suppliers
         const suppliersResponse = await apiCall('/suppliers?per_page=all');
-        suppliers = await suppliersResponse.json();
+        const suppliersData = await suppliersResponse.json();
+        suppliers = Array.isArray(suppliersData) ? suppliersData : [];
+
+        // Load storage locations
+        const locationsResponse = await apiCall('/storage-locations-names');
+        const locationsData = await locationsResponse.json();
+        const storageLocationNames = Array.isArray(locationsData) ? locationsData : [];
+
+        // Populate storage locations datalist for add product form
+        const locationDatalist = document.getElementById('productLocationList');
+        if (locationDatalist) {
+          locationDatalist.innerHTML = '';
+          storageLocationNames.forEach(locationName => {
+            const option = document.createElement('option');
+            option.value = locationName;
+            locationDatalist.appendChild(option);
+          });
+        }
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
         finishSelect.innerHTML = '<option value="">None</option>';
-        Object.entries(finishCodes).forEach(([code, name]) => {
+        finishCodes.forEach(finish => {
           const option = document.createElement('option');
-          option.value = code;
-          option.textContent = `${code} - ${name}`;
+          option.value = finish.code;
+          option.textContent = `${finish.code} - ${finish.name}`;
           finishSelect.appendChild(option);
         });
 
@@ -2581,10 +2864,10 @@
           const firstOption = select.querySelector('option').outerHTML; // Keep first option
           select.innerHTML = firstOption;
 
-          Object.entries(unitOfMeasures).forEach(([code, name]) => {
+          unitOfMeasures.forEach(uom => {
             const option = document.createElement('option');
-            option.value = code;
-            option.textContent = `${code} - ${name}`;
+            option.value = uom.code;
+            option.textContent = `${uom.code} - ${uom.name}`;
             select.appendChild(option);
           });
         });
@@ -2601,8 +2884,9 @@
     }
 
     function populateCategoryDropdown() {
-      const categorySelect = document.getElementById('productCategoryId');
-      categorySelect.innerHTML = '<option value="">Select category...</option>';
+      const categorySelect = document.getElementById('productCategoryIds');
+      if (!categorySelect) return;
+      categorySelect.innerHTML = '';
 
       // Sort categories by name
       const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
@@ -2715,6 +2999,16 @@
           data[key] = value;
         }
       });
+
+      // Handle multiple category selection
+      const categorySelect = document.getElementById('productCategoryIds');
+      const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
+      if (selectedCategories.length > 0) {
+        data.category_ids = selectedCategories;
+        data.primary_category_id = selectedCategories[0]; // First selected is primary
+      }
+      // Remove old single category_id if present
+      delete data.category_id;
 
       // Clear previous errors
       document.getElementById('formError').style.display = 'none';
@@ -2886,6 +3180,16 @@
       loadDashboard();
       loadCategoryBreakdown();
       loadConfigurations(); // Load finish codes and UOMs
+
+      // Check for product ID in URL and auto-open modal
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('product');
+      if (productId) {
+        // Wait for dashboard to load, then open product
+        setTimeout(() => viewProduct(parseInt(productId)), 500);
+        // Clear the URL parameter
+        window.history.replaceState({}, document.title, '/');
+      }
     }
   </script>
 @endpush
