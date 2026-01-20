@@ -803,7 +803,9 @@
               </div>
               <div class="col-lg-3">
                 <label class="form-label">Location</label>
-                <input type="text" class="form-control" name="location" id="productLocation" placeholder="A-12">
+                <input type="text" class="form-control" name="location" id="productLocation" placeholder="Choose from list" list="productLocationList">
+                <datalist id="productLocationList"></datalist>
+                <small class="form-hint">Choose from existing storage locations</small>
               </div>
             </div>
             <div class="mb-3">
@@ -2816,6 +2818,22 @@
         const suppliersResponse = await apiCall('/suppliers?per_page=all');
         const suppliersData = await suppliersResponse.json();
         suppliers = Array.isArray(suppliersData) ? suppliersData : [];
+
+        // Load storage locations
+        const locationsResponse = await apiCall('/storage-locations-names');
+        const locationsData = await locationsResponse.json();
+        const storageLocationNames = Array.isArray(locationsData) ? locationsData : [];
+
+        // Populate storage locations datalist for add product form
+        const locationDatalist = document.getElementById('productLocationList');
+        if (locationDatalist) {
+          locationDatalist.innerHTML = '';
+          storageLocationNames.forEach(locationName => {
+            const option = document.createElement('option');
+            option.value = locationName;
+            locationDatalist.appendChild(option);
+          });
+        }
 
         // Populate finish dropdown
         const finishSelect = document.getElementById('productFinish');
