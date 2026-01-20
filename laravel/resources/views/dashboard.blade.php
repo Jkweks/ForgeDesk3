@@ -1369,19 +1369,19 @@
           <div class="row mb-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">On Hand</label>
-              <p>${product.quantity_on_hand.toLocaleString()}</p>
+              <p>${(product.quantity_on_hand ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Committed</label>
-              <p>${product.quantity_committed.toLocaleString()}</p>
+              <p>${(product.quantity_committed ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Available</label>
-              <p class="text-success fw-bold">${product.quantity_available.toLocaleString()}</p>
+              <p class="text-success fw-bold">${(product.quantity_available ?? 0).toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">On Order</label>
-              <p>${(product.on_order_qty || 0).toLocaleString()}</p>
+              <p>${(product.on_order_qty ?? 0).toLocaleString()}</p>
             </div>
           </div>
           ${needsReorder ? `

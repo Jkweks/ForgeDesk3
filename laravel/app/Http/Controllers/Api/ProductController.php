@@ -128,17 +128,25 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        return response()->json($product->load([
+        // Load relationships carefully to avoid errors
+        $product->load([
             'categories',
             'category',
             'supplier',
             'inventoryLocations',
-            'jobReservations.reservedBy',
-            'jobReservations.releasedBy',
-            'inventoryTransactions',
-            'orderItems.order',
-            'committedInventory.order'
-        ]));
+        ]);
+
+        // Try to load optional relationships that may not exist in all databases
+        try {
+            $product->load([
+                'jobReservations',
+                'inventoryTransactions',
+            ]);
+        } catch (\Exception $e) {
+            // Silently continue if these relationships don't exist
+        }
+
+        return response()->json($product);
     }
 
     public function update(Request $request, Product $product)
@@ -281,7 +289,11 @@ class ProductController extends Controller
      */
     public function getFinishCodes()
     {
-        return response()->json(Product::$finishCodes);
+        $finishCodes = [];
+        foreach (Product::$finishCodes as $code => $name) {
+            $finishCodes[] = ['code' => $code, 'name' => $name];
+        }
+        return response()->json($finishCodes);
     }
 
     /**
@@ -289,7 +301,11 @@ class ProductController extends Controller
      */
     public function getUnitOfMeasures()
     {
-        return response()->json(Product::$unitOfMeasures);
+        $uoms = [];
+        foreach (Product::$unitOfMeasures as $code => $name) {
+            $uoms[] = ['code' => $code, 'name' => $name];
+        }
+        return response()->json($uoms);
     }
 
     /**
