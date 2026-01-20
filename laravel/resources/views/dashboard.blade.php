@@ -1526,16 +1526,21 @@
     }
 
     async function renderEditForm(product) {
-      // Use globally loaded configuration data instead of reloading
-      // If not loaded yet, load with proper parameters
-      const [finishes, cats, suppliers, uoms] = await Promise.all([
-        finishCodes.length > 0 ? Promise.resolve(finishCodes) :
+      // Store references to global config data before destructuring to avoid temporal dead zone
+      const globalFinishes = finishCodes;
+      const globalCategories = categories;
+      const globalSuppliers = suppliers;
+      const globalUoms = unitOfMeasures;
+
+      // Load options for dropdowns - use cached data if available
+      const [finishes, cats, sups, uoms] = await Promise.all([
+        globalFinishes.length > 0 ? Promise.resolve(globalFinishes) :
           apiCall('/finish-codes').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => []),
-        categories.length > 0 ? Promise.resolve(categories) :
+        globalCategories.length > 0 ? Promise.resolve(globalCategories) :
           apiCall('/categories?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
-        suppliers.length > 0 ? Promise.resolve(suppliers) :
+        globalSuppliers.length > 0 ? Promise.resolve(globalSuppliers) :
           apiCall('/suppliers?per_page=all').then(r => r.json()).then(data => Array.isArray(data) ? data : (data.data || [])).catch(() => []),
-        unitOfMeasures.length > 0 ? Promise.resolve(unitOfMeasures) :
+        globalUoms.length > 0 ? Promise.resolve(globalUoms) :
           apiCall('/unit-of-measures').then(r => r.json()).then(data => Array.isArray(data) ? data : []).catch(() => [])
       ]);
 
@@ -1662,7 +1667,7 @@
               <label class="form-label">Supplier</label>
               <select class="form-select" name="supplier_id">
                 <option value="">Select supplier...</option>
-                ${suppliers.map(s => `<option value="${s.id}" ${product.supplier_id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+                ${sups.map(s => `<option value="${s.id}" ${product.supplier_id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
               </select>
             </div>
             <div class="col-md-6">
