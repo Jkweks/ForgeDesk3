@@ -198,6 +198,9 @@
                     <p class="text-muted mb-0">Manage stock distribution across multiple locations</p>
                   </div>
                   <div class="col-auto">
+                    <button class="btn btn-warning ms-2" onclick="showIssueToJobForm()">
+                      <i class="ti ti-package-export me-1"></i>Issue to Job
+                    </button>
                     <button class="btn btn-primary" onclick="showAddLocationForm()">
                       <i class="ti ti-plus me-1"></i>Add Location
                     </button>
@@ -929,6 +932,50 @@
             <button type="submit" class="btn btn-primary ms-auto" id="saveProductBtn">
               <i class="ti ti-device-floppy icon"></i>
               Save Product
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Issue Material to Job Modal -->
+  <div class="modal modal-blur fade" id="issueToJobModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Issue Material to Job</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="issueToJobForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Product</label>
+              <p id="issueJobProductInfo" class="mb-0">-</p>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Available Quantity</label>
+              <p id="issueJobAvailable" class="text-success h3 mb-0">0</p>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Job Name</label>
+              <input type="text" class="form-control" name="job_name" id="issueJobName" placeholder="Enter job name or number" required>
+              <small class="form-hint">Enter the job name or number this material is being issued to</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Quantity to Issue</label>
+              <input type="number" class="form-control" name="quantity" id="issueJobQuantity" placeholder="0" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes (Optional)</label>
+              <textarea class="form-control" name="notes" id="issueJobNotes" rows="2" placeholder="Additional notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-warning" id="issueJobBtn">
+              <i class="ti ti-package-export me-1"></i>
+              Issue Material
             </button>
           </div>
         </form>
@@ -2025,6 +2072,81 @@
       }
     });
 
+    // ========== ISSUE TO JOB ==========
+    function showIssueToJobForm() {
+      if (!currentProductId) {
+        showNotification('No product selected', 'danger');
+        return;
+      }
+
+      const product = currentProductData;
+      if (!product) {
+        showNotification('Product data not loaded', 'danger');
+        return;
+      }
+
+      // Populate modal with product info
+      document.getElementById('issueJobProductInfo').innerHTML =
+        `<strong>${product.sku}</strong> - ${product.description}`;
+      document.getElementById('issueJobAvailable').textContent = product.quantity_available || 0;
+
+      // Reset form
+      document.getElementById('issueToJobForm').reset();
+
+      // Show modal
+      showModal(document.getElementById('issueToJobModal'));
+    }
+
+    document.getElementById('issueToJobForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {
+        job_name: formData.get('job_name'),
+        quantity: parseInt(formData.get('quantity')),
+        notes: formData.get('notes') || null,
+      };
+
+      // Validate quantity doesn't exceed available
+      const product = currentProductData;
+      if (data.quantity > product.quantity_available) {
+        showNotification(`Cannot issue ${data.quantity}. Only ${product.quantity_available} available.`, 'danger');
+        return;
+      }
+
+      const btn = document.getElementById('issueJobBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Issuing...';
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/issue-to-job`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showNotification('Material issued to job successfully', 'success');
+          hideModal(document.getElementById('issueToJobModal'));
+
+          // Reload product data
+          await viewProduct(currentProductId);
+          await loadDashboard();
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to issue material', 'danger');
+        }
+      } catch (error) {
+        console.error('Error issuing material:', error);
+        showNotification('Failed to issue material', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-package-export me-1"></i>Issue Material';
+      }
+    });
+
     // ========== RESERVATION MANAGEMENT ==========
     let currentProductReservations = [];
     let currentReservationFilter = 'all';
@@ -2123,6 +2245,7 @@
         'transfer': '<span class="badge text-bg-primary">Transfer</span>',
         'return': '<span class="badge text-bg-secondary">Return</span>',
         'cycle_count': '<span class="badge text-bg-purple">Cycle Count</span>',
+        'job_issue': '<span class="badge text-bg-orange">Job Issue</span>',
       };
       return badges[type] || '<span class="badge">' + type + '</span>';
     }

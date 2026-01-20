@@ -151,6 +151,7 @@ class InventoryTransactionController extends Controller
             'transfer' => 'Transfer',
             'return' => 'Return',
             'cycle_count' => 'Cycle Count',
+            'job_issue' => 'Job Issue',
         ]);
     }
 
