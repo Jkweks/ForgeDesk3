@@ -41,10 +41,20 @@ class Category extends Model
     }
 
     /**
-     * Get all products in this category
+     * Get all products in this category (many-to-many through pivot table)
      */
     public function products()
     {
-        return $this->hasMany(Product::class);
+        return $this->belongsToMany(Product::class, 'category_product')
+            ->withPivot('is_primary')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get products where this is the primary category
+     */
+    public function primaryProducts()
+    {
+        return $this->products()->wherePivot('is_primary', true);
     }
 }

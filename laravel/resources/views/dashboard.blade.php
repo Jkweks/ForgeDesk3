@@ -1462,8 +1462,10 @@
           <hr>
           <div class="row">
             <div class="col-md-6">
-              <label class="form-label fw-bold">Category</label>
-              <p>${product.category ? product.category.name : '-'}</p>
+              <label class="form-label fw-bold">Categories</label>
+              <p>${product.categories && product.categories.length > 0
+                ? product.categories.map(c => `<span class="badge text-bg-info me-1">${c.name}</span>`).join('')
+                : '-'}</p>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
