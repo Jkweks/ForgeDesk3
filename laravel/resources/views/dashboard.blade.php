@@ -1697,10 +1697,8 @@
 
         // Handle multiple category selection
         const categorySelect = form.querySelector('[name="category_ids"]');
-        console.log('Edit form category select:', categorySelect);
         if (categorySelect) {
           const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
-          console.log('Edit form selected categories:', selectedCategories);
           if (selectedCategories.length > 0) {
             data.category_ids = selectedCategories;
             // Keep first selected as primary, or use the first category from current product
@@ -1711,8 +1709,6 @@
         }
         // Remove old single category_id if present
         delete data.category_id;
-
-        console.log('Edit product data being sent:', data);
 
         const response = await apiCall(`/products/${currentProductId}`, {
           method: 'PUT',
@@ -3007,15 +3003,12 @@
       // Handle multiple category selection
       const categorySelect = document.getElementById('productCategoryIds');
       const selectedCategories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
-      console.log('Selected categories:', selectedCategories);
       if (selectedCategories.length > 0) {
         data.category_ids = selectedCategories;
         data.primary_category_id = selectedCategories[0]; // First selected is primary
       }
       // Remove old single category_id if present
       delete data.category_id;
-
-      console.log('Product data being sent:', data);
 
       // Clear previous errors
       document.getElementById('formError').style.display = 'none';
