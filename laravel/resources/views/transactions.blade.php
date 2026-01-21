@@ -609,7 +609,10 @@
 
       productSearchTimeout = setTimeout(async () => {
         try {
-          const products = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
+          const response = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
+
+          // Handle both paginated and plain array responses
+          const products = Array.isArray(response) ? response : (response.data || []);
 
           const resultsContainer = document.getElementById('productSearchResults');
 
