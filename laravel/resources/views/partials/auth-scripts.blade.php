@@ -90,6 +90,15 @@
     const response = await apiCall(endpoint, options);
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - redirect to login
+      if (response.status === 401) {
+        localStorage.removeItem('authToken');
+        authToken = null;
+        showLogin();
+        showNotification('Session expired. Please login again.', 'warning');
+        throw new Error('Session expired');
+      }
+
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
       throw new Error(error.message || `HTTP ${response.status}`);
     }

@@ -263,7 +263,10 @@
 
     async function loadTransactions() {
       try {
-        allTransactions = await authenticatedFetch('/transactions?per_page=500&sort=-transaction_date');
+        const response = await authenticatedFetch('/transactions?per_page=500&sort=-transaction_date');
+
+        // Handle both paginated and plain array responses
+        allTransactions = Array.isArray(response) ? response : (response.data || []);
         filteredTransactions = allTransactions;
         renderTransactionsTable();
 
@@ -272,7 +275,9 @@
         document.getElementById('paginationContainer').style.display = 'flex';
       } catch (error) {
         console.error('Error loading transactions:', error);
-        showNotification('Failed to load transactions', 'danger');
+        if (error.message !== 'Session expired') {
+          showNotification('Failed to load transactions', 'danger');
+        }
       }
     }
 
@@ -672,6 +677,15 @@
           },
           body: JSON.stringify(data)
         });
+
+        // Handle 401 Unauthorized
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          authToken = null;
+          showLogin();
+          showNotification('Session expired. Please login again.', 'warning');
+          return;
+        }
 
         if (response.ok) {
           showNotification('Transaction added successfully', 'success');
