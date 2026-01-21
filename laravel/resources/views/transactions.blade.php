@@ -697,8 +697,12 @@
           hideModal(document.getElementById('addTransactionModal'));
 
           // Reload transactions and stats
-          await loadTransactions();
-          await loadStatistics();
+          // Reset current page to show the new transaction
+          currentPage = 1;
+          await Promise.all([
+            loadTransactions(),
+            loadStatistics()
+          ]);
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to add transaction', 'danger');

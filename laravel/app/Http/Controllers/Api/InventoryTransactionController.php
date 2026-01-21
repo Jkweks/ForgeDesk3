@@ -124,16 +124,53 @@ class InventoryTransactionController extends Controller
             $query->where('transaction_date', '<=', $request->end_date);
         }
 
+        // Get total transactions
+        $total = (clone $query)->count();
+
+        // Get this month's transactions
+        $thisMonth = (clone $query)
+            ->whereYear('transaction_date', now()->year)
+            ->whereMonth('transaction_date', now()->month)
+            ->count();
+
+        // Get today's transactions
+        $today = (clone $query)
+            ->whereDate('transaction_date', now()->toDateString())
+            ->count();
+
+        // Get most active type
+        $byType = (clone $query)
+            ->select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        $mostActiveType = null;
+        if ($byType->isNotEmpty()) {
+            $topType = $byType->first();
+            $typeLabels = [
+                'receipt' => 'Receipt',
+                'shipment' => 'Shipment',
+                'adjustment' => 'Adjustment',
+                'transfer' => 'Transfer',
+                'return' => 'Return',
+                'cycle_count' => 'Cycle Count',
+                'job_issue' => 'Job Issue',
+                'issue' => 'Issue',
+            ];
+            $mostActiveType = [
+                'type' => $topType->type,
+                'label' => $typeLabels[$topType->type] ?? $topType->type,
+                'count' => $topType->count,
+            ];
+        }
+
         $stats = [
-            'total_transactions' => (clone $query)->count(),
-            'receipts' => (clone $query)->where('type', 'receipt')->sum('quantity'),
-            'shipments' => (clone $query)->where('type', 'shipment')->sum('quantity'),
-            'adjustments' => (clone $query)->where('type', 'adjustment')->count(),
-            'cycle_counts' => (clone $query)->where('type', 'cycle_count')->count(),
-            'by_type' => (clone $query)->select('type', DB::raw('count(*) as count'))
-                ->groupBy('type')
-                ->get()
-                ->pluck('count', 'type'),
+            'total' => $total,
+            'this_month' => $thisMonth,
+            'today' => $today,
+            'most_active_type' => $mostActiveType,
+            'by_type' => $byType->pluck('count', 'type'),
         ];
 
         return response()->json($stats);
