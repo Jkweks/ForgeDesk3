@@ -609,8 +609,7 @@
 
       productSearchTimeout = setTimeout(async () => {
         try {
-          const response = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
-          const products = await response.json();
+          const products = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
 
           const resultsContainer = document.getElementById('productSearchResults');
 
