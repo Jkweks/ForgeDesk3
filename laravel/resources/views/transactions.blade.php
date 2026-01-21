@@ -170,15 +170,15 @@
               <div class="col-md-6 mb-3">
                 <label class="form-label required">Transaction Type</label>
                 <select class="form-select" name="type" id="manualTransactionType" required>
-                  <option value="adjustment">Adjustment</option>
-                  <option value="return">Return</option>
-                  <option value="receipt">Receipt</option>
+                  <option value="issue">Issue (Remove from inventory)</option>
+                  <option value="receipt">Receipt (Add to inventory)</option>
+                  <option value="return">Return (Add to inventory)</option>
                 </select>
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label required">Quantity</label>
-                <input type="number" class="form-control" name="quantity" id="manualTransactionQuantity" placeholder="Enter quantity" required>
-                <small class="form-hint">Use negative numbers to remove from inventory</small>
+                <input type="number" class="form-control" name="quantity" id="manualTransactionQuantity" placeholder="Enter quantity" min="1" required>
+                <small class="form-hint">Always use positive numbers</small>
               </div>
             </div>
             <div class="mb-3">
@@ -344,7 +344,8 @@
           'transfer': 'purple',
           'return': 'danger',
           'cycle_count': 'azure',
-          'job_issue': 'orange'
+          'job_issue': 'orange',
+          'issue': 'red'
         };
         const typeColor = typeColors[trans.type] || 'secondary';
 
@@ -452,7 +453,8 @@
           'transfer': 'purple',
           'return': 'danger',
           'cycle_count': 'azure',
-          'job_issue': 'orange'
+          'job_issue': 'orange',
+          'issue': 'red'
         };
         const typeColor = typeColors[trans.type] || 'secondary';
         const quantityClass = trans.quantity >= 0 ? 'text-success' : 'text-danger';
@@ -536,7 +538,8 @@
         'transfer': 'Transfer',
         'return': 'Return',
         'cycle_count': 'Cycle Count',
-        'job_issue': 'Job Issue'
+        'job_issue': 'Job Issue',
+        'issue': 'Issue'
       };
       return types[type] || type;
     }

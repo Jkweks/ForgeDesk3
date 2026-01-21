@@ -152,6 +152,7 @@ class InventoryTransactionController extends Controller
             'return' => 'Return',
             'cycle_count' => 'Cycle Count',
             'job_issue' => 'Job Issue',
+            'issue' => 'Issue',
         ]);
     }
 
@@ -291,8 +292,8 @@ class InventoryTransactionController extends Controller
     {
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
-            'type' => 'required|in:adjustment,return,receipt',
-            'quantity' => 'required|integer',
+            'type' => 'required|in:issue,return,receipt',
+            'quantity' => 'required|integer|min:1',
             'transaction_date' => 'required|date',
             'reference_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
@@ -305,10 +306,13 @@ class InventoryTransactionController extends Controller
             // Record quantity before
             $quantityBefore = $product->quantity_on_hand;
 
-            // Update product quantity
-            $product->quantity_on_hand += $validated['quantity'];
+            // For 'issue' type, negate the quantity (removing from inventory)
+            $quantityChange = $validated['type'] === 'issue' ? -$validated['quantity'] : $validated['quantity'];
 
-            // Prevent negative inventory (optional - remove if you want to allow it)
+            // Update product quantity
+            $product->quantity_on_hand += $quantityChange;
+
+            // Prevent negative inventory
             if ($product->quantity_on_hand < 0) {
                 return response()->json([
                     'message' => 'Transaction would result in negative inventory',
@@ -319,11 +323,11 @@ class InventoryTransactionController extends Controller
             $product->save();
             $quantityAfter = $product->quantity_on_hand;
 
-            // Create transaction record
+            // Create transaction record with the actual quantity change
             $transaction = InventoryTransaction::create([
                 'product_id' => $product->id,
                 'type' => $validated['type'],
-                'quantity' => $validated['quantity'],
+                'quantity' => $quantityChange,  // Store negative for issue, positive for receipt/return
                 'quantity_before' => $quantityBefore,
                 'quantity_after' => $quantityAfter,
                 'reference_number' => $validated['reference_number'],
