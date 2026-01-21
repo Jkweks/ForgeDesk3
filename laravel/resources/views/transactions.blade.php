@@ -217,6 +217,14 @@
     let currentPage = 1;
     let perPage = 50;
 
+    // Utility function to escape HTML and prevent XSS
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       loadTransactionTypes();
       loadTransactions();
@@ -626,14 +634,31 @@
           }
 
           resultsContainer.innerHTML = products.map(product => `
-            <a href="#" class="list-group-item list-group-item-action" onclick="selectProduct(${product.id}, '${product.sku.replace(/'/g, "\\'")}', '${product.description.replace(/'/g, "\\'")}', ${product.quantity_available || 0}); return false;">
+            <a href="#" class="list-group-item list-group-item-action product-search-result"
+               data-product-id="${product.id}"
+               data-product-sku="${escapeHtml(product.sku)}"
+               data-product-description="${escapeHtml(product.description)}"
+               data-product-available="${product.quantity_available || 0}">
               <div>
-                <strong>${product.sku}</strong> - ${product.description}
+                <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}
                 <div class="small text-muted">Available: ${product.quantity_available || 0}</div>
               </div>
             </a>
           `).join('');
           resultsContainer.style.display = 'block';
+
+          // Add click handlers to all product results
+          document.querySelectorAll('.product-search-result').forEach(item => {
+            item.addEventListener('click', function(e) {
+              e.preventDefault();
+              selectProduct(
+                parseInt(this.dataset.productId),
+                this.dataset.productSku,
+                this.dataset.productDescription,
+                parseInt(this.dataset.productAvailable)
+              );
+            });
+          });
         } catch (error) {
           console.error('Error searching products:', error);
         }
