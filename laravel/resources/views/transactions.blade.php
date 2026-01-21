@@ -18,6 +18,10 @@
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
                   Export
                 </button>
+                <button class="btn btn-primary" onclick="showAddTransactionModal()">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                  Add Transaction
+                </button>
               </div>
             </div>
           </div>
@@ -136,6 +140,69 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-link" data-bs-dismiss="modal">Close</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Manual Transaction Modal -->
+  <div class="modal modal-blur fade" id="addTransactionModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Manual Transaction</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="addTransactionForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label required">Product</label>
+              <input type="text" class="form-control" id="manualTransactionProductSearch" placeholder="Search by SKU or description..." autocomplete="off">
+              <input type="hidden" id="manualTransactionProductId" name="product_id">
+              <div id="productSearchResults" class="list-group mt-1" style="display: none; max-height: 200px; overflow-y: auto;"></div>
+              <div id="selectedProductInfo" class="mt-2" style="display: none;">
+                <div class="alert alert-info mb-0">
+                  <strong id="selectedProductDisplay"></strong>
+                  <div class="small" id="selectedProductAvailable"></div>
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label required">Transaction Type</label>
+                <select class="form-select" name="type" id="manualTransactionType" required>
+                  <option value="adjustment">Adjustment</option>
+                  <option value="return">Return</option>
+                  <option value="receipt">Receipt</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label required">Quantity</label>
+                <input type="number" class="form-control" name="quantity" id="manualTransactionQuantity" placeholder="Enter quantity" required>
+                <small class="form-hint">Use negative numbers to remove from inventory</small>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Date & Time</label>
+              <input type="datetime-local" class="form-control" name="transaction_date" id="manualTransactionDate" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Reference/Job Name</label>
+              <input type="text" class="form-control" name="reference_number" id="manualTransactionReference" placeholder="e.g., Service Job #123" required>
+              <small class="form-hint">Enter the job name, service ticket, or other reference</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" name="notes" id="manualTransactionNotes" rows="2" placeholder="Additional details..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="saveManualTransactionBtn">
+              <i class="ti ti-check me-1"></i>
+              Save Transaction
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -502,5 +569,128 @@
         timeout = setTimeout(later, wait);
       };
     }
+
+    // ========== MANUAL TRANSACTION ==========
+    let selectedProduct = null;
+    let productSearchTimeout = null;
+
+    function showAddTransactionModal() {
+      // Reset form
+      document.getElementById('addTransactionForm').reset();
+      selectedProduct = null;
+      document.getElementById('selectedProductInfo').style.display = 'none';
+      document.getElementById('productSearchResults').style.display = 'none';
+
+      // Set default date to now
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      document.getElementById('manualTransactionDate').value = now.toISOString().slice(0, 16);
+
+      showModal(document.getElementById('addTransactionModal'));
+    }
+
+    // Product search
+    document.getElementById('manualTransactionProductSearch').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.trim();
+
+      if (productSearchTimeout) {
+        clearTimeout(productSearchTimeout);
+      }
+
+      if (searchTerm.length < 2) {
+        document.getElementById('productSearchResults').style.display = 'none';
+        return;
+      }
+
+      productSearchTimeout = setTimeout(async () => {
+        try {
+          const response = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
+          const products = await response.json();
+
+          const resultsContainer = document.getElementById('productSearchResults');
+
+          if (products.length === 0) {
+            resultsContainer.innerHTML = '<div class="list-group-item text-muted">No products found</div>';
+            resultsContainer.style.display = 'block';
+            return;
+          }
+
+          resultsContainer.innerHTML = products.map(product => `
+            <a href="#" class="list-group-item list-group-item-action" onclick="selectProduct(${product.id}, '${product.sku.replace(/'/g, "\\'")}', '${product.description.replace(/'/g, "\\'")}', ${product.quantity_available || 0}); return false;">
+              <div>
+                <strong>${product.sku}</strong> - ${product.description}
+                <div class="small text-muted">Available: ${product.quantity_available || 0}</div>
+              </div>
+            </a>
+          `).join('');
+          resultsContainer.style.display = 'block';
+        } catch (error) {
+          console.error('Error searching products:', error);
+        }
+      }, 300);
+    });
+
+    function selectProduct(id, sku, description, available) {
+      selectedProduct = { id, sku, description, available };
+
+      document.getElementById('manualTransactionProductId').value = id;
+      document.getElementById('manualTransactionProductSearch').value = `${sku} - ${description}`;
+      document.getElementById('selectedProductDisplay').textContent = `${sku} - ${description}`;
+      document.getElementById('selectedProductAvailable').textContent = `Current Available: ${available}`;
+      document.getElementById('selectedProductInfo').style.display = 'block';
+      document.getElementById('productSearchResults').style.display = 'none';
+    }
+
+    // Submit manual transaction
+    document.getElementById('addTransactionForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      if (!selectedProduct) {
+        showNotification('Please select a product', 'danger');
+        return;
+      }
+
+      const formData = new FormData(e.target);
+      const data = {
+        product_id: selectedProduct.id,
+        type: formData.get('type'),
+        quantity: parseInt(formData.get('quantity')),
+        reference_number: formData.get('reference_number'),
+        transaction_date: formData.get('transaction_date'),
+        notes: formData.get('notes') || null,
+      };
+
+      const btn = document.getElementById('saveManualTransactionBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+      try {
+        const response = await apiCall('/transactions/manual', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showNotification('Transaction added successfully', 'success');
+          hideModal(document.getElementById('addTransactionModal'));
+
+          // Reload transactions and stats
+          await loadTransactions();
+          await loadStatistics();
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to add transaction', 'danger');
+        }
+      } catch (error) {
+        console.error('Error adding transaction:', error);
+        showNotification('Failed to add transaction', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-check me-1"></i>Save Transaction';
+      }
+    });
   </script>
 @endpush

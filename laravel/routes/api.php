@@ -123,6 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Inventory Transactions (Activity & Audit Trail)
         Route::get('/transactions', [InventoryTransactionController::class, 'index']);
+        Route::post('/transactions/manual', [InventoryTransactionController::class, 'createManual']);
         Route::get('/transactions/{transaction}', [InventoryTransactionController::class, 'show']);
         Route::get('/transactions-statistics', [InventoryTransactionController::class, 'statistics']);
         Route::get('/transactions-types', [InventoryTransactionController::class, 'types']);

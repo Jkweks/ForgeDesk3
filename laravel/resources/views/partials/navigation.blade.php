@@ -26,9 +26,7 @@
                     <a class="dropdown-item" href="/low-stock">Low Stock</a>
                     <a class="dropdown-item" href="/critical-stock">Critical Stock</a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="/transactions">
-                      <i class="ti ti-history me-2"></i>Transaction History
-                    </a>
+                    <a class="dropdown-item" href="/transactions">Transaction History</a>
                     <a class="dropdown-item" href="/categories">Categories</a>
                     <a class="dropdown-item" href="/suppliers">Suppliers</a>
                   </div>

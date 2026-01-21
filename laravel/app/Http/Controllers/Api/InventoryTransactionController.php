@@ -283,4 +283,73 @@ class InventoryTransactionController extends Controller
 
         return response()->json($transactions);
     }
+
+    /**
+     * Create a manual transaction
+     */
+    public function createManual(Request $request)
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'type' => 'required|in:adjustment,return,receipt',
+            'quantity' => 'required|integer',
+            'transaction_date' => 'required|date',
+            'reference_number' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = Product::findOrFail($validated['product_id']);
+
+            // Record quantity before
+            $quantityBefore = $product->quantity_on_hand;
+
+            // Update product quantity
+            $product->quantity_on_hand += $validated['quantity'];
+
+            // Prevent negative inventory (optional - remove if you want to allow it)
+            if ($product->quantity_on_hand < 0) {
+                return response()->json([
+                    'message' => 'Transaction would result in negative inventory',
+                    'errors' => ['quantity' => ['Insufficient inventory']]
+                ], 422);
+            }
+
+            $product->save();
+            $quantityAfter = $product->quantity_on_hand;
+
+            // Create transaction record
+            $transaction = InventoryTransaction::create([
+                'product_id' => $product->id,
+                'type' => $validated['type'],
+                'quantity' => $validated['quantity'],
+                'quantity_before' => $quantityBefore,
+                'quantity_after' => $quantityAfter,
+                'reference_number' => $validated['reference_number'],
+                'reference_type' => 'manual',
+                'reference_id' => null,
+                'notes' => $validated['notes'],
+                'user_id' => Auth::id(),
+                'transaction_date' => $validated['transaction_date'],
+            ]);
+
+            // Update product status
+            $product->updateStatus();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Transaction created successfully',
+                'transaction' => $transaction->load(['product', 'user'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create transaction',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
