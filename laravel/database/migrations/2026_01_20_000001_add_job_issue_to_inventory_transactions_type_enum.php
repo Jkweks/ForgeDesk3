@@ -9,13 +9,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Modify the enum to add 'job_issue'
-        DB::statement("ALTER TABLE inventory_transactions MODIFY COLUMN type ENUM('receipt', 'shipment', 'adjustment', 'transfer', 'return', 'cycle_count', 'job_issue')");
+        // For PostgreSQL, we need to drop and recreate the check constraint
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            // Drop the existing check constraint
+            DB::statement("ALTER TABLE inventory_transactions DROP CONSTRAINT IF EXISTS inventory_transactions_type_check");
+
+            // Add new check constraint with job_issue included
+            DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT inventory_transactions_type_check CHECK (type::text = ANY (ARRAY['receipt'::character varying, 'shipment'::character varying, 'adjustment'::character varying, 'transfer'::character varying, 'return'::character varying, 'cycle_count'::character varying, 'job_issue'::character varying]::text[]))");
+        } else {
+            // MySQL syntax
+            DB::statement("ALTER TABLE inventory_transactions MODIFY COLUMN type ENUM('receipt', 'shipment', 'adjustment', 'transfer', 'return', 'cycle_count', 'job_issue')");
+        }
     }
 
     public function down(): void
     {
         // Remove 'job_issue' from the enum
-        DB::statement("ALTER TABLE inventory_transactions MODIFY COLUMN type ENUM('receipt', 'shipment', 'adjustment', 'transfer', 'return', 'cycle_count')");
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            // Drop the existing check constraint
+            DB::statement("ALTER TABLE inventory_transactions DROP CONSTRAINT IF EXISTS inventory_transactions_type_check");
+
+            // Add back the original constraint without job_issue
+            DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT inventory_transactions_type_check CHECK (type::text = ANY (ARRAY['receipt'::character varying, 'shipment'::character varying, 'adjustment'::character varying, 'transfer'::character varying, 'return'::character varying, 'cycle_count'::character varying]::text[]))");
+        } else {
+            // MySQL syntax
+            DB::statement("ALTER TABLE inventory_transactions MODIFY COLUMN type ENUM('receipt', 'shipment', 'adjustment', 'transfer', 'return', 'cycle_count')");
+        }
     }
 };
