@@ -2237,6 +2237,12 @@
       }).join('');
     }
 
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     function getTransactionTypeBadge(type) {
       const badges = {
         'receipt': '<span class="badge text-bg-success">Receipt</span>',
