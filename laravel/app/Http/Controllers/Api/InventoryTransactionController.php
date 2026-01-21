@@ -124,16 +124,53 @@ class InventoryTransactionController extends Controller
             $query->where('transaction_date', '<=', $request->end_date);
         }
 
+        // Get total transactions
+        $total = (clone $query)->count();
+
+        // Get this month's transactions
+        $thisMonth = (clone $query)
+            ->whereYear('transaction_date', now()->year)
+            ->whereMonth('transaction_date', now()->month)
+            ->count();
+
+        // Get today's transactions
+        $today = (clone $query)
+            ->whereDate('transaction_date', now()->toDateString())
+            ->count();
+
+        // Get most active type
+        $byType = (clone $query)
+            ->select('type', DB::raw('count(*) as count'))
+            ->groupBy('type')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        $mostActiveType = null;
+        if ($byType->isNotEmpty()) {
+            $topType = $byType->first();
+            $typeLabels = [
+                'receipt' => 'Receipt',
+                'shipment' => 'Shipment',
+                'adjustment' => 'Adjustment',
+                'transfer' => 'Transfer',
+                'return' => 'Return',
+                'cycle_count' => 'Cycle Count',
+                'job_issue' => 'Job Issue',
+                'issue' => 'Issue',
+            ];
+            $mostActiveType = [
+                'type' => $topType->type,
+                'label' => $typeLabels[$topType->type] ?? $topType->type,
+                'count' => $topType->count,
+            ];
+        }
+
         $stats = [
-            'total_transactions' => (clone $query)->count(),
-            'receipts' => (clone $query)->where('type', 'receipt')->sum('quantity'),
-            'shipments' => (clone $query)->where('type', 'shipment')->sum('quantity'),
-            'adjustments' => (clone $query)->where('type', 'adjustment')->count(),
-            'cycle_counts' => (clone $query)->where('type', 'cycle_count')->count(),
-            'by_type' => (clone $query)->select('type', DB::raw('count(*) as count'))
-                ->groupBy('type')
-                ->get()
-                ->pluck('count', 'type'),
+            'total' => $total,
+            'this_month' => $thisMonth,
+            'today' => $today,
+            'most_active_type' => $mostActiveType,
+            'by_type' => $byType->pluck('count', 'type'),
         ];
 
         return response()->json($stats);
@@ -151,6 +188,8 @@ class InventoryTransactionController extends Controller
             'transfer' => 'Transfer',
             'return' => 'Return',
             'cycle_count' => 'Cycle Count',
+            'job_issue' => 'Job Issue',
+            'issue' => 'Issue',
         ]);
     }
 
@@ -281,5 +320,77 @@ class InventoryTransactionController extends Controller
             });
 
         return response()->json($transactions);
+    }
+
+    /**
+     * Create a manual transaction
+     */
+    public function createManual(Request $request)
+    {
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'type' => 'required|in:issue,return,receipt',
+            'quantity' => 'required|integer|min:1',
+            'transaction_date' => 'required|date',
+            'reference_number' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $product = Product::findOrFail($validated['product_id']);
+
+            // Record quantity before
+            $quantityBefore = $product->quantity_on_hand;
+
+            // For 'issue' type, negate the quantity (removing from inventory)
+            $quantityChange = $validated['type'] === 'issue' ? -$validated['quantity'] : $validated['quantity'];
+
+            // Update product quantity
+            $product->quantity_on_hand += $quantityChange;
+
+            // Prevent negative inventory
+            if ($product->quantity_on_hand < 0) {
+                return response()->json([
+                    'message' => 'Transaction would result in negative inventory',
+                    'errors' => ['quantity' => ['Insufficient inventory']]
+                ], 422);
+            }
+
+            $product->save();
+            $quantityAfter = $product->quantity_on_hand;
+
+            // Create transaction record with the actual quantity change
+            $transaction = InventoryTransaction::create([
+                'product_id' => $product->id,
+                'type' => $validated['type'],
+                'quantity' => $quantityChange,  // Store negative for issue, positive for receipt/return
+                'quantity_before' => $quantityBefore,
+                'quantity_after' => $quantityAfter,
+                'reference_number' => $validated['reference_number'],
+                'reference_type' => 'manual',
+                'reference_id' => null,
+                'notes' => $validated['notes'],
+                'user_id' => Auth::id(),
+                'transaction_date' => $validated['transaction_date'],
+            ]);
+
+            // Update product status
+            $product->updateStatus();
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Transaction created successfully',
+                'transaction' => $transaction->load(['product', 'user'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Failed to create transaction',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

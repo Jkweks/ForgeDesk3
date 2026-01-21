@@ -36,6 +36,10 @@ Route::get('/storage-locations', function () {
     return view('storage-locations');
 });
 
+Route::get('/transactions', function () {
+    return view('transactions');
+});
+
 // Reports & Maintenance
 Route::get('/reports', function () {
     return view('reports');

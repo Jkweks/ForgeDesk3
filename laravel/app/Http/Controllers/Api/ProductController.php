@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryTransaction;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -274,13 +275,63 @@ class ProductController extends Controller
         ]);
     }
 
+    public function issueToJob(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+            'job_name' => 'required|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Check if there's enough available quantity
+        if ($product->quantity_available < $validated['quantity']) {
+            return response()->json([
+                'message' => 'Insufficient available quantity',
+                'errors' => ['quantity' => ['Not enough available inventory']]
+            ], 422);
+        }
+
+        // Record quantity before adjustment
+        $quantityBefore = $product->quantity_on_hand;
+
+        // Reduce inventory
+        $product->quantity_on_hand -= $validated['quantity'];
+        $product->save();
+
+        $quantityAfter = $product->quantity_on_hand;
+
+        // Create inventory transaction
+        InventoryTransaction::create([
+            'product_id' => $product->id,
+            'type' => 'job_issue',
+            'quantity' => -$validated['quantity'], // Negative because it's being removed
+            'quantity_before' => $quantityBefore,
+            'quantity_after' => $quantityAfter,
+            'reference_number' => $validated['job_name'],
+            'reference_type' => 'job',
+            'reference_id' => null,
+            'notes' => "Issued to job: {$validated['job_name']}" .
+                       ($validated['notes'] ? "\n" . $validated['notes'] : ''),
+            'user_id' => auth()->id(),
+            'transaction_date' => now(),
+        ]);
+
+        // Update product status
+        $product->updateStatus();
+
+        return response()->json([
+            'message' => 'Material issued to job successfully',
+            'product' => $product->fresh()
+        ]);
+    }
+
     public function getTransactions(Product $product)
     {
         $transactions = $product->inventoryTransactions()
             ->with('user')
             ->latest('transaction_date')
             ->paginate(50);
-        
+
         return response()->json($transactions);
     }
 

@@ -89,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Products
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);
+        Route::post('/products/{product}/issue-to-job', [ProductController::class, 'issueToJob']);
         Route::get('/products/{product}/transactions', [ProductController::class, 'getTransactions']);
         Route::get('/products/{product}/calculate-reorder', [ProductController::class, 'calculateReorderPoint']);
         Route::get('/finish-codes', [ProductController::class, 'getFinishCodes']);
@@ -122,6 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Inventory Transactions (Activity & Audit Trail)
         Route::get('/transactions', [InventoryTransactionController::class, 'index']);
+        Route::post('/transactions/manual', [InventoryTransactionController::class, 'createManual']);
         Route::get('/transactions/{transaction}', [InventoryTransactionController::class, 'show']);
         Route::get('/transactions-statistics', [InventoryTransactionController::class, 'statistics']);
         Route::get('/transactions-types', [InventoryTransactionController::class, 'types']);

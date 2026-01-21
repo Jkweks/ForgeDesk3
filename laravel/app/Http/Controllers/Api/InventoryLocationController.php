@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryLocation;
+use App\Models\InventoryTransaction;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -171,6 +172,9 @@ class InventoryLocationController extends Controller
 
         DB::beginTransaction();
         try {
+            // Capture product quantity before transfer
+            $quantityBefore = $product->quantity_on_hand;
+
             // Reduce from source
             $fromLocation->quantity -= $validated['quantity'];
             $fromLocation->save();
@@ -178,6 +182,25 @@ class InventoryLocationController extends Controller
             // Add to destination
             $toLocation->quantity += $validated['quantity'];
             $toLocation->save();
+
+            // Product total quantity doesn't change in transfer, but we log it for audit trail
+            $quantityAfter = $product->quantity_on_hand;
+
+            // Create inventory transaction
+            InventoryTransaction::create([
+                'product_id' => $product->id,
+                'type' => 'transfer',
+                'quantity' => $validated['quantity'],
+                'quantity_before' => $quantityBefore,
+                'quantity_after' => $quantityAfter,
+                'reference_number' => "Transfer: {$fromLocation->location} → {$toLocation->location}",
+                'reference_type' => 'location_transfer',
+                'reference_id' => $toLocation->id,
+                'notes' => "Transferred {$validated['quantity']} from {$fromLocation->location} to {$toLocation->location}" .
+                           ($validated['notes'] ? "\n" . $validated['notes'] : ''),
+                'user_id' => auth()->id(),
+                'transaction_date' => now(),
+            ]);
 
             DB::commit();
 
@@ -208,7 +231,7 @@ class InventoryLocationController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $quantityBefore = $location->quantity;
+        $locationQuantityBefore = $location->quantity;
         $location->quantity += $validated['quantity'];
 
         if ($location->quantity < 0) {
@@ -218,15 +241,38 @@ class InventoryLocationController extends Controller
             ], 422);
         }
 
+        // Capture product quantity before adjustment
+        $productQuantityBefore = $product->quantity_on_hand;
+
         $location->save();
 
         // Recalculate product total quantities
         $this->updateProductTotals($product);
 
+        // Capture product quantity after adjustment
+        $product->refresh();
+        $productQuantityAfter = $product->quantity_on_hand;
+
+        // Create inventory transaction
+        InventoryTransaction::create([
+            'product_id' => $product->id,
+            'type' => $validated['type'],
+            'quantity' => $validated['quantity'],
+            'quantity_before' => $productQuantityBefore,
+            'quantity_after' => $productQuantityAfter,
+            'reference_number' => "Location: {$location->location}",
+            'reference_type' => 'location_adjustment',
+            'reference_id' => $location->id,
+            'notes' => "Adjusted quantity at {$location->location} by {$validated['quantity']} (Location: {$locationQuantityBefore} → {$location->quantity})" .
+                       ($validated['notes'] ? "\n" . $validated['notes'] : ''),
+            'user_id' => auth()->id(),
+            'transaction_date' => now(),
+        ]);
+
         return response()->json([
             'message' => 'Quantity adjusted successfully',
             'location' => $location->fresh(),
-            'quantity_before' => $quantityBefore,
+            'quantity_before' => $locationQuantityBefore,
             'quantity_after' => $location->quantity,
         ]);
     }

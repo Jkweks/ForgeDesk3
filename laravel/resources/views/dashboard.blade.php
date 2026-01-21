@@ -73,29 +73,6 @@
               </div>
             </div>
           </div>
-
-
-          <!-- Category Breakdown Widget -->
-          <div class="row mb-3">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header">
-                  <h3 class="card-title">Category Breakdown</h3>
-                  <div class="card-actions">
-                    <a href="/categories" class="btn btn-sm">Manage Categories</a>
-                  </div>
-                </div>
-                <div class="card-body">
-                  <div class="row" id="categoryBreakdown">
-                    <div class="col-12 text-muted">
-                      <div class="text-center">Loading category data...</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Inventory Table -->
           <div class="row">
             <div class="col-12">
@@ -221,6 +198,9 @@
                     <p class="text-muted mb-0">Manage stock distribution across multiple locations</p>
                   </div>
                   <div class="col-auto">
+                    <button class="btn btn-warning ms-2" onclick="showIssueToJobForm()">
+                      <i class="ti ti-package-export me-1"></i>Issue to Job
+                    </button>
                     <button class="btn btn-primary" onclick="showAddLocationForm()">
                       <i class="ti ti-plus me-1"></i>Add Location
                     </button>
@@ -959,6 +939,50 @@
     </div>
   </div>
 
+  <!-- Issue Material to Job Modal -->
+  <div class="modal modal-blur fade" id="issueToJobModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Issue Material to Job</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="issueToJobForm">
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Product</label>
+              <p id="issueJobProductInfo" class="mb-0">-</p>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Available Quantity</label>
+              <p id="issueJobAvailable" class="text-success h3 mb-0">0</p>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Job Name</label>
+              <input type="text" class="form-control" name="job_name" id="issueJobName" placeholder="Enter job name or number" required>
+              <small class="form-hint">Enter the job name or number this material is being issued to</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Quantity to Issue</label>
+              <input type="number" class="form-control" name="quantity" id="issueJobQuantity" placeholder="0" min="1" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes (Optional)</label>
+              <textarea class="form-control" name="notes" id="issueJobNotes" rows="2" placeholder="Additional notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-warning" id="issueJobBtn">
+              <i class="ti ti-package-export me-1"></i>
+              Issue Material
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Theme Settings Offcanvas -->
   <form class="offcanvas offcanvas-start offcanvas-narrow" tabindex="-1" id="offcanvasTheme" role="dialog" aria-modal="true" aria-labelledby="offcanvasThemeLabel">
     <div class="offcanvas-header">
@@ -1261,7 +1285,6 @@
         currentTab = e.target.dataset.tab;
         if (currentTab === 'all') {
           loadDashboard();
-      loadCategoryBreakdown();
         } else {
           await loadByStatus(currentTab);
         }
@@ -1950,7 +1973,6 @@
           hideLocationForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save location', 'danger');
@@ -2040,7 +2062,6 @@
           hideTransferForm();
           await loadProductLocations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to transfer inventory', 'danger');
@@ -2048,6 +2069,81 @@
       } catch (error) {
         console.error('Error transferring inventory:', error);
         showNotification('Failed to transfer inventory', 'danger');
+      }
+    });
+
+    // ========== ISSUE TO JOB ==========
+    function showIssueToJobForm() {
+      if (!currentProductId) {
+        showNotification('No product selected', 'danger');
+        return;
+      }
+
+      const product = currentProductData;
+      if (!product) {
+        showNotification('Product data not loaded', 'danger');
+        return;
+      }
+
+      // Populate modal with product info
+      document.getElementById('issueJobProductInfo').innerHTML =
+        `<strong>${product.sku}</strong> - ${product.description}`;
+      document.getElementById('issueJobAvailable').textContent = product.quantity_available || 0;
+
+      // Reset form
+      document.getElementById('issueToJobForm').reset();
+
+      // Show modal
+      showModal(document.getElementById('issueToJobModal'));
+    }
+
+    document.getElementById('issueToJobForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const data = {
+        job_name: formData.get('job_name'),
+        quantity: parseInt(formData.get('quantity')),
+        notes: formData.get('notes') || null,
+      };
+
+      // Validate quantity doesn't exceed available
+      const product = currentProductData;
+      if (data.quantity > product.quantity_available) {
+        showNotification(`Cannot issue ${data.quantity}. Only ${product.quantity_available} available.`, 'danger');
+        return;
+      }
+
+      const btn = document.getElementById('issueJobBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Issuing...';
+
+      try {
+        const response = await apiCall(`/products/${currentProductId}/issue-to-job`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showNotification('Material issued to job successfully', 'success');
+          hideModal(document.getElementById('issueToJobModal'));
+
+          // Reload product data
+          await viewProduct(currentProductId);
+          await loadDashboard();
+        } else {
+          const error = await response.json();
+          showNotification(error.message || 'Failed to issue material', 'danger');
+        }
+      } catch (error) {
+        console.error('Error issuing material:', error);
+        showNotification('Failed to issue material', 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-package-export me-1"></i>Issue Material';
       }
     });
 
@@ -2141,6 +2237,12 @@
       }).join('');
     }
 
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     function getTransactionTypeBadge(type) {
       const badges = {
         'receipt': '<span class="badge text-bg-success">Receipt</span>',
@@ -2149,6 +2251,7 @@
         'transfer': '<span class="badge text-bg-primary">Transfer</span>',
         'return': '<span class="badge text-bg-secondary">Return</span>',
         'cycle_count': '<span class="badge text-bg-purple">Cycle Count</span>',
+        'job_issue': '<span class="badge text-bg-orange">Job Issue</span>',
       };
       return badges[type] || '<span class="badge">' + type + '</span>';
     }
@@ -2669,7 +2772,6 @@
           showNotification('Reservation released successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to release reservation', 'danger');
@@ -2712,7 +2814,6 @@
           showNotification('Reservation fulfilled successfully', 'success');
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to fulfill reservation', 'danger');
@@ -2788,7 +2889,6 @@
           hideReservationForm();
           await loadProductReservations(currentProductId);
           await loadDashboard(); // Refresh main dashboard
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           showNotification(error.message || 'Failed to save reservation', 'danger');
@@ -2903,6 +3003,34 @@
         }
 
         categorySelect.appendChild(option);
+      });
+
+      // Also populate the category filter dropdown
+      populateCategoryFilterDropdown();
+    }
+
+    function populateCategoryFilterDropdown() {
+      const categoryFilter = document.getElementById('categoryFilter');
+      if (!categoryFilter) return;
+
+      // Keep the "All Categories" option
+      categoryFilter.innerHTML = '<option value="">All Categories</option>';
+
+      // Sort categories by name
+      const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+
+      sortedCategories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+
+        // Show parent category if exists
+        if (category.parent) {
+          option.textContent = `${category.parent.name} > ${category.name}`;
+        } else {
+          option.textContent = category.name;
+        }
+
+        categoryFilter.appendChild(option);
       });
     }
 
@@ -3028,7 +3156,6 @@
           hideModal(document.getElementById('addProductModal'));
           showNotification('Product created successfully!', 'success');
           loadDashboard();
-      loadCategoryBreakdown();
         } else {
           const error = await response.json();
           if (error.errors) {
@@ -3115,61 +3242,10 @@
       currentCategoryFilter = e.target.value;
       if (currentTab === 'all') {
         loadDashboard();
-      loadCategoryBreakdown();
       } else {
         loadByStatus(currentTab);
       }
     });
-
-
-    // Load and render category breakdown
-    async function loadCategoryBreakdown() {
-      try {
-        const response = await apiCall('/categories?per_page=all');
-        const allCategories = await response.json();
-
-        // Get product counts for each category
-        const categoryStats = allCategories.filter(cat => cat.products_count > 0)
-          .sort((a, b) => b.products_count - a.products_count)
-          .slice(0, 6); // Top 6 categories
-
-        const container = document.getElementById('categoryBreakdown');
-
-        if (categoryStats.length === 0) {
-          container.innerHTML = '<div class="col-12 text-muted"><div class="text-center">No categories with products yet</div></div>';
-          return;
-        }
-
-        container.innerHTML = categoryStats.map(category => `
-          <div class="col-sm-6 col-lg-2">
-            <a href="#" class="text-decoration-none" onclick="filterByCategory(${category.id}); return false;">
-              <div class="card card-sm card-link">
-                <div class="card-body">
-                  <div class="subheader">${htmlEscape(category.name)}</div>
-                  <div class="h2 mb-0">${category.products_count}</div>
-                  <div class="text-muted small">${category.products_count === 1 ? 'product' : 'products'}</div>
-                </div>
-              </div>
-            </a>
-          </div>
-        `).join('');
-      } catch (error) {
-        console.error('Error loading category breakdown:', error);
-      }
-    }
-
-    function filterByCategory(categoryId) {
-      const categoryFilter = document.getElementById('categoryFilter');
-      categoryFilter.value = categoryId;
-      currentCategoryFilter = categoryId;
-      if (currentTab === 'all') {
-        loadDashboard();
-      loadCategoryBreakdown();
-      } else {
-        loadByStatus(currentTab);
-      }
-    }
-
     function htmlEscape(text) {
       const div = document.createElement('div');
       div.textContent = text;
@@ -3178,7 +3254,6 @@
     // Initialize dashboard if authenticated
     if (authToken) {
       loadDashboard();
-      loadCategoryBreakdown();
       loadConfigurations(); // Load finish codes and UOMs
 
       // Check for product ID in URL and auto-open modal

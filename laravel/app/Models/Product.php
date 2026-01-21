@@ -38,33 +38,19 @@ class Product extends Model
 
     // Finish codes configuration
     public static $finishCodes = [
-        'BL' => 'Black',
-        'WH' => 'White',
-        'AL' => 'Aluminum',
-        'SS' => 'Stainless Steel',
-        'BR' => 'Bronze',
-        'CH' => 'Chrome',
-        'NI' => 'Nickel',
-        'BR' => 'Brass',
         'C2' => 'Clear Anodized',
-        'DB' => 'Dark Bronze',
-        '0R' => 'Oil Rubbed',
-        'PW' => 'Powder Coat White',
-        'PB' => 'Powder Coat Black',
-        'RAW' => 'Raw/Unfinished',
-    ];
+        'DB' => 'Dark Bronze Anodized',
+        'BL' => 'Black Anodized',
+        '0R' => 'Mill/Unfinished'
+        ];
 
     // UOM configuration
     public static $unitOfMeasures = [
         'EA' => 'Each',
-        'BOX' => 'Box',
         'CASE' => 'Case',
         'GAL' => 'Gallon',
-        'LB' => 'Pound',
         'FT' => 'Foot',
         'ROLL' => 'Roll',
-        'SET' => 'Set',
-        'PCS' => 'Pieces',
         'PKG' => 'Package',
     ];
 
