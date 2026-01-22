@@ -458,3 +458,186 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// ============================================================================
+// ADD TOOLING PRODUCT FUNCTIONS
+// ============================================================================
+
+let categories = [];
+let suppliers = [];
+let machineTypes = [];
+
+// Open add tooling product modal
+async function openAddToolingProductModal() {
+  const form = document.getElementById('addToolingProductForm');
+  form.reset();
+
+  // Load categories, suppliers, and machine types
+  await Promise.all([
+    loadCategoriesForTooling(),
+    loadSuppliersForTooling(),
+    loadMachineTypesForTooling()
+  ]);
+
+  // Reset tool life section visibility
+  document.getElementById('toolLifeSection').style.display = 'none';
+}
+
+// Load categories for dropdown
+async function loadCategoriesForTooling() {
+  try {
+    categories = await authenticatedFetch('/categories');
+    const select = document.getElementById('newToolCategory');
+
+    select.innerHTML = '<option value="">No Category</option>' +
+      categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+  } catch (error) {
+    console.error('Failed to load categories:', error);
+  }
+}
+
+// Load suppliers for dropdown
+async function loadSuppliersForTooling() {
+  try {
+    suppliers = await authenticatedFetch('/suppliers');
+    const select = document.getElementById('newToolSupplier');
+
+    select.innerHTML = '<option value="">No Supplier</option>' +
+      suppliers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  } catch (error) {
+    console.error('Failed to load suppliers:', error);
+  }
+}
+
+// Load machine types for checkboxes
+async function loadMachineTypesForTooling() {
+  try {
+    machineTypes = await authenticatedFetch('/machine-types');
+    const container = document.getElementById('newToolMachineTypes');
+
+    if (machineTypes && machineTypes.length > 0) {
+      container.innerHTML = machineTypes.map(mt => `
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="${mt.id}" id="machineType_${mt.id}">
+          <label class="form-check-label" for="machineType_${mt.id}">
+            ${escapeHtml(mt.name)}
+          </label>
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<em class="text-muted">No machine types available</em>';
+    }
+  } catch (error) {
+    console.error('Failed to load machine types:', error);
+    document.getElementById('newToolMachineTypes').innerHTML = '<em class="text-muted">Error loading machine types</em>';
+  }
+}
+
+// Toggle tool life fields based on tool type
+function toggleToolLifeFields() {
+  const toolType = document.getElementById('newToolType').value;
+  const toolLifeSection = document.getElementById('toolLifeSection');
+
+  if (toolType === 'consumable_tool') {
+    toolLifeSection.style.display = 'block';
+    // Make tool life fields required
+    document.getElementById('newToolLifeMax').required = true;
+    document.getElementById('newToolLifeUnit').required = true;
+  } else {
+    toolLifeSection.style.display = 'none';
+    // Make tool life fields optional
+    document.getElementById('newToolLifeMax').required = false;
+    document.getElementById('newToolLifeUnit').required = false;
+  }
+}
+
+// Handle add tooling product form submission
+document.getElementById('addToolingProductForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const toolType = document.getElementById('newToolType').value;
+
+  // Build tool specifications object
+  const toolSpecs = {};
+  if (document.getElementById('newToolSpecDiameter').value) {
+    toolSpecs.diameter = document.getElementById('newToolSpecDiameter').value;
+  }
+  if (document.getElementById('newToolSpecLength').value) {
+    toolSpecs.length = document.getElementById('newToolSpecLength').value;
+  }
+  if (document.getElementById('newToolSpecMaterial').value) {
+    toolSpecs.material = document.getElementById('newToolSpecMaterial').value;
+  }
+  if (document.getElementById('newToolSpecCoating').value) {
+    toolSpecs.coating = document.getElementById('newToolSpecCoating').value;
+  }
+
+  // Parse additional specs if provided
+  const otherSpecs = document.getElementById('newToolSpecOther').value;
+  if (otherSpecs) {
+    try {
+      const parsed = JSON.parse(otherSpecs);
+      Object.assign(toolSpecs, parsed);
+    } catch (err) {
+      showNotification('Invalid JSON format for additional specifications', 'warning');
+    }
+  }
+
+  // Get selected machine types
+  const compatibleMachineTypes = [];
+  document.querySelectorAll('#newToolMachineTypes input[type="checkbox"]:checked').forEach(cb => {
+    compatibleMachineTypes.push(parseInt(cb.value));
+  });
+
+  // Build product data
+  const data = {
+    // Basic info
+    part_number: document.getElementById('newToolPartNumber').value,
+    sku: document.getElementById('newToolSKU').value || null,
+    description: document.getElementById('newToolDescription').value,
+    category_id: document.getElementById('newToolCategory').value || null,
+
+    // Inventory
+    quantity_on_hand: parseInt(document.getElementById('newToolQuantity').value) || 0,
+    unit_cost: parseFloat(document.getElementById('newToolUnitCost').value) || 0,
+    unit_price: parseFloat(document.getElementById('newToolUnitPrice').value) || 0,
+    minimum_quantity: parseInt(document.getElementById('newToolMinQuantity').value) || 0,
+    reorder_point: parseInt(document.getElementById('newToolReorderPoint').value) || 0,
+    supplier_id: document.getElementById('newToolSupplier').value || null,
+    location: document.getElementById('newToolLocation').value || null,
+
+    // Tool-specific fields
+    tool_type: toolType,
+
+    // Tool life (only for consumable_tool)
+    tool_life_max: toolType === 'consumable_tool' ? parseFloat(document.getElementById('newToolLifeMax').value) : null,
+    tool_life_unit: toolType === 'consumable_tool' ? document.getElementById('newToolLifeUnit').value : null,
+    tool_life_warning_threshold: toolType === 'consumable_tool' ? parseInt(document.getElementById('newToolWarningThreshold').value) : null,
+
+    // Machine compatibility
+    compatible_machine_types: compatibleMachineTypes.length > 0 ? compatibleMachineTypes : null,
+
+    // Tool specifications
+    tool_specifications: Object.keys(toolSpecs).length > 0 ? toolSpecs : null,
+
+    // Status
+    is_active: true,
+    unit_of_measure: 'EA',
+  };
+
+  try {
+    const response = await authenticatedFetch('/products', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+
+    hideModal(document.getElementById('addToolingProductModal'));
+    showNotification('Tool product created successfully! SKU: ' + response.sku, 'success');
+
+    // Reload tooling data to show new product
+    await loadMachineTooling();
+  } catch (error) {
+    console.error('Failed to create tool product:', error);
+    showNotification('Failed to create tool product: ' + (error.message || 'Unknown error'), 'danger');
+  }
+});

@@ -142,6 +142,15 @@
 
                 <!-- Machine Tooling Tab -->
                 <div class="tab-pane" id="tab-tooling" role="tabpanel">
+                  <div class="d-flex mb-3 gap-2">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addToolingProductModal" onclick="openAddToolingProductModal()">
+                      <i class="ti ti-plus icon"></i> Add Tooling Product
+                    </button>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#installToolModal" onclick="openInstallToolModal()">
+                      <i class="ti ti-tool icon"></i> Install Tool on Machine
+                    </button>
+                  </div>
+
                   <div class="row mb-3">
                     <div class="col-md-6">
                       <label class="form-label">Select Machine</label>
@@ -510,6 +519,181 @@
           <div class="modal-footer">
             <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Tooling Product Modal -->
+  <div class="modal fade" id="addToolingProductModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Tooling Product</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="addToolingProductForm">
+          <div class="modal-body">
+            <!-- Tool Type Selection -->
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label class="form-label required">Tool Type</label>
+                <select class="form-select" id="newToolType" required onchange="toggleToolLifeFields()">
+                  <option value="">Select Tool Type</option>
+                  <option value="consumable_tool">Machine Tooling (Consumable - tracks tool life)</option>
+                  <option value="asset_tool">Maintenance Asset (Reusable - no tool life tracking)</option>
+                </select>
+                <small class="form-hint">Machine Tooling: End mills, drill bits, inserts. Maintenance Assets: Collets, holders, fixtures.</small>
+              </div>
+            </div>
+
+            <!-- Basic Information -->
+            <h5 class="mb-3">Basic Information</h5>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label required">Part Number</label>
+                <input type="text" class="form-control" id="newToolPartNumber" required>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">SKU</label>
+                <input type="text" class="form-control" id="newToolSKU" placeholder="Auto-generated if empty">
+                <small class="form-hint">Leave empty to auto-generate from part number</small>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="newToolCategory">
+                  <option value="">Select Category</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label class="form-label required">Description</label>
+                <input type="text" class="form-control" id="newToolDescription" required placeholder="e.g., 1/2 inch Carbide End Mill - 4 Flute">
+              </div>
+            </div>
+
+            <!-- Inventory Information -->
+            <h5 class="mb-3">Inventory Information</h5>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Quantity on Hand</label>
+                <input type="number" class="form-control" id="newToolQuantity" value="0" min="0">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Unit Cost</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="newToolUnitCost" step="0.01" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Unit Price</label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" id="newToolUnitPrice" step="0.01" min="0" value="0">
+                </div>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Minimum Quantity</label>
+                <input type="number" class="form-control" id="newToolMinQuantity" value="0" min="0">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Reorder Point</label>
+                <input type="number" class="form-control" id="newToolReorderPoint" value="0" min="0">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Supplier</label>
+                <select class="form-select" id="newToolSupplier">
+                  <option value="">No Supplier</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="newToolLocation" placeholder="Storage location">
+              </div>
+            </div>
+
+            <!-- Tool Life Tracking (only for consumable_tool) -->
+            <div id="toolLifeSection" style="display: none;">
+              <h5 class="mb-3">Tool Life Tracking</h5>
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label required">Maximum Tool Life</label>
+                  <input type="number" class="form-control" id="newToolLifeMax" step="0.01" min="0" placeholder="e.g., 3600">
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label required">Life Unit</label>
+                  <select class="form-select" id="newToolLifeUnit">
+                    <option value="seconds">Seconds</option>
+                    <option value="minutes">Minutes</option>
+                    <option value="hours">Hours</option>
+                    <option value="cycles">Cycles</option>
+                    <option value="parts">Parts</option>
+                    <option value="meters">Meters</option>
+                  </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Warning Threshold (%)</label>
+                  <input type="number" class="form-control" id="newToolWarningThreshold" value="80" min="0" max="100">
+                  <small class="form-hint">Alert when tool reaches this % of life used</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Machine Compatibility -->
+            <h5 class="mb-3">Machine Compatibility</h5>
+            <div class="mb-3">
+              <label class="form-label">Compatible Machine Types</label>
+              <div id="newToolMachineTypes" class="d-flex flex-wrap gap-2">
+                <!-- Populated dynamically with checkboxes -->
+              </div>
+              <small class="form-hint">Leave empty if compatible with all machines</small>
+            </div>
+
+            <!-- Tool Specifications -->
+            <h5 class="mb-3">Tool Specifications</h5>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Diameter</label>
+                <input type="text" class="form-control" id="newToolSpecDiameter" placeholder="e.g., 0.5 inch">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Length</label>
+                <input type="text" class="form-control" id="newToolSpecLength" placeholder="e.g., 3 inch">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Material</label>
+                <input type="text" class="form-control" id="newToolSpecMaterial" placeholder="e.g., Carbide, HSS">
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Coating</label>
+                <input type="text" class="form-control" id="newToolSpecCoating" placeholder="e.g., TiAlN">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label class="form-label">Additional Specifications (JSON format)</label>
+                <textarea class="form-control" id="newToolSpecOther" rows="2" placeholder='{"flutes": "4", "shank_diameter": "0.5 inch"}'></textarea>
+                <small class="form-hint">Optional: Add other specs in JSON format</small>
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="newToolNotes" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Tool Product</button>
           </div>
         </form>
       </div>
