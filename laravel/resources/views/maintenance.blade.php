@@ -850,6 +850,6 @@
 @endsection
 
 @push('scripts')
-  <script src="/maintenance.js"></script>
-  <script src="/tooling.js"></script>
+  <script src="/maintenance.js?v={{ time() }}"></script>
+  <script src="/tooling.js?v={{ time() }}"></script>
 @endpush

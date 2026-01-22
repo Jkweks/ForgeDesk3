@@ -487,12 +487,26 @@ async function openAddToolingProductModal() {
 async function loadCategoriesForTooling() {
   try {
     const response = await authenticatedFetch('/categories?per_page=all');
+    console.log('Categories API response:', response);
+
     // Handle both array response and paginated response
-    categories = Array.isArray(response) ? response : (response.data || []);
+    if (Array.isArray(response)) {
+      categories = response;
+    } else if (response && Array.isArray(response.data)) {
+      categories = response.data;
+    } else if (response && response.data && Array.isArray(response.data.data)) {
+      // Handle double-nested data (paginated within paginated)
+      categories = response.data.data;
+    } else {
+      console.warn('Unexpected response format:', response);
+      categories = [];
+    }
+
+    console.log('Parsed categories:', categories);
 
     const select = document.getElementById('newToolCategory');
 
-    if (categories.length === 0) {
+    if (!Array.isArray(categories) || categories.length === 0) {
       select.innerHTML = '<option value="">No Categories Available</option>';
       return;
     }
@@ -510,12 +524,26 @@ async function loadCategoriesForTooling() {
 async function loadSuppliersForTooling() {
   try {
     const response = await authenticatedFetch('/suppliers?per_page=all');
+    console.log('Suppliers API response:', response);
+
     // Handle both array response and paginated response
-    suppliers = Array.isArray(response) ? response : (response.data || []);
+    if (Array.isArray(response)) {
+      suppliers = response;
+    } else if (response && Array.isArray(response.data)) {
+      suppliers = response.data;
+    } else if (response && response.data && Array.isArray(response.data.data)) {
+      // Handle double-nested data (paginated within paginated)
+      suppliers = response.data.data;
+    } else {
+      console.warn('Unexpected response format:', response);
+      suppliers = [];
+    }
+
+    console.log('Parsed suppliers:', suppliers);
 
     const select = document.getElementById('newToolSupplier');
 
-    if (suppliers.length === 0) {
+    if (!Array.isArray(suppliers) || suppliers.length === 0) {
       select.innerHTML = '<option value="">No Suppliers Available</option>';
       return;
     }
