@@ -604,7 +604,10 @@ document.getElementById('addToolingProductForm')?.addEventListener('submit', asy
     minimum_quantity: parseInt(document.getElementById('newToolMinQuantity').value) || 0,
     reorder_point: parseInt(document.getElementById('newToolReorderPoint').value) || 0,
     supplier_id: document.getElementById('newToolSupplier').value || null,
+    supplier_sku: document.getElementById('newToolSupplierSKU').value || null,
     location: document.getElementById('newToolLocation').value || null,
+    manufacturer: document.getElementById('newToolManufacturer').value || null,
+    manufacturer_part_number: document.getElementById('newToolManufacturerPartNumber').value || null,
 
     // Tool-specific fields
     tool_type: toolType === 'standard' ? null : toolType,

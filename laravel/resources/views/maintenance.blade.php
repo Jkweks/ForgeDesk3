@@ -608,19 +608,34 @@
             </div>
 
             <div class="row">
-              <div class="col-md-4 mb-3">
+              <div class="col-md-3 mb-3">
                 <label class="form-label">Reorder Point</label>
                 <input type="number" class="form-control" id="newToolReorderPoint" value="0" min="0">
               </div>
-              <div class="col-md-4 mb-3">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-control" id="newToolLocation" placeholder="Storage location">
+              </div>
+              <div class="col-md-3 mb-3">
                 <label class="form-label">Supplier</label>
                 <select class="form-select" id="newToolSupplier">
                   <option value="">No Supplier</option>
                 </select>
               </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label">Location</label>
-                <input type="text" class="form-control" id="newToolLocation" placeholder="Storage location">
+              <div class="col-md-3 mb-3">
+                <label class="form-label">Supplier Part Number</label>
+                <input type="text" class="form-control" id="newToolSupplierSKU" placeholder="Supplier's part #">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Manufacturer</label>
+                <input type="text" class="form-control" id="newToolManufacturer" placeholder="e.g., Kennametal, OSG">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Manufacturer Part Number</label>
+                <input type="text" class="form-control" id="newToolManufacturerPartNumber" placeholder="Manufacturer's part #">
               </div>
             </div>
 
