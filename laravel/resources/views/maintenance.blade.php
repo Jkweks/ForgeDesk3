@@ -80,6 +80,9 @@
                   <a href="#tab-assets" class="nav-link" data-bs-toggle="tab" role="tab">Assets</a>
                 </li>
                 <li class="nav-item" role="presentation">
+                  <a href="#tab-tooling" class="nav-link" data-bs-toggle="tab" role="tab">Machine Tooling</a>
+                </li>
+                <li class="nav-item" role="presentation">
                   <a href="#tab-tasks" class="nav-link" data-bs-toggle="tab" role="tab">Tasks</a>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -133,6 +136,82 @@
                         </tr>
                       </thead>
                       <tbody id="assetsTable"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Machine Tooling Tab -->
+                <div class="tab-pane" id="tab-tooling" role="tabpanel">
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Select Machine</label>
+                      <select class="form-select" id="toolingMachineFilter" onchange="loadMachineTooling()">
+                        <option value="">All Machines</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Filter by Status</label>
+                      <select class="form-select" id="toolingStatusFilter" onchange="loadMachineTooling()">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="warning">Warning</option>
+                        <option value="needs_replacement">Needs Replacement</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Tooling Statistics Cards -->
+                  <div class="row row-deck row-cards mb-3">
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Active Tools</div>
+                          <div class="h2 mb-0" id="toolingActiveCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Warning</div>
+                          <div class="h2 mb-0 text-warning" id="toolingWarningCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Needs Replacement</div>
+                          <div class="h2 mb-0 text-danger" id="toolingReplacementCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Total Tracked</div>
+                          <div class="h2 mb-0" id="toolingTotalCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-vcenter">
+                      <thead>
+                        <tr>
+                          <th>Machine</th>
+                          <th>Location</th>
+                          <th>Tool (SKU)</th>
+                          <th>Tool Type</th>
+                          <th>Life Used / Max</th>
+                          <th>% Used</th>
+                          <th>Status</th>
+                          <th>Installed</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="toolingTable"></tbody>
                     </table>
                   </div>
                 </div>
@@ -437,8 +516,136 @@
     </div>
   </div>
 
+  <!-- Install Tool Modal -->
+  <div class="modal fade" id="installToolModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Install Tool on Machine</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="installToolForm">
+          <div class="modal-body">
+            <input type="hidden" id="installToolMachineId">
+            <div class="mb-3">
+              <label class="form-label required">Machine</label>
+              <select class="form-select" id="installToolMachine" required onchange="loadCompatibleTools()">
+                <option value="">Select Machine</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Tool</label>
+              <select class="form-select" id="installToolProduct" required>
+                <option value="">Select Tool</option>
+              </select>
+              <small class="form-hint">Only compatible tools for the selected machine are shown</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Location on Machine</label>
+              <input type="text" class="form-control" id="installToolLocation" required placeholder="e.g., T12, Spindle 1">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Installation Date</label>
+              <input type="date" class="form-control" id="installToolDate">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Installed By</label>
+              <input type="text" class="form-control" id="installToolBy">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="installToolNotes" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Install Tool</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replace Tool Modal -->
+  <div class="modal fade" id="replaceToolModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Replace Tool</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="replaceToolForm">
+          <div class="modal-body">
+            <input type="hidden" id="replaceToolId">
+
+            <!-- Current Tool Info -->
+            <div class="alert alert-info mb-3">
+              <h4 class="alert-heading">Current Tool</h4>
+              <div id="replaceToolCurrentInfo"></div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label required">Tool Life Used (from machine display)</label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="replaceToolLifeUsed" required min="0" step="0.01">
+                <span class="input-group-text" id="replaceToolLifeUnit">seconds</span>
+              </div>
+              <small class="form-hint">Enter the tool life value shown on the machine controller</small>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label required">Replacement Tool</label>
+              <select class="form-select" id="replaceToolNewProduct" required>
+                <option value="">Select Replacement Tool</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Replacement Reason</label>
+              <select class="form-select" id="replaceToolReason">
+                <option value="reached_tool_life">Reached Tool Life</option>
+                <option value="tool_breakage">Tool Breakage</option>
+                <option value="poor_finish">Poor Finish Quality</option>
+                <option value="scheduled_preventive">Scheduled Preventive Replacement</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Notes</label>
+              <textarea class="form-control" id="replaceToolNotes" rows="2"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Replace Tool</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tool Details Modal -->
+  <div class="modal fade" id="toolDetailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Tool Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="toolDetailsContent">
+          <!-- Content populated by JavaScript -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 @endsection
 
 @push('scripts')
   <script src="/maintenance.js"></script>
+  <script src="/tooling.js"></script>
 @endpush

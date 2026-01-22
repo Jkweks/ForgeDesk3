@@ -20,6 +20,7 @@ class MaintenanceRecord extends Model
         'downtime_minutes',
         'labor_hours',
         'parts_used',
+        'tools_replaced',
         'attachments',
     ];
 
@@ -28,6 +29,7 @@ class MaintenanceRecord extends Model
         'downtime_minutes' => 'integer',
         'labor_hours' => 'decimal:2',
         'parts_used' => 'array',
+        'tools_replaced' => 'array',
         'attachments' => 'array',
     ];
 
@@ -49,6 +51,16 @@ class MaintenanceRecord extends Model
     public function performer()
     {
         return $this->belongsTo(User::class, 'performed_by');
+    }
+
+    public function toolingInstallations()
+    {
+        return $this->hasMany(MachineTooling::class, 'maintenance_record_id');
+    }
+
+    public function toolingReplacements()
+    {
+        return $this->hasMany(MachineTooling::class, 'replacement_maintenance_record_id');
     }
 
     protected static function booted()
