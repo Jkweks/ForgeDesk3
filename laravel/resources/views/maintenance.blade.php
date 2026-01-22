@@ -144,7 +144,7 @@
                 <div class="tab-pane" id="tab-tooling" role="tabpanel">
                   <div class="d-flex mb-3 gap-2">
                     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addToolingProductModal" onclick="openAddToolingProductModal()">
-                      <i class="ti ti-plus icon"></i> Add Tooling Product
+                      <i class="ti ti-plus icon"></i> Add Maintenance Product
                     </button>
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#installToolModal" onclick="openInstallToolModal()">
                       <i class="ti ti-tool icon"></i> Install Tool on Machine
@@ -530,7 +530,7 @@
     <div class="modal-dialog modal-xl">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Add Tooling Product</h5>
+          <h5 class="modal-title">Add Maintenance Product</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <form id="addToolingProductForm">
@@ -538,13 +538,18 @@
             <!-- Tool Type Selection -->
             <div class="row mb-3">
               <div class="col-md-12">
-                <label class="form-label required">Tool Type</label>
+                <label class="form-label required">Product Type</label>
                 <select class="form-select" id="newToolType" required onchange="toggleToolLifeFields()">
-                  <option value="">Select Tool Type</option>
-                  <option value="consumable_tool">Machine Tooling (Consumable - tracks tool life)</option>
-                  <option value="asset_tool">Maintenance Asset (Reusable - no tool life tracking)</option>
+                  <option value="">Select Product Type</option>
+                  <option value="consumable_tool">Machine Tooling (Consumable cutting tools - tracks tool life)</option>
+                  <option value="asset_tool">Machine Assets (Reusable machine items - no life tracking)</option>
+                  <option value="standard">Maintenance Assets (One-time use repair parts)</option>
                 </select>
-                <small class="form-hint">Machine Tooling: End mills, drill bits, inserts. Maintenance Assets: Collets, holders, fixtures.</small>
+                <div class="mt-2">
+                  <small class="form-hint d-block"><strong>Machine Tooling:</strong> End mills, drill bits, inserts, taps</small>
+                  <small class="form-hint d-block"><strong>Machine Assets:</strong> Collets, tool holders, fixtures, vises</small>
+                  <small class="form-hint d-block"><strong>Maintenance Assets:</strong> Bearings, seals, gaskets, belts, filters</small>
+                </div>
               </div>
             </div>
 
@@ -693,7 +698,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Tool Product</button>
+            <button type="submit" class="btn btn-primary">Create Product</button>
           </div>
         </form>
       </div>

@@ -607,7 +607,7 @@ document.getElementById('addToolingProductForm')?.addEventListener('submit', asy
     location: document.getElementById('newToolLocation').value || null,
 
     // Tool-specific fields
-    tool_type: toolType,
+    tool_type: toolType === 'standard' ? null : toolType,
 
     // Tool life (only for consumable_tool)
     tool_life_max: toolType === 'consumable_tool' ? parseFloat(document.getElementById('newToolLifeMax').value) : null,
@@ -632,12 +632,15 @@ document.getElementById('addToolingProductForm')?.addEventListener('submit', asy
     });
 
     hideModal(document.getElementById('addToolingProductModal'));
-    showNotification('Tool product created successfully! SKU: ' + response.sku, 'success');
+
+    const productTypeName = toolType === 'consumable_tool' ? 'Machine Tooling' :
+                           toolType === 'asset_tool' ? 'Machine Asset' : 'Maintenance Asset';
+    showNotification(`${productTypeName} product created successfully! SKU: ${response.sku}`, 'success');
 
     // Reload tooling data to show new product
     await loadMachineTooling();
   } catch (error) {
-    console.error('Failed to create tool product:', error);
-    showNotification('Failed to create tool product: ' + (error.message || 'Unknown error'), 'danger');
+    console.error('Failed to create product:', error);
+    showNotification('Failed to create product: ' + (error.message || 'Unknown error'), 'danger');
   }
 });
