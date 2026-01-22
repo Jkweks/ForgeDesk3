@@ -486,33 +486,56 @@ async function openAddToolingProductModal() {
 // Load categories for dropdown
 async function loadCategoriesForTooling() {
   try {
-    categories = await authenticatedFetch('/categories');
+    const response = await authenticatedFetch('/categories?per_page=all');
+    // Handle both array response and paginated response
+    categories = Array.isArray(response) ? response : (response.data || []);
+
     const select = document.getElementById('newToolCategory');
+
+    if (categories.length === 0) {
+      select.innerHTML = '<option value="">No Categories Available</option>';
+      return;
+    }
 
     select.innerHTML = '<option value="">No Category</option>' +
       categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   } catch (error) {
     console.error('Failed to load categories:', error);
+    const select = document.getElementById('newToolCategory');
+    select.innerHTML = '<option value="">Error Loading Categories</option>';
   }
 }
 
 // Load suppliers for dropdown
 async function loadSuppliersForTooling() {
   try {
-    suppliers = await authenticatedFetch('/suppliers');
+    const response = await authenticatedFetch('/suppliers?per_page=all');
+    // Handle both array response and paginated response
+    suppliers = Array.isArray(response) ? response : (response.data || []);
+
     const select = document.getElementById('newToolSupplier');
+
+    if (suppliers.length === 0) {
+      select.innerHTML = '<option value="">No Suppliers Available</option>';
+      return;
+    }
 
     select.innerHTML = '<option value="">No Supplier</option>' +
       suppliers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   } catch (error) {
     console.error('Failed to load suppliers:', error);
+    const select = document.getElementById('newToolSupplier');
+    select.innerHTML = '<option value="">Error Loading Suppliers</option>';
   }
 }
 
 // Load machine types for checkboxes
 async function loadMachineTypesForTooling() {
   try {
-    machineTypes = await authenticatedFetch('/machine-types');
+    const response = await authenticatedFetch('/machine-types');
+    // Handle both array response and paginated response
+    machineTypes = Array.isArray(response) ? response : (response.data || []);
+
     const container = document.getElementById('newToolMachineTypes');
 
     if (machineTypes && machineTypes.length > 0) {
