@@ -26,24 +26,52 @@
                 </div>
                 <div class="card-body">
                   <div class="mb-3">
+                    <label class="form-label">Configuration Preset</label>
+                    <select class="form-select" id="configPreset" onchange="applyPreset()">
+                      <option value="">Custom Configuration</option>
+                      <option value="jde">EZ Estimate (JDE Sheet)</option>
+                      <option value="generic">Generic Estimate</option>
+                    </select>
+                    <small class="form-hint">Select a preset or use custom configuration.</small>
+                  </div>
+                  <div class="mb-3">
                     <label class="form-label">Select Excel File (.xlsx or .xlsm)</label>
                     <input type="file" class="form-control" id="estimateFile" accept=".xlsx,.xlsm">
                     <small class="form-hint">Upload an estimate file to check material availability against inventory.</small>
                   </div>
-                  <div class="mb-3">
-                    <label class="form-label">Part Number Column Name</label>
-                    <input type="text" class="form-control" id="partNumberColumn" value="Part Number" placeholder="Part Number">
-                    <small class="form-hint">Enter the column header name that contains part numbers.</small>
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Sheet Name (Optional)</label>
+                      <input type="text" class="form-control" id="sheetName" placeholder="Leave blank for active sheet">
+                      <small class="form-hint">Specific sheet name (e.g., "JDE").</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Header Row</label>
+                      <input type="number" class="form-control" id="headerRow" value="1" min="1">
+                      <small class="form-hint">Row number with column headers.</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Data Start Row</label>
+                      <input type="number" class="form-control" id="dataStartRow" value="2" min="1">
+                      <small class="form-hint">First row with actual data.</small>
+                    </div>
                   </div>
-                  <div class="mb-3">
-                    <label class="form-label">Quantity Column Name</label>
-                    <input type="text" class="form-control" id="quantityColumn" value="Quantity" placeholder="Quantity">
-                    <small class="form-hint">Enter the column header name that contains quantities.</small>
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Description Column Name (Optional)</label>
-                    <input type="text" class="form-control" id="descriptionColumn" value="Description" placeholder="Description">
-                    <small class="form-hint">Enter the column header name that contains descriptions (optional).</small>
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Part Number Column</label>
+                      <input type="text" class="form-control" id="partNumberColumn" value="Part Number" placeholder="Column name or letter (e.g., I)">
+                      <small class="form-hint">Column name or letter (A, B, I, etc.).</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Quantity Column</label>
+                      <input type="text" class="form-control" id="quantityColumn" value="Quantity" placeholder="Column name or letter (e.g., G)">
+                      <small class="form-hint">Column name or letter (A, B, G, etc.).</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label">Description (Optional)</label>
+                      <input type="text" class="form-control" id="descriptionColumn" value="Description" placeholder="Column name or letter">
+                      <small class="form-hint">Column name or letter (optional).</small>
+                    </div>
                   </div>
                   <button class="btn btn-primary" onclick="checkMaterials()">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon me-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 11l3 3l8 -8" /><path d="M20 12v6a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h9" /></svg>
@@ -156,6 +184,28 @@
         let checkResults = [];
         let filteredResults = [];
 
+        function applyPreset() {
+            const preset = document.getElementById('configPreset').value;
+
+            if (preset === 'jde') {
+                // EZ Estimate JDE Sheet configuration
+                document.getElementById('sheetName').value = 'JDE';
+                document.getElementById('headerRow').value = '2';
+                document.getElementById('dataStartRow').value = '3';
+                document.getElementById('partNumberColumn').value = 'I';  // Column I = Part #
+                document.getElementById('quantityColumn').value = 'G';    // Column G = Qty
+                document.getElementById('descriptionColumn').value = '';  // No description in JDE output
+            } else if (preset === 'generic') {
+                // Generic estimate configuration
+                document.getElementById('sheetName').value = '';
+                document.getElementById('headerRow').value = '1';
+                document.getElementById('dataStartRow').value = '2';
+                document.getElementById('partNumberColumn').value = 'Part Number';
+                document.getElementById('quantityColumn').value = 'Quantity';
+                document.getElementById('descriptionColumn').value = 'Description';
+            }
+        }
+
         async function checkMaterials() {
             const fileInput = document.getElementById('estimateFile');
             const file = fileInput.files[0];
@@ -167,6 +217,22 @@
 
             const formData = new FormData();
             formData.append('file', file);
+
+            const sheetName = document.getElementById('sheetName').value;
+            if (sheetName) {
+                formData.append('sheet_name', sheetName);
+            }
+
+            const headerRow = document.getElementById('headerRow').value;
+            if (headerRow) {
+                formData.append('header_row', headerRow);
+            }
+
+            const dataStartRow = document.getElementById('dataStartRow').value;
+            if (dataStartRow) {
+                formData.append('data_start_row', dataStartRow);
+            }
+
             formData.append('part_number_column', document.getElementById('partNumberColumn').value);
             formData.append('quantity_column', document.getElementById('quantityColumn').value);
             formData.append('description_column', document.getElementById('descriptionColumn').value);

@@ -21,6 +21,9 @@ class MaterialCheckController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'file' => 'required|file|mimes:xlsx,xlsm|max:10240',
+                'sheet_name' => 'nullable|string|max:255',
+                'header_row' => 'nullable|integer|min:1',
+                'data_start_row' => 'nullable|integer|min:1',
                 'part_number_column' => 'nullable|string|max:255',
                 'quantity_column' => 'nullable|string|max:255',
                 'description_column' => 'nullable|string|max:255',
@@ -37,6 +40,9 @@ class MaterialCheckController extends Controller
             $file = $request->file('file');
             Log::info('File received', ['name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
 
+            $sheetName = $request->input('sheet_name');
+            $headerRow = $request->input('header_row', 1);
+            $dataStartRow = $request->input('data_start_row', $headerRow + 1);
             $partNumberColumn = $request->input('part_number_column', 'Part Number');
             $quantityColumn = $request->input('quantity_column', 'Quantity');
             $descriptionColumn = $request->input('description_column', 'Description');
@@ -44,9 +50,28 @@ class MaterialCheckController extends Controller
             // Load the spreadsheet
             Log::info('Loading spreadsheet');
             $spreadsheet = IOFactory::load($file->getRealPath());
-            $worksheet = $spreadsheet->getActiveSheet();
+
+            // Select the worksheet
+            if ($sheetName) {
+                try {
+                    $worksheet = $spreadsheet->getSheetByName($sheetName);
+                    if (!$worksheet) {
+                        $availableSheets = array_map(fn($sheet) => $sheet->getTitle(), $spreadsheet->getAllSheets());
+                        return response()->json([
+                            'error' => "Sheet '{$sheetName}' not found. Available sheets: " . implode(', ', $availableSheets),
+                        ], 400);
+                    }
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'error' => "Failed to load sheet '{$sheetName}': " . $e->getMessage(),
+                    ], 400);
+                }
+            } else {
+                $worksheet = $spreadsheet->getActiveSheet();
+            }
+
             $rows = $worksheet->toArray();
-            Log::info('Spreadsheet loaded', ['row_count' => count($rows)]);
+            Log::info('Spreadsheet loaded', ['sheet' => $worksheet->getTitle(), 'row_count' => count($rows)]);
 
             if (empty($rows)) {
                 return response()->json([
@@ -54,24 +79,33 @@ class MaterialCheckController extends Controller
                 ], 400);
             }
 
-            // Get headers from first row
-            $headers = array_shift($rows);
-            $headers = array_map('trim', $headers);
+            // Get headers from specified row (1-indexed)
+            if ($headerRow > count($rows)) {
+                return response()->json([
+                    'error' => "Header row {$headerRow} is beyond the file's row count (" . count($rows) . ")",
+                ], 400);
+            }
 
-            // Find column indexes
-            $partNumberIndex = array_search($partNumberColumn, $headers);
-            $quantityIndex = array_search($quantityColumn, $headers);
-            $descriptionIndex = array_search($descriptionColumn, $headers);
+            $headers = $rows[$headerRow - 1]; // Convert to 0-indexed
+            $headers = array_map(fn($h) => trim((string)$h), $headers);
+
+            // Remove rows before data start
+            $rows = array_slice($rows, $dataStartRow - 1); // Convert to 0-indexed
+
+            // Find column indexes - support both column names and letters (A, B, C, etc.)
+            $partNumberIndex = $this->resolveColumnIndex($partNumberColumn, $headers);
+            $quantityIndex = $this->resolveColumnIndex($quantityColumn, $headers);
+            $descriptionIndex = $this->resolveColumnIndex($descriptionColumn, $headers);
 
             if ($partNumberIndex === false) {
                 return response()->json([
-                    'error' => "Column '{$partNumberColumn}' not found in the file. Available columns: " . implode(', ', $headers),
+                    'error' => "Column '{$partNumberColumn}' not found in the file. Available columns: " . implode(', ', array_filter($headers)),
                 ], 400);
             }
 
             if ($quantityIndex === false) {
                 return response()->json([
-                    'error' => "Column '{$quantityColumn}' not found in the file. Available columns: " . implode(', ', $headers),
+                    'error' => "Column '{$quantityColumn}' not found in the file. Available columns: " . implode(', ', array_filter($headers)),
                 ], 400);
             }
 
@@ -180,6 +214,61 @@ class MaterialCheckController extends Controller
                 'line' => $e->getLine(),
             ], 500);
         }
+    }
+
+    /**
+     * Resolve column reference to array index
+     * Supports column names ("Part Number") or column letters ("A", "I", "AA", etc.)
+     */
+    private function resolveColumnIndex(string $column, array $headers)
+    {
+        // Try exact name match first
+        $index = array_search($column, $headers);
+        if ($index !== false) {
+            return $index;
+        }
+
+        // Try case-insensitive name match
+        $lowerColumn = strtolower($column);
+        foreach ($headers as $idx => $header) {
+            if (strtolower($header) === $lowerColumn) {
+                return $idx;
+            }
+        }
+
+        // Try as column letter (A, B, C... AA, AB, etc.)
+        $letterIndex = $this->columnLetterToIndex($column);
+        if ($letterIndex !== false && $letterIndex < count($headers)) {
+            return $letterIndex;
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert Excel column letter to zero-based array index
+     * A=0, B=1, ... Z=25, AA=26, AB=27, etc.
+     */
+    private function columnLetterToIndex(string $letter): int|false
+    {
+        $letter = strtoupper(trim($letter));
+
+        if ($letter === '' || !ctype_alpha($letter)) {
+            return false;
+        }
+
+        $index = 0;
+        $length = strlen($letter);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = ord($letter[$i]);
+            if ($char < 65 || $char > 90) { // A-Z
+                return false;
+            }
+            $index = ($index * 26) + ($char - 64);
+        }
+
+        return $index - 1; // Convert to 0-based index
     }
 
     /**
