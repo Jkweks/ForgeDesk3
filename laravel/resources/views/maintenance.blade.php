@@ -546,8 +546,7 @@
                 <select class="form-select" id="newToolType" required onchange="toggleToolLifeFields()">
                   <option value="">Select Product Type</option>
                   <option value="consumable_tool">Machine Tooling (Consumable cutting tools - tracks tool life)</option>
-                  <option value="asset_tool">Machine Assets (Reusable machine items - no life tracking)</option>
-                  <option value="standard">Maintenance Assets (One-time use repair parts)</option>
+                  <option value="asset_tool" selected>Machine Assets (Reusable machine items - no life tracking)</option>
                 </select>
                 <div class="mt-2">
                   <small class="form-hint d-block"><strong>Machine Tooling:</strong> End mills, drill bits, inserts, taps</small>
