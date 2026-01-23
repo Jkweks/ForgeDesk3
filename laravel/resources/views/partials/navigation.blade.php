@@ -50,6 +50,19 @@
                     </a>
                   </div>
                 </li>
+                <li class="nav-item dropdown {{ Request::is('fulfillment*') ? 'active' : '' }}">
+                  <a class="nav-link dropdown-toggle" href="#navbar-fulfillment" data-bs-toggle="dropdown" data-bs-auto-close="outside" role="button" aria-expanded="false">
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 10l5 -6l5 6" /><path d="M21 10l-2 8a2 2.5 0 0 1 -2 2h-10a2 2.5 0 0 1 -2 -2l-2 -8z" /><path d="M12 15m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /></svg>
+                    </span>
+                    <span class="nav-link-title">Fulfillment</span>
+                  </a>
+                  <div class="dropdown-menu">
+                    <a class="dropdown-item" href="/fulfillment/material-check">
+                      <i class="ti ti-checklist me-2"></i>Material Check
+                    </a>
+                  </div>
+                </li>
                 <li class="nav-item {{ Request::is('reports') ? 'active' : '' }}">
                   <a class="nav-link" href="/reports" {{ Request::is('reports') ? 'aria-current=page' : '' }}>
                     <span class="nav-link-icon d-md-none d-lg-inline-block">

@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\CycleCountController;
 use App\Http\Controllers\Api\MachineToolingController;
+use App\Http\Controllers\Api\MaterialCheckController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -182,6 +183,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/import/products', [ImportExportController::class, 'importProducts']);
         Route::get('/export/products', [ImportExportController::class, 'exportProducts']);
         Route::get('/export/template', [ImportExportController::class, 'downloadTemplate']);
+
+        // Fulfillment
+        Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
 
         // Maintenance
         Route::get('/maintenance/dashboard', [MaintenanceController::class, 'dashboard']);
