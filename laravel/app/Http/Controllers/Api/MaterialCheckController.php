@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -15,30 +16,37 @@ class MaterialCheckController extends Controller
      */
     public function checkMaterials(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'file' => 'required|file|mimes:xlsx,xlsm|max:10240',
-            'part_number_column' => 'nullable|string|max:255',
-            'quantity_column' => 'nullable|string|max:255',
-            'description_column' => 'nullable|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'error' => 'Validation failed',
-                'details' => $validator->errors(),
-            ], 422);
-        }
-
         try {
+            Log::info('Material check started');
+
+            $validator = Validator::make($request->all(), [
+                'file' => 'required|file|mimes:xlsx,xlsm|max:10240',
+                'part_number_column' => 'nullable|string|max:255',
+                'quantity_column' => 'nullable|string|max:255',
+                'description_column' => 'nullable|string|max:255',
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('Validation failed', ['errors' => $validator->errors()]);
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ], 422);
+            }
+
             $file = $request->file('file');
+            Log::info('File received', ['name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
+
             $partNumberColumn = $request->input('part_number_column', 'Part Number');
             $quantityColumn = $request->input('quantity_column', 'Quantity');
             $descriptionColumn = $request->input('description_column', 'Description');
 
             // Load the spreadsheet
+            Log::info('Loading spreadsheet');
             $spreadsheet = IOFactory::load($file->getRealPath());
             $worksheet = $spreadsheet->getActiveSheet();
             $rows = $worksheet->toArray();
+            Log::info('Spreadsheet loaded', ['row_count' => count($rows)]);
 
             if (empty($rows)) {
                 return response()->json([
@@ -149,12 +157,27 @@ class MaterialCheckController extends Controller
             ]);
 
         } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
+            Log::error('Excel file read error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return response()->json([
                 'error' => 'Failed to read the Excel file: ' . $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
             ], 500);
         } catch (\Exception $e) {
+            Log::error('Material check error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
                 'error' => 'Material check failed: ' . $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
             ], 500);
         }
     }
