@@ -172,16 +172,26 @@
             formData.append('description_column', document.getElementById('descriptionColumn').value);
 
             try {
-                const response = await apiCall('/api/v1/fulfillment/material-check', {
+                const authToken = localStorage.getItem('authToken');
+                const response = await fetch('/api/v1/fulfillment/material-check', {
                     method: 'POST',
-                    body: formData,
-                    skipJsonStringify: true
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        // Don't set Content-Type - browser will set it automatically with boundary for FormData
+                    },
+                    body: formData
                 });
 
-                if (response && response.results) {
-                    checkResults = response.results;
+                if (response.ok) {
+                    const data = await response.json();
+                    checkResults = data.results;
                     filteredResults = [...checkResults];
-                    displayResults(response.results, response.summary);
+                    displayResults(data.results, data.summary);
+                } else {
+                    const error = await response.json();
+                    alert('Error checking materials: ' + (error.error || error.message || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Error checking materials:', error);
