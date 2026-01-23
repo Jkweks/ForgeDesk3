@@ -4,103 +4,138 @@
 let machineTooling = [];
 let toolingStatistics = {};
 let compatibleTools = [];
+let searchTimeout = null;
 
-// Load machine tooling data
+// Load machine tooling data (combined inventory view)
 async function loadMachineTooling() {
   try {
-    const machineId = document.getElementById('toolingMachineFilter')?.value;
-    const status = document.getElementById('toolingStatusFilter')?.value;
+    const installationStatus = document.getElementById('toolingInstallationFilter')?.value;
+    const toolType = document.getElementById('toolingTypeFilter')?.value;
+    const search = document.getElementById('toolingSearch')?.value;
 
-    let url = '/machine-tooling/all';
     const params = new URLSearchParams();
 
-    if (machineId) {
-      url = `/machines/${machineId}/tooling`;
+    if (installationStatus) {
+      params.append('installation_status', installationStatus);
     }
 
-    if (status) {
-      params.append('status', status);
+    if (toolType) {
+      params.append('tool_type', toolType);
     }
 
-    if (params.toString()) {
-      url += '?' + params.toString();
+    if (search) {
+      params.append('search', search);
     }
+
+    const url = '/machine-tooling/inventory' + (params.toString() ? '?' + params.toString() : '');
 
     const data = await authenticatedFetch(url);
-    machineTooling = data.tooling || [];
+    machineTooling = data.tools || [];
 
     renderMachineTooling();
-    await loadToolingStatistics();
+    updateToolingStatistics();
   } catch (error) {
     console.error('Failed to load machine tooling:', error);
   }
 }
 
-// Load tooling statistics
-async function loadToolingStatistics() {
-  try {
-    toolingStatistics = await authenticatedFetch('/machine-tooling/statistics');
-
-    document.getElementById('toolingActiveCount').textContent = toolingStatistics.total_active_tools || 0;
-    document.getElementById('toolingWarningCount').textContent = toolingStatistics.tools_warning || 0;
-    document.getElementById('toolingReplacementCount').textContent = toolingStatistics.tools_needs_replacement || 0;
-    document.getElementById('toolingTotalCount').textContent =
-      (toolingStatistics.total_active_tools || 0) + (toolingStatistics.tools_warning || 0) + (toolingStatistics.tools_needs_replacement || 0);
-  } catch (error) {
-    console.error('Failed to load tooling statistics:', error);
-  }
+// Debounce search input
+function debounceSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    loadMachineTooling();
+  }, 500);
 }
 
-// Render machine tooling table
+// Update tooling statistics based on current data
+function updateToolingStatistics() {
+  const total = machineTooling.length;
+  const available = machineTooling.filter(t => t.installation_status === 'available').length;
+  const installed = machineTooling.filter(t => t.installation_status === 'installed').length;
+
+  // Count tools needing attention (installed tools with warning or needs_replacement status)
+  const needsAttention = machineTooling.reduce((count, tool) => {
+    if (tool.installation_status === 'installed' && tool.installed_locations) {
+      const warningCount = tool.installed_locations.filter(loc =>
+        loc.status === 'warning' || loc.status === 'needs_replacement'
+      ).length;
+      return count + warningCount;
+    }
+    return count;
+  }, 0);
+
+  document.getElementById('toolingTotalCount').textContent = total;
+  document.getElementById('toolingAvailableCount').textContent = available;
+  document.getElementById('toolingInstalledCount').textContent = installed;
+  document.getElementById('toolingAttentionCount').textContent = needsAttention;
+}
+
+// Render machine tooling table (combined inventory view)
 function renderMachineTooling() {
   const tbody = document.getElementById('toolingTable');
 
   if (!machineTooling || machineTooling.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No tools installed</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No tools found</td></tr>';
     return;
   }
 
-  tbody.innerHTML = machineTooling.map(t => {
-    const statusBadge = getToolingStatusBadge(t.status);
-    const progressBar = t.product?.tool_type === 'consumable_tool'
-      ? getToolLifeProgressBar(t.tool_life_percentage)
-      : 'N/A';
+  tbody.innerHTML = machineTooling.map(tool => {
+    const installationStatusBadge = getInstallationStatusBadge(tool.installation_status, tool.installations_count);
 
-    const lifeDisplay = t.product?.tool_type === 'consumable_tool'
-      ? `${formatNumber(t.tool_life_used)} / ${formatNumber(t.product.tool_life_max)} ${t.product.tool_life_unit}`
-      : 'N/A';
+    // Build installed locations display
+    let installedOn = '-';
+    let toolLifeDisplay = '-';
+    if (tool.installation_status === 'installed' && tool.installed_locations && tool.installed_locations.length > 0) {
+      installedOn = tool.installed_locations.map(loc => {
+        const statusIcon = loc.status === 'warning' ? '⚠️' : loc.status === 'needs_replacement' ? '🔴' : '';
+        return `<div>${statusIcon} ${escapeHtml(loc.machine_name)} (${escapeHtml(loc.location_on_machine)})</div>`;
+      }).join('');
 
-    const percentage = t.product?.tool_type === 'consumable_tool' && t.tool_life_percentage !== null
-      ? `${t.tool_life_percentage}%`
-      : 'N/A';
+      // Show tool life for consumable tools
+      if (tool.tool_type === 'consumable_tool' && tool.installed_locations[0].tool_life_percentage !== null) {
+        const loc = tool.installed_locations[0];
+        const progressBar = getToolLifeProgressBar(loc.tool_life_percentage);
+        toolLifeDisplay = `${progressBar} ${loc.tool_life_percentage}%`;
+      }
+    }
 
     return `
       <tr>
-        <td>${escapeHtml(t.machine?.name || 'Unknown')}</td>
-        <td>${escapeHtml(t.location_on_machine)}</td>
         <td>
-          <div>${escapeHtml(t.product?.description || 'Unknown')}</div>
-          <small class="text-muted">${escapeHtml(t.product?.sku || '')}</small>
+          <div><strong>${escapeHtml(tool.description)}</strong></div>
+          <small class="text-muted">${escapeHtml(tool.sku)}</small>
         </td>
-        <td>${getToolTypeBadge(t.product?.tool_type)}</td>
-        <td>${lifeDisplay}</td>
-        <td>${progressBar} ${percentage}</td>
-        <td>${statusBadge}</td>
-        <td>${t.installed_at ? new Date(t.installed_at).toLocaleDateString() : '-'}</td>
+        <td>${getToolTypeBadge(tool.tool_type)}</td>
+        <td>
+          <span class="badge ${tool.quantity_available > 0 ? 'bg-success' : 'bg-danger'}">${tool.quantity_available || 0}</span>
+        </td>
+        <td>${installationStatusBadge}</td>
+        <td><small>${installedOn}</small></td>
+        <td>${toolLifeDisplay}</td>
+        <td><small>${escapeHtml(tool.manufacturer || '-')}</small></td>
         <td class="table-actions">
-          <button class="btn btn-sm btn-ghost-primary" onclick="viewToolDetails(${t.id})" title="View Details">
-            <i class="ti ti-eye"></i>
+          <button class="btn btn-sm btn-success" onclick="quickInstallTool(${tool.id})" title="Install Tool">
+            <i class="ti ti-tool"></i>
           </button>
-          <button class="btn btn-sm btn-warning" onclick="openReplaceToolModal(${t.id})" title="Replace Tool">
-            <i class="ti ti-refresh"></i>
-          </button>
-          <button class="btn btn-sm btn-danger" onclick="removeTool(${t.id})" title="Remove Tool">
-            <i class="ti ti-trash"></i>
-          </button>
+          ${tool.installation_status === 'installed' ? `
+            <button class="btn btn-sm btn-ghost-primary" onclick="viewInstallations(${tool.id})" title="View Installations">
+              <i class="ti ti-eye"></i>
+            </button>
+          ` : ''}
         </td>
       </tr>
     `;
   }).join('');
+}
+
+// Get installation status badge HTML
+function getInstallationStatusBadge(status, count) {
+  if (status === 'available') {
+    return '<span class="badge bg-success">Available</span>';
+  } else if (status === 'installed') {
+    return `<span class="badge bg-primary">Installed (${count})</span>`;
+  }
+  return '<span class="badge bg-secondary">Unknown</span>';
 }
 
 // Get status badge HTML
@@ -138,17 +173,53 @@ function getToolLifeProgressBar(percentage) {
   `;
 }
 
-// Initialize machine filter dropdown
-async function initializeToolingMachineFilter() {
-  try {
-    const select = document.getElementById('toolingMachineFilter');
-    if (!select || !machines) return;
+// Quick install tool - opens install modal with tool pre-selected
+function quickInstallTool(productId) {
+  openInstallToolModal();
+  // Wait for modal to load then select the product
+  setTimeout(() => {
+    const productSelect = document.getElementById('installToolProduct');
+    if (productSelect) {
+      productSelect.value = productId;
+    }
+  }, 500);
+}
 
-    select.innerHTML = '<option value="">All Machines</option>' +
-      machines.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
-  } catch (error) {
-    console.error('Failed to initialize machine filter:', error);
+// View all installations for a tool
+async function viewInstallations(productId) {
+  const tool = machineTooling.find(t => t.id === productId);
+  if (!tool || !tool.installed_locations) {
+    showNotification('No installation data found', 'warning');
+    return;
   }
+
+  const modal = document.getElementById('toolDetailsModal');
+  const content = document.getElementById('toolDetailsContent');
+
+  const installationsHtml = tool.installed_locations.map(loc => `
+    <div class="card mb-2">
+      <div class="card-body">
+        <h5>${escapeHtml(loc.machine_name)} - ${escapeHtml(loc.location_on_machine)}</h5>
+        <p><strong>Status:</strong> ${getToolingStatusBadge(loc.status)}</p>
+        ${loc.tool_life_percentage !== null ? `
+          <p><strong>Tool Life:</strong> ${getToolLifeProgressBar(loc.tool_life_percentage)} ${loc.tool_life_percentage}%</p>
+        ` : ''}
+        <button class="btn btn-sm btn-warning" onclick="openReplaceToolModal(${loc.id})">Replace</button>
+        <button class="btn btn-sm btn-danger" onclick="removeTool(${loc.id})">Remove</button>
+      </div>
+    </div>
+  `).join('');
+
+  content.innerHTML = `
+    <h5>Tool: ${escapeHtml(tool.description)} (${escapeHtml(tool.sku)})</h5>
+    <p><strong>Available in Stock:</strong> ${tool.quantity_available}</p>
+    <p><strong>Total Installations:</strong> ${tool.installations_count}</p>
+    <hr>
+    <h6>Installation Locations:</h6>
+    ${installationsHtml}
+  `;
+
+  showModal(modal);
 }
 
 // Open install tool modal
@@ -453,7 +524,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const toolingTab = document.querySelector('a[href="#tab-tooling"]');
   if (toolingTab) {
     toolingTab.addEventListener('shown.bs.tab', async function() {
-      await initializeToolingMachineFilter();
       await loadMachineTooling();
     });
   }

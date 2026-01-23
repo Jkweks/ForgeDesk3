@@ -81,6 +81,76 @@ class MachineToolingController extends Controller
     }
 
     /**
+     * Get all tool products with their installation status
+     */
+    public function inventory(Request $request)
+    {
+        // Get all tool products (consumable_tool and asset_tool)
+        $query = Product::where(function ($q) {
+            $q->whereIn('tool_type', ['consumable_tool', 'asset_tool']);
+        })->where('is_active', true);
+
+        // Filter by tool type
+        if ($request->has('tool_type')) {
+            $query->where('tool_type', $request->tool_type);
+        }
+
+        // Filter by category
+        if ($request->has('category_id')) {
+            $query->whereHas('categories', function ($q) use ($request) {
+                $q->where('categories.id', $request->category_id);
+            });
+        }
+
+        // Search by SKU or description
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('part_number', 'like', "%{$search}%");
+            });
+        }
+
+        $tools = $query->with([
+            'categories',
+            'supplier',
+            'activeTooling.machine'
+        ])->get();
+
+        // Add installation status to each tool
+        $tools = $tools->map(function ($tool) {
+            $activeInstallations = $tool->activeTooling;
+
+            $tool->installation_status = $activeInstallations->isEmpty() ? 'available' : 'installed';
+            $tool->installations_count = $activeInstallations->count();
+            $tool->installed_locations = $activeInstallations->map(function ($installation) {
+                return [
+                    'id' => $installation->id,
+                    'machine_id' => $installation->machine_id,
+                    'machine_name' => $installation->machine->name ?? 'Unknown',
+                    'location_on_machine' => $installation->location_on_machine,
+                    'status' => $installation->status,
+                    'tool_life_percentage' => $installation->tool_life_percentage,
+                ];
+            });
+
+            return $tool;
+        });
+
+        // Filter by installation status
+        if ($request->has('installation_status')) {
+            $tools = $tools->filter(function ($tool) use ($request) {
+                return $tool->installation_status === $request->installation_status;
+            })->values();
+        }
+
+        return response()->json([
+            'tools' => $tools,
+        ]);
+    }
+
+    /**
      * Get a specific tooling record
      */
     public function show($id)

@@ -152,20 +152,25 @@
                   </div>
 
                   <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Select Machine</label>
-                      <select class="form-select" id="toolingMachineFilter" onchange="loadMachineTooling()">
-                        <option value="">All Machines</option>
+                    <div class="col-md-4">
+                      <label class="form-label">Installation Status</label>
+                      <select class="form-select" id="toolingInstallationFilter" onchange="loadMachineTooling()">
+                        <option value="">All Tools</option>
+                        <option value="available">Available (In Inventory)</option>
+                        <option value="installed">Installed (On Machines)</option>
                       </select>
                     </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Filter by Status</label>
-                      <select class="form-select" id="toolingStatusFilter" onchange="loadMachineTooling()">
-                        <option value="">All Statuses</option>
-                        <option value="active">Active</option>
-                        <option value="warning">Warning</option>
-                        <option value="needs_replacement">Needs Replacement</option>
+                    <div class="col-md-4">
+                      <label class="form-label">Tool Type</label>
+                      <select class="form-select" id="toolingTypeFilter" onchange="loadMachineTooling()">
+                        <option value="">All Types</option>
+                        <option value="consumable_tool">Machine Tooling</option>
+                        <option value="asset_tool">Machine Assets</option>
                       </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Search</label>
+                      <input type="text" class="form-control" id="toolingSearch" placeholder="SKU or description" onkeyup="debounceSearch()">
                     </div>
                   </div>
 
@@ -174,32 +179,32 @@
                     <div class="col-sm-6 col-lg-3">
                       <div class="card">
                         <div class="card-body">
-                          <div class="subheader">Active Tools</div>
-                          <div class="h2 mb-0" id="toolingActiveCount">0</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                      <div class="card">
-                        <div class="card-body">
-                          <div class="subheader">Warning</div>
-                          <div class="h2 mb-0 text-warning" id="toolingWarningCount">0</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                      <div class="card">
-                        <div class="card-body">
-                          <div class="subheader">Needs Replacement</div>
-                          <div class="h2 mb-0 text-danger" id="toolingReplacementCount">0</div>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-sm-6 col-lg-3">
-                      <div class="card">
-                        <div class="card-body">
-                          <div class="subheader">Total Tracked</div>
+                          <div class="subheader">Total Tools</div>
                           <div class="h2 mb-0" id="toolingTotalCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Available</div>
+                          <div class="h2 mb-0 text-success" id="toolingAvailableCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Installed</div>
+                          <div class="h2 mb-0 text-primary" id="toolingInstalledCount">0</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                      <div class="card">
+                        <div class="card-body">
+                          <div class="subheader">Needs Attention</div>
+                          <div class="h2 mb-0 text-warning" id="toolingAttentionCount">0</div>
                         </div>
                       </div>
                     </div>
@@ -209,14 +214,13 @@
                     <table class="table table-vcenter">
                       <thead>
                         <tr>
-                          <th>Machine</th>
-                          <th>Location</th>
                           <th>Tool (SKU)</th>
                           <th>Tool Type</th>
-                          <th>Life Used / Max</th>
-                          <th>% Used</th>
-                          <th>Status</th>
-                          <th>Installed</th>
+                          <th>Qty in Stock</th>
+                          <th>Installation Status</th>
+                          <th>Installed On</th>
+                          <th>Tool Life</th>
+                          <th>Manufacturer</th>
                           <th>Actions</th>
                         </tr>
                       </thead>

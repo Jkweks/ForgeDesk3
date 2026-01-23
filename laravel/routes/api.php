@@ -202,6 +202,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('maintenance-records', MaintenanceRecordController::class);
 
         // Machine Tooling
+        Route::get('/machine-tooling/inventory', [MachineToolingController::class, 'inventory']);
         Route::get('/machine-tooling/all', [MachineToolingController::class, 'all']);
         Route::get('/machine-tooling/statistics', [MachineToolingController::class, 'statistics']);
         Route::get('/machine-tooling/tool-life-units', [MachineToolingController::class, 'toolLifeUnits']);
