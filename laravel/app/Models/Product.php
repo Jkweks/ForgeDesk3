@@ -18,9 +18,12 @@ class Product extends Model
         'on_order_qty', 'maximum_quantity', 'unit_of_measure',
         'pack_size', 'purchase_uom', 'stock_uom', 'min_order_qty', 'order_multiple',
         'supplier_id', 'supplier_sku', 'supplier_contact', 'lead_time_days',
+        'manufacturer', 'manufacturer_part_number',
         'is_active', 'is_discontinued', 'status',
         'configurator_available', 'configurator_type', 'configurator_use_path',
         'dimension_height', 'dimension_depth',
+        'tool_type', 'tool_life_max', 'tool_life_unit', 'tool_life_warning_threshold',
+        'compatible_machine_types', 'tool_specifications',
     ];
 
     protected $casts = [
@@ -32,6 +35,9 @@ class Product extends Model
         'is_active' => 'boolean',
         'is_discontinued' => 'boolean',
         'configurator_available' => 'boolean',
+        'tool_life_max' => 'decimal:2',
+        'compatible_machine_types' => 'array',
+        'tool_specifications' => 'array',
     ];
 
     protected $appends = ['quantity_available', 'suggested_order_qty', 'days_until_stockout'];
@@ -52,6 +58,22 @@ class Product extends Model
         'FT' => 'Foot',
         'ROLL' => 'Roll',
         'PKG' => 'Package',
+    ];
+
+    // Tool type configuration
+    public static $toolTypes = [
+        'consumable_tool' => 'Machine Tooling',
+        'asset_tool' => 'Maintenance Asset',
+    ];
+
+    // Tool life unit configuration
+    public static $toolLifeUnits = [
+        'seconds' => 'Seconds',
+        'minutes' => 'Minutes',
+        'hours' => 'Hours',
+        'cycles' => 'Cycles',
+        'parts' => 'Parts',
+        'meters' => 'Meters',
     ];
 
     public function inventoryTransactions()
@@ -142,6 +164,16 @@ class Product extends Model
     public function cycleCountItems()
     {
         return $this->hasMany(CycleCountItem::class);
+    }
+
+    public function machineTooling()
+    {
+        return $this->hasMany(MachineTooling::class);
+    }
+
+    public function activeTooling()
+    {
+        return $this->machineTooling()->whereIn('status', ['active', 'warning', 'needs_replacement']);
     }
 
     public function getQuantityAvailableAttribute()
@@ -350,5 +382,79 @@ class Product extends Model
             return self::$unitOfMeasures[$this->stock_uom];
         }
         return $this->stock_uom;
+    }
+
+    /**
+     * Check if product is a tool (consumable or asset)
+     */
+    public function isTool()
+    {
+        return in_array($this->tool_type, ['consumable_tool', 'asset_tool']);
+    }
+
+    /**
+     * Check if product is a consumable tool (tracks tool life)
+     */
+    public function isConsumableTool()
+    {
+        return $this->tool_type === 'consumable_tool';
+    }
+
+    /**
+     * Check if product is an asset tool (no tool life tracking)
+     */
+    public function isAssetTool()
+    {
+        return $this->tool_type === 'asset_tool';
+    }
+
+    /**
+     * Get tool type name
+     */
+    public function getToolTypeNameAttribute()
+    {
+        if ($this->tool_type && isset(self::$toolTypes[$this->tool_type])) {
+            return self::$toolTypes[$this->tool_type];
+        }
+        return null;
+    }
+
+    /**
+     * Get tool life unit name
+     */
+    public function getToolLifeUnitNameAttribute()
+    {
+        if ($this->tool_life_unit && isset(self::$toolLifeUnits[$this->tool_life_unit])) {
+            return self::$toolLifeUnits[$this->tool_life_unit];
+        }
+        return $this->tool_life_unit;
+    }
+
+    /**
+     * Check if tool is compatible with a machine type
+     */
+    public function isCompatibleWithMachine($machineTypeId)
+    {
+        if (!$this->isTool() || !$this->compatible_machine_types) {
+            return false;
+        }
+        return in_array($machineTypeId, $this->compatible_machine_types);
+    }
+
+    /**
+     * Get formatted tool specifications for display
+     */
+    public function getFormattedSpecificationsAttribute()
+    {
+        if (!$this->tool_specifications) {
+            return null;
+        }
+
+        $specs = [];
+        foreach ($this->tool_specifications as $key => $value) {
+            $specs[] = ucfirst(str_replace('_', ' ', $key)) . ': ' . $value;
+        }
+
+        return implode(' | ', $specs);
     }
 }

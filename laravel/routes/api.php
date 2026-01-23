@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\RequiredPartsController;
 use App\Http\Controllers\Api\ReportsController;
 use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\CycleCountController;
+use App\Http\Controllers\Api\MachineToolingController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -199,5 +200,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Maintenance Records
         Route::apiResource('maintenance-records', MaintenanceRecordController::class);
+
+        // Machine Tooling
+        Route::get('/machine-tooling/inventory', [MachineToolingController::class, 'inventory']);
+        Route::get('/machine-tooling/all', [MachineToolingController::class, 'all']);
+        Route::get('/machine-tooling/statistics', [MachineToolingController::class, 'statistics']);
+        Route::get('/machine-tooling/tool-life-units', [MachineToolingController::class, 'toolLifeUnits']);
+        Route::get('/machine-tooling/tool-types', [MachineToolingController::class, 'toolTypes']);
+        Route::get('/machines/{machine}/tooling', [MachineToolingController::class, 'index']);
+        Route::post('/machines/{machine}/tooling', [MachineToolingController::class, 'store']);
+        Route::get('/machines/{machine}/tooling/compatible-tools', [MachineToolingController::class, 'compatibleTools']);
+        Route::get('/machine-tooling/{id}', [MachineToolingController::class, 'show']);
+        Route::put('/machine-tooling/{id}/update-life', [MachineToolingController::class, 'updateToolLife']);
+        Route::post('/machine-tooling/{id}/replace', [MachineToolingController::class, 'replace']);
+        Route::post('/machine-tooling/{id}/remove', [MachineToolingController::class, 'remove']);
     });
 });

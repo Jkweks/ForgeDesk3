@@ -52,6 +52,21 @@ class Machine extends Model
         return $this->belongsToMany(Asset::class, 'asset_machine');
     }
 
+    public function tooling()
+    {
+        return $this->hasMany(MachineTooling::class);
+    }
+
+    public function activeTooling()
+    {
+        return $this->tooling()->active();
+    }
+
+    public function toolsNeedingAttention()
+    {
+        return $this->tooling()->needsAttention();
+    }
+
     public function getTaskCountAttribute()
     {
         return $this->maintenanceTasks()->count();
