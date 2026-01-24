@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
 class MaterialCheckController extends Controller
 {
@@ -241,20 +242,34 @@ class MaterialCheckController extends Controller
 
                 // Debug logging for first few rows
                 if ($debugCounter < $debugSampleRows) {
-                    @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Sample Row {$row} in {$sheetName}: Qty='{$qty}', Part='{$partNumber}', Finish='{$finish}'\n", FILE_APPEND);
+                    $cellType = $partNumberCell->getDataType();
+                    $isFormula = ($cellType === DataType::TYPE_FORMULA);
+                    @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Sample Row {$row} in {$sheetName}: Qty='{$qty}', Part='{$partNumber}', Finish='{$finish}', IsFormula={$isFormula}\n", FILE_APPEND);
                     $debugCounter++;
                 }
 
-                // Skip empty rows
-                if (empty($partNumber) || $qty <= 0) {
+                // Skip rows where quantity is 0 or negative
+                if ($qty <= 0) {
                     continue;
                 }
 
-                // Combine Part Number and Finish to create SKU (format: PartNumber-Finish)
-                $sku = $partNumber;
-                if (!empty($finish)) {
-                    $sku .= '-' . $finish;
+                // Skip rows where part number is empty
+                if (empty($partNumber)) {
+                    continue;
                 }
+
+                // Skip rows where part number is a formula (not user input)
+                if ($partNumberCell->getDataType() === DataType::TYPE_FORMULA) {
+                    continue;
+                }
+
+                // Default null/empty finish to "0R" (Mill/Unfinished)
+                if (empty($finish)) {
+                    $finish = '0R';
+                }
+
+                // Combine Part Number and Finish to create SKU (format: PartNumber-Finish)
+                $sku = $partNumber . '-' . $finish;
 
                 $summary['total']++;
 
