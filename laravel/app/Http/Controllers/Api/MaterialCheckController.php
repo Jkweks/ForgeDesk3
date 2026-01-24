@@ -12,6 +12,11 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class MaterialCheckController extends Controller
 {
     /**
+     * In-memory product cache to avoid N+1 queries
+     */
+    private $productCache = [];
+
+    /**
      * Test endpoint
      */
     public function test()
@@ -138,6 +143,24 @@ class MaterialCheckController extends Controller
             'unavailable' => 0,
             'not_found' => 0,
         ];
+
+        // Load ALL products into memory once (avoid N+1 query problem)
+        Log::info('Loading all products into memory cache');
+        $allProducts = Product::where('is_active', true)->get();
+
+        // Build lookup indexes for fast searching
+        $this->productCache = [];
+        foreach ($allProducts as $product) {
+            $sku = $product->sku;
+            // Index by exact SKU
+            $this->productCache[$sku] = $product;
+            // Index by lowercase SKU
+            $this->productCache[strtolower($sku)] = $product;
+            // Index by normalized SKU (no spaces, dashes, underscores)
+            $normalized = str_replace([' ', '-', '_'], '', $sku);
+            $this->productCache[$normalized] = $product;
+        }
+        Log::info('Product cache built', ['products' => $allProducts->count()]);
 
         // Get all sheets
         $allSheets = $spreadsheet->getAllSheets();
@@ -477,45 +500,34 @@ class MaterialCheckController extends Controller
     }
 
     /**
-     * Find a product by part number/SKU
+     * Find a product by part number/SKU using in-memory cache
      * Tries multiple approaches to find the best match
      */
     private function findProduct($partNumber)
     {
         // Try exact match on SKU first
-        $product = Product::where('sku', $partNumber)
-            ->where('is_active', true)
-            ->first();
-
-        if ($product) {
-            return $product;
+        if (isset($this->productCache[$partNumber])) {
+            return $this->productCache[$partNumber];
         }
 
         // Try case-insensitive match on SKU
-        $product = Product::whereRaw('LOWER(sku) = ?', [strtolower($partNumber)])
-            ->where('is_active', true)
-            ->first();
-
-        if ($product) {
-            return $product;
+        $lowerPartNumber = strtolower($partNumber);
+        if (isset($this->productCache[$lowerPartNumber])) {
+            return $this->productCache[$lowerPartNumber];
         }
 
-        // Try removing leading zeros and special characters
+        // Try removing leading zeros
         $cleanPartNumber = ltrim($partNumber, '0');
-        $product = Product::where('sku', $cleanPartNumber)
-            ->where('is_active', true)
-            ->first();
-
-        if ($product) {
-            return $product;
+        if (isset($this->productCache[$cleanPartNumber])) {
+            return $this->productCache[$cleanPartNumber];
         }
 
         // Try matching with spaces and dashes removed
         $normalizedPartNumber = str_replace([' ', '-', '_'], '', $partNumber);
-        $product = Product::whereRaw('REPLACE(REPLACE(REPLACE(sku, " ", ""), "-", ""), "_", "") = ?', [$normalizedPartNumber])
-            ->where('is_active', true)
-            ->first();
+        if (isset($this->productCache[$normalizedPartNumber])) {
+            return $this->productCache[$normalizedPartNumber];
+        }
 
-        return $product;
+        return null;
     }
 }
