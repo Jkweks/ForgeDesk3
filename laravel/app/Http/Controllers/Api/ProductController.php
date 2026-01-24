@@ -83,6 +83,19 @@ class ProductController extends Controller
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
 
+            // Manufacturer
+            'manufacturer' => 'nullable|max:255',
+            'manufacturer_part_number' => 'nullable|max:255',
+
+            // Tool type and tooling fields
+            'tool_type' => 'nullable|in:consumable_tool,asset_tool',
+            'tool_life_max' => 'nullable|numeric|min:0',
+            'tool_life_unit' => 'nullable|in:seconds,minutes,hours,cycles,parts,meters',
+            'tool_life_warning_threshold' => 'nullable|integer|min:0|max:100',
+            'compatible_machine_types' => 'nullable|array',
+            'compatible_machine_types.*' => 'integer',
+            'tool_specifications' => 'nullable|array',
+
             // Status
             'is_active' => 'nullable|boolean',
         ]);
@@ -189,6 +202,19 @@ class ProductController extends Controller
             'supplier_id' => 'nullable|exists:suppliers,id',
             'supplier_sku' => 'nullable|max:255',
             'lead_time_days' => 'nullable|integer|min:0',
+
+            // Manufacturer
+            'manufacturer' => 'nullable|max:255',
+            'manufacturer_part_number' => 'nullable|max:255',
+
+            // Tool type and tooling fields
+            'tool_type' => 'nullable|in:consumable_tool,asset_tool',
+            'tool_life_max' => 'nullable|numeric|min:0',
+            'tool_life_unit' => 'nullable|in:seconds,minutes,hours,cycles,parts,meters',
+            'tool_life_warning_threshold' => 'nullable|integer|min:0|max:100',
+            'compatible_machine_types' => 'nullable|array',
+            'compatible_machine_types.*' => 'integer',
+            'tool_specifications' => 'nullable|array',
 
             // Status
             'is_active' => 'nullable|boolean',
