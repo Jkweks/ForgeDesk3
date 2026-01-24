@@ -28,7 +28,20 @@ class MaterialCheckController extends Controller
     public function checkMaterials(Request $request)
     {
         try {
+            // Enable error logging to file
+            $debugLog = storage_path('logs/material-check-debug.log');
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Material check started\n", FILE_APPEND);
+
             Log::info('Material check started');
+
+            // Check if file was uploaded
+            if (!$request->hasFile('file')) {
+                @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] No file in request\n", FILE_APPEND);
+                return response()->json([
+                    'error' => 'No file uploaded',
+                    'request_has_file' => $request->hasFile('file'),
+                ], 422);
+            }
 
             $validator = Validator::make($request->all(), [
                 'file' => 'required|file|mimes:xlsx,xlsm|max:10240',
@@ -36,6 +49,7 @@ class MaterialCheckController extends Controller
             ]);
 
             if ($validator->fails()) {
+                @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Validation failed\n", FILE_APPEND);
                 Log::warning('Validation failed', ['errors' => $validator->errors()]);
                 return response()->json([
                     'error' => 'Validation failed',
@@ -44,21 +58,28 @@ class MaterialCheckController extends Controller
             }
 
             $file = $request->file('file');
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] File: {$file->getClientOriginalName()}, Size: {$file->getSize()}\n", FILE_APPEND);
             Log::info('File received', ['name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
 
             $mode = $request->input('mode', 'ez_estimate');
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Mode: {$mode}\n", FILE_APPEND);
 
             // Load the spreadsheet
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Loading spreadsheet...\n", FILE_APPEND);
             Log::info('Loading spreadsheet');
             $spreadsheet = IOFactory::load($file->getRealPath());
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Spreadsheet loaded\n", FILE_APPEND);
 
             if ($mode === 'ez_estimate') {
+                @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Processing EZ Estimate\n", FILE_APPEND);
                 return $this->checkEzEstimate($spreadsheet);
             } else {
+                @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Processing generic\n", FILE_APPEND);
                 return $this->checkGenericEstimate($request, $spreadsheet);
             }
 
         } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] PhpSpreadsheet error: {$e->getMessage()}\n", FILE_APPEND);
             Log::error('Excel file read error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -70,6 +91,7 @@ class MaterialCheckController extends Controller
                 'line' => $e->getLine(),
             ], 500);
         } catch (\Exception $e) {
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Exception: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n", FILE_APPEND);
             Log::error('Material check error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -78,6 +100,14 @@ class MaterialCheckController extends Controller
             ]);
             return response()->json([
                 'error' => 'Material check failed: ' . $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+                'trace_preview' => substr($e->getTraceAsString(), 0, 500),
+            ], 500);
+        } catch (\Throwable $e) {
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Fatal error: {$e->getMessage()} in {$e->getFile()}:{$e->getLine()}\n", FILE_APPEND);
+            return response()->json([
+                'error' => 'Fatal error: ' . $e->getMessage(),
                 'file' => basename($e->getFile()),
                 'line' => $e->getLine(),
             ], 500);
