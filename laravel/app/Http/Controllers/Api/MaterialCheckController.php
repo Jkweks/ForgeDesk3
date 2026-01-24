@@ -222,6 +222,10 @@ class MaterialCheckController extends Controller
     {
         $debugLog = storage_path('logs/material-check-debug.log');
 
+        // Log first few rows for debugging
+        $debugSampleRows = 3;
+        $debugCounter = 0;
+
         for ($row = $startRow; $row <= $endRow; $row++) {
             try {
                 // Use getValue() instead of getCalculatedValue() to avoid formula calculation hangs
@@ -234,6 +238,12 @@ class MaterialCheckController extends Controller
                 $qty = $qtyCell->getValue();
                 $partNumber = trim((string)$partNumberCell->getValue());
                 $finish = trim((string)$finishCell->getValue());
+
+                // Debug logging for first few rows
+                if ($debugCounter < $debugSampleRows) {
+                    @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Sample Row {$row} in {$sheetName}: Qty='{$qty}', Part='{$partNumber}', Finish='{$finish}'\n", FILE_APPEND);
+                    $debugCounter++;
+                }
 
                 // Skip empty rows
                 if (empty($partNumber) || $qty <= 0) {
