@@ -67,8 +67,22 @@ class MaterialCheckController extends Controller
             // Load the spreadsheet
             @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Loading spreadsheet...\n", FILE_APPEND);
             Log::info('Loading spreadsheet');
-            $spreadsheet = IOFactory::load($file->getRealPath());
+
+            // Increase memory limit temporarily for large files
+            $originalMemoryLimit = ini_get('memory_limit');
+            ini_set('memory_limit', '512M');
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Memory limit increased to 512M\n", FILE_APPEND);
+
+            // Load with read filter to only load specific sheets
+            $reader = IOFactory::createReaderForFile($file->getRealPath());
+            $reader->setReadDataOnly(true); // Don't load formatting, only data
+
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Reader created, loading file...\n", FILE_APPEND);
+            $spreadsheet = $reader->load($file->getRealPath());
             @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Spreadsheet loaded\n", FILE_APPEND);
+
+            // Restore original memory limit
+            ini_set('memory_limit', $originalMemoryLimit);
 
             if ($mode === 'ez_estimate') {
                 @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Processing EZ Estimate\n", FILE_APPEND);
