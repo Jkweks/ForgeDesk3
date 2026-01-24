@@ -65,6 +65,7 @@ Route::post('/logout', function (Request $request) {
 Route::prefix('v1')->group(function () {
     Route::get('/fulfillment/test', [MaterialCheckController::class, 'test']);
     Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
+    Route::post('/fulfillment/commit-materials', [MaterialCheckController::class, 'commitMaterials']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

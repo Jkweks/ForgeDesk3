@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\JobReservation;
+use App\Models\JobReservationItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
 
@@ -26,6 +29,145 @@ class MaterialCheckController extends Controller
             'message' => 'MaterialCheckController is working',
             'phpspreadsheet_installed' => class_exists('PhpOffice\\PhpSpreadsheet\\IOFactory'),
         ]);
+    }
+
+    /**
+     * Commit materials to a job reservation
+     */
+    public function commitMaterials(Request $request)
+    {
+        try {
+            // Validate request
+            $validator = Validator::make($request->all(), [
+                'job_number' => 'required|string|max:100',
+                'release_number' => 'required|integer|min:1',
+                'job_name' => 'required|string|max:255',
+                'requested_by' => 'required|string|max:255',
+                'needed_by' => 'nullable|date',
+                'notes' => 'nullable|string',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|integer|exists:products,id',
+                'items.*.part_number' => 'required|string',
+                'items.*.finish' => 'nullable|string',
+                'items.*.sku' => 'nullable|string',
+                'items.*.requested_qty' => 'required|integer|min:1',
+                'items.*.committed_qty' => 'required|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ], 422);
+            }
+
+            // Check for duplicate job_number + release_number
+            $exists = JobReservation::where('job_number', $request->job_number)
+                ->where('release_number', $request->release_number)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'error' => 'Duplicate job reservation',
+                    'message' => "Job {$request->job_number} Release {$request->release_number} already exists",
+                ], 422);
+            }
+
+            // Start transaction
+            DB::beginTransaction();
+
+            try {
+                // Create job reservation
+                $reservation = JobReservation::create([
+                    'job_number' => $request->job_number,
+                    'release_number' => $request->release_number,
+                    'job_name' => $request->job_name,
+                    'requested_by' => $request->requested_by,
+                    'needed_by' => $request->needed_by,
+                    'notes' => $request->notes,
+                    'status' => 'active',
+                ]);
+
+                $itemsData = [];
+                $totalRequested = 0;
+                $totalCommitted = 0;
+
+                // Create reservation items
+                foreach ($request->items as $item) {
+                    // Get current availability before commitment
+                    $product = Product::find($item['product_id']);
+                    $availableBefore = $product->quantity_available;
+
+                    // Create reservation item
+                    JobReservationItem::create([
+                        'reservation_id' => $reservation->id,
+                        'product_id' => $item['product_id'],
+                        'requested_qty' => $item['requested_qty'],
+                        'committed_qty' => $item['committed_qty'],
+                        'consumed_qty' => 0,
+                    ]);
+
+                    // Refresh product to get updated availability (view recalculates)
+                    $product->refresh();
+                    $availableAfter = $product->quantity_available;
+
+                    $totalRequested += $item['requested_qty'];
+                    $totalCommitted += $item['committed_qty'];
+
+                    $itemsData[] = [
+                        'product_id' => $item['product_id'],
+                        'part_number' => $item['part_number'],
+                        'finish' => $item['finish'],
+                        'sku' => $item['sku'],
+                        'description' => $product->description,
+                        'requested_qty' => $item['requested_qty'],
+                        'committed_qty' => $item['committed_qty'],
+                        'available_before' => $availableBefore,
+                        'available_after' => $availableAfter,
+                        'location' => $product->location,
+                    ];
+                }
+
+                DB::commit();
+
+                Log::info('Material commitment created', [
+                    'reservation_id' => $reservation->id,
+                    'job_number' => $reservation->job_number,
+                    'release_number' => $reservation->release_number,
+                    'items_count' => count($itemsData),
+                ]);
+
+                return response()->json([
+                    'message' => 'Materials committed successfully',
+                    'reservation' => [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'release_number' => $reservation->release_number,
+                        'job_name' => $reservation->job_name,
+                        'status' => $reservation->status,
+                        'total_requested' => $totalRequested,
+                        'total_committed' => $totalCommitted,
+                    ],
+                    'items' => $itemsData,
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Material commitment failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to commit materials',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
