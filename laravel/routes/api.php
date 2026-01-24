@@ -61,6 +61,12 @@ Route::post('/logout', function (Request $request) {
     return response()->json(['message' => 'Logged out']);
 })->middleware('auth:sanctum');
 
+// Fulfillment routes (public for internal use)
+Route::prefix('v1')->group(function () {
+    Route::get('/fulfillment/test', [MaterialCheckController::class, 'test']);
+    Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('v1')->group(function () {
         // Current user
@@ -183,10 +189,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/import/products', [ImportExportController::class, 'importProducts']);
         Route::get('/export/products', [ImportExportController::class, 'exportProducts']);
         Route::get('/export/template', [ImportExportController::class, 'downloadTemplate']);
-
-        // Fulfillment
-        Route::get('/fulfillment/test', [MaterialCheckController::class, 'test']);
-        Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
 
         // Maintenance
         Route::get('/maintenance/dashboard', [MaintenanceController::class, 'dashboard']);
