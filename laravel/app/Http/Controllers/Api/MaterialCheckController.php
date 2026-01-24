@@ -220,76 +220,99 @@ class MaterialCheckController extends Controller
      */
     private function processEzEstimateSheet($sheet, $startRow, $endRow, &$results, &$summary, $sheetName)
     {
+        $debugLog = storage_path('logs/material-check-debug.log');
+
         for ($row = $startRow; $row <= $endRow; $row++) {
-            $qty = $sheet->getCell("A{$row}")->getCalculatedValue();
-            $partNumber = trim((string)$sheet->getCell("B{$row}")->getCalculatedValue());
-            $finish = trim((string)$sheet->getCell("C{$row}")->getCalculatedValue());
+            try {
+                // Use getValue() instead of getCalculatedValue() to avoid formula calculation hangs
+                // For .xlsm files with complex formulas, getCalculatedValue() can hang indefinitely
+                // getValue() returns the cached calculated value from when the file was last saved
+                $qtyCell = $sheet->getCell("A{$row}");
+                $partNumberCell = $sheet->getCell("B{$row}");
+                $finishCell = $sheet->getCell("C{$row}");
 
-            // Skip empty rows
-            if (empty($partNumber) || $qty <= 0) {
-                continue;
-            }
+                $qty = $qtyCell->getValue();
+                $partNumber = trim((string)$partNumberCell->getValue());
+                $finish = trim((string)$finishCell->getValue());
 
-            // Combine Part Number and Finish to create SKU (format: PartNumber-Finish)
-            $sku = $partNumber;
-            if (!empty($finish)) {
-                $sku .= '-' . $finish;
-            }
+                // Skip empty rows
+                if (empty($partNumber) || $qty <= 0) {
+                    continue;
+                }
 
-            $summary['total']++;
+                // Combine Part Number and Finish to create SKU (format: PartNumber-Finish)
+                $sku = $partNumber;
+                if (!empty($finish)) {
+                    $sku .= '-' . $finish;
+                }
 
-            // Look up the part in inventory
-            $product = $this->findProduct($sku);
+                $summary['total']++;
 
-            if (!$product) {
+                // Look up the part in inventory
+                $product = $this->findProduct($sku);
+
+                if (!$product) {
+                    $results[] = [
+                        'part_number' => $partNumber,
+                        'finish' => $finish,
+                        'sku' => $sku,
+                        'description' => '',
+                        'required_quantity' => $qty,
+                        'available_quantity' => 0,
+                        'shortage' => $qty,
+                        'status' => 'not_found',
+                        'location' => null,
+                        'sheet' => $sheetName,
+                        'row' => $row,
+                    ];
+                    $summary['not_found']++;
+                    continue;
+                }
+
+                // Calculate availability
+                $availableQty = $product->quantity_available ?? $product->quantity_on_hand ?? 0;
+                $shortage = max(0, $qty - $availableQty);
+
+                // Determine status
+                $status = 'available';
+                if ($availableQty <= 0) {
+                    $status = 'unavailable';
+                    $summary['unavailable']++;
+                } elseif ($availableQty < $qty) {
+                    $status = 'partial';
+                    $summary['partial']++;
+                } else {
+                    $summary['available']++;
+                }
+
                 $results[] = [
                     'part_number' => $partNumber,
                     'finish' => $finish,
                     'sku' => $sku,
-                    'description' => '',
+                    'description' => $product->description,
                     'required_quantity' => $qty,
-                    'available_quantity' => 0,
-                    'shortage' => $qty,
-                    'status' => 'not_found',
-                    'location' => null,
+                    'available_quantity' => $availableQty,
+                    'shortage' => $shortage,
+                    'status' => $status,
+                    'location' => $product->location,
+                    'product_id' => $product->id,
                     'sheet' => $sheetName,
                     'row' => $row,
                 ];
-                $summary['not_found']++;
+            } catch (\Exception $e) {
+                // Log error but continue processing other rows
+                @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Error processing row {$row} in {$sheetName}: {$e->getMessage()}\n", FILE_APPEND);
+                Log::warning("Error processing row", [
+                    'sheet' => $sheetName,
+                    'row' => $row,
+                    'error' => $e->getMessage()
+                ]);
                 continue;
             }
-
-            // Calculate availability
-            $availableQty = $product->quantity_available ?? $product->quantity_on_hand ?? 0;
-            $shortage = max(0, $qty - $availableQty);
-
-            // Determine status
-            $status = 'available';
-            if ($availableQty <= 0) {
-                $status = 'unavailable';
-                $summary['unavailable']++;
-            } elseif ($availableQty < $qty) {
-                $status = 'partial';
-                $summary['partial']++;
-            } else {
-                $summary['available']++;
-            }
-
-            $results[] = [
-                'part_number' => $partNumber,
-                'finish' => $finish,
-                'sku' => $sku,
-                'description' => $product->description,
-                'required_quantity' => $qty,
-                'available_quantity' => $availableQty,
-                'shortage' => $shortage,
-                'status' => $status,
-                'location' => $product->location,
-                'product_id' => $product->id,
-                'sheet' => $sheetName,
-                'row' => $row,
-            ];
         }
+
+        @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Completed processing {$sheetName}\n", FILE_APPEND);
+        Log::info("Completed processing sheet", ['name' => $sheetName]);
     }
 
     /**
