@@ -12,6 +12,17 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class MaterialCheckController extends Controller
 {
     /**
+     * Test endpoint
+     */
+    public function test()
+    {
+        return response()->json([
+            'message' => 'MaterialCheckController is working',
+            'phpspreadsheet_installed' => class_exists('PhpOffice\\PhpSpreadsheet\\IOFactory'),
+        ]);
+    }
+
+    /**
      * Check materials from uploaded estimate file against inventory
      */
     public function checkMaterials(Request $request)

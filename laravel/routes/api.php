@@ -185,6 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/export/template', [ImportExportController::class, 'downloadTemplate']);
 
         // Fulfillment
+        Route::get('/fulfillment/test', [MaterialCheckController::class, 'test']);
         Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
 
         // Maintenance
