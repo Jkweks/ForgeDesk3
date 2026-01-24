@@ -21,12 +21,7 @@ class MaterialCheckController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'file' => 'required|file|mimes:xlsx,xlsm|max:10240',
-                'sheet_name' => 'nullable|string|max:255',
-                'header_row' => 'nullable|integer|min:1',
-                'data_start_row' => 'nullable|integer|min:1',
-                'part_number_column' => 'nullable|string|max:255',
-                'quantity_column' => 'nullable|string|max:255',
-                'description_column' => 'nullable|string|max:255',
+                'mode' => 'nullable|string|in:ez_estimate,generic',
             ]);
 
             if ($validator->fails()) {
@@ -40,16 +35,200 @@ class MaterialCheckController extends Controller
             $file = $request->file('file');
             Log::info('File received', ['name' => $file->getClientOriginalName(), 'size' => $file->getSize()]);
 
+            $mode = $request->input('mode', 'ez_estimate');
+
+            // Load the spreadsheet
+            Log::info('Loading spreadsheet');
+            $spreadsheet = IOFactory::load($file->getRealPath());
+
+            if ($mode === 'ez_estimate') {
+                return $this->checkEzEstimate($spreadsheet);
+            } else {
+                return $this->checkGenericEstimate($request, $spreadsheet);
+            }
+
+        } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
+            Log::error('Excel file read error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            return response()->json([
+                'error' => 'Failed to read the Excel file: ' . $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Material check error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'error' => 'Material check failed: ' . $e->getMessage(),
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Check EZ Estimate file format
+     * Reads from Stock Lengths and Accessories sheets
+     */
+    private function checkEzEstimate($spreadsheet)
+    {
+        $results = [];
+        $summary = [
+            'total' => 0,
+            'available' => 0,
+            'partial' => 0,
+            'unavailable' => 0,
+            'not_found' => 0,
+        ];
+
+        // Get all sheets
+        $allSheets = $spreadsheet->getAllSheets();
+        $stockLengthsSheets = [];
+        $accessoriesSheets = [];
+
+        foreach ($allSheets as $sheet) {
+            $title = $sheet->getTitle();
+            if (stripos($title, 'Stock Lengths') === 0) {
+                $stockLengthsSheets[] = $sheet;
+            } elseif (stripos($title, 'Accessories') === 0) {
+                $accessoriesSheets[] = $sheet;
+            }
+        }
+
+        Log::info('Found sheets', [
+            'stock_lengths' => count($stockLengthsSheets),
+            'accessories' => count($accessoriesSheets),
+        ]);
+
+        // Process Stock Lengths sheets (A11:C47)
+        foreach ($stockLengthsSheets as $sheet) {
+            Log::info('Processing Stock Lengths sheet', ['name' => $sheet->getTitle()]);
+            $this->processEzEstimateSheet(
+                $sheet,
+                11,  // Start row
+                47,  // End row
+                $results,
+                $summary,
+                $sheet->getTitle()
+            );
+        }
+
+        // Process Accessories sheets (A11:C46)
+        foreach ($accessoriesSheets as $sheet) {
+            Log::info('Processing Accessories sheet', ['name' => $sheet->getTitle()]);
+            $this->processEzEstimateSheet(
+                $sheet,
+                11,  // Start row
+                46,  // End row
+                $results,
+                $summary,
+                $sheet->getTitle()
+            );
+        }
+
+        return response()->json([
+            'message' => 'Material check completed',
+            'summary' => $summary,
+            'results' => $results,
+        ]);
+    }
+
+    /**
+     * Process a single EZ Estimate sheet
+     * Columns: A=Qty, B=Part Number, C=Finish
+     */
+    private function processEzEstimateSheet($sheet, $startRow, $endRow, &$results, &$summary, $sheetName)
+    {
+        for ($row = $startRow; $row <= $endRow; $row++) {
+            $qty = $sheet->getCell("A{$row}")->getCalculatedValue();
+            $partNumber = trim((string)$sheet->getCell("B{$row}")->getCalculatedValue());
+            $finish = trim((string)$sheet->getCell("C{$row}")->getCalculatedValue());
+
+            // Skip empty rows
+            if (empty($partNumber) || $qty <= 0) {
+                continue;
+            }
+
+            // Combine Part Number and Finish to create SKU (format: PartNumber-Finish)
+            $sku = $partNumber;
+            if (!empty($finish)) {
+                $sku .= '-' . $finish;
+            }
+
+            $summary['total']++;
+
+            // Look up the part in inventory
+            $product = $this->findProduct($sku);
+
+            if (!$product) {
+                $results[] = [
+                    'part_number' => $partNumber,
+                    'finish' => $finish,
+                    'sku' => $sku,
+                    'description' => '',
+                    'required_quantity' => $qty,
+                    'available_quantity' => 0,
+                    'shortage' => $qty,
+                    'status' => 'not_found',
+                    'location' => null,
+                    'sheet' => $sheetName,
+                    'row' => $row,
+                ];
+                $summary['not_found']++;
+                continue;
+            }
+
+            // Calculate availability
+            $availableQty = $product->quantity_available ?? $product->quantity_on_hand ?? 0;
+            $shortage = max(0, $qty - $availableQty);
+
+            // Determine status
+            $status = 'available';
+            if ($availableQty <= 0) {
+                $status = 'unavailable';
+                $summary['unavailable']++;
+            } elseif ($availableQty < $qty) {
+                $status = 'partial';
+                $summary['partial']++;
+            } else {
+                $summary['available']++;
+            }
+
+            $results[] = [
+                'part_number' => $partNumber,
+                'finish' => $finish,
+                'sku' => $sku,
+                'description' => $product->description,
+                'required_quantity' => $qty,
+                'available_quantity' => $availableQty,
+                'shortage' => $shortage,
+                'status' => $status,
+                'location' => $product->location,
+                'product_id' => $product->id,
+                'sheet' => $sheetName,
+                'row' => $row,
+            ];
+        }
+    }
+
+    /**
+     * Check generic estimate file format (original implementation)
+     */
+    private function checkGenericEstimate(Request $request, $spreadsheet)
+    {
             $sheetName = $request->input('sheet_name');
             $headerRow = $request->input('header_row', 1);
             $dataStartRow = $request->input('data_start_row', $headerRow + 1);
             $partNumberColumn = $request->input('part_number_column', 'Part Number');
             $quantityColumn = $request->input('quantity_column', 'Quantity');
             $descriptionColumn = $request->input('description_column', 'Description');
-
-            // Load the spreadsheet
-            Log::info('Loading spreadsheet');
-            $spreadsheet = IOFactory::load($file->getRealPath());
 
             // Select the worksheet
             if ($sheetName) {
@@ -189,31 +368,6 @@ class MaterialCheckController extends Controller
                 'summary' => $summary,
                 'results' => $results,
             ]);
-
-        } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
-            Log::error('Excel file read error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-            return response()->json([
-                'error' => 'Failed to read the Excel file: ' . $e->getMessage(),
-                'file' => basename($e->getFile()),
-                'line' => $e->getLine(),
-            ], 500);
-        } catch (\Exception $e) {
-            Log::error('Material check error', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'error' => 'Material check failed: ' . $e->getMessage(),
-                'file' => basename($e->getFile()),
-                'line' => $e->getLine(),
-            ], 500);
-        }
     }
 
     /**
