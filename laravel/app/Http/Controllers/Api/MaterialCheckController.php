@@ -70,21 +70,23 @@ class MaterialCheckController extends Controller
             $mode = $request->input('mode', 'ez_estimate');
             @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Mode: {$mode}\n", FILE_APPEND);
 
-            // Load the spreadsheet
-            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Loading spreadsheet...\n", FILE_APPEND);
-            Log::info('Loading spreadsheet');
+            // Load the spreadsheet with optimized filter
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Loading spreadsheet with optimized filter...\n", FILE_APPEND);
+            Log::info('Loading spreadsheet with filter');
 
             // Increase memory limit for large files (keep for entire request)
             ini_set('memory_limit', '512M');
             @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Memory limit increased to 512M\n", FILE_APPEND);
 
-            // Load with read filter to only load data (not formatting)
+            // Create reader and apply custom read filter
+            // This only loads Stock Lengths & Accessories sheets, columns A-C, rows 11-47/11-46
             $reader = IOFactory::createReaderForFile($file->getRealPath());
             $reader->setReadDataOnly(true);
+            $reader->setReadFilter(new EzEstimateReadFilter());
 
-            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Reader created, loading file...\n", FILE_APPEND);
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Reader created with filter, loading file...\n", FILE_APPEND);
             $spreadsheet = $reader->load($file->getRealPath());
-            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Spreadsheet loaded successfully (memory usage: " . round(memory_get_usage() / 1024 / 1024, 2) . "MB)\n", FILE_APPEND);
+            @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Spreadsheet loaded (memory: " . round(memory_get_usage() / 1024 / 1024, 2) . "MB)\n", FILE_APPEND);
 
             if ($mode === 'ez_estimate') {
                 @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Processing EZ Estimate\n", FILE_APPEND);
@@ -577,5 +579,37 @@ class MaterialCheckController extends Controller
         }
 
         return null;
+    }
+}
+
+/**
+ * Read filter to only load Stock Lengths and Accessories sheets
+ * Only loads columns A-C in the specific row ranges
+ */
+class EzEstimateReadFilter implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter
+{
+    public function readCell(string $columnAddress, int $row, string $worksheetName = ''): bool
+    {
+        // Only load sheets that start with "Stock Lengths" or "Accessories"
+        if (stripos($worksheetName, 'Stock Lengths') !== 0 && stripos($worksheetName, 'Accessories') !== 0) {
+            return false;
+        }
+
+        // Only load columns A, B, C
+        if (!in_array($columnAddress, ['A', 'B', 'C'])) {
+            return false;
+        }
+
+        // For Stock Lengths sheets: load rows 11-47
+        if (stripos($worksheetName, 'Stock Lengths') === 0) {
+            return ($row >= 11 && $row <= 47);
+        }
+
+        // For Accessories sheets: load rows 11-46
+        if (stripos($worksheetName, 'Accessories') === 0) {
+            return ($row >= 11 && $row <= 46);
+        }
+
+        return false;
     }
 }
