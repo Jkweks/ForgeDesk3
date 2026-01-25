@@ -22,7 +22,6 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\CycleCountController;
 use App\Http\Controllers\Api\MachineToolingController;
 use App\Http\Controllers\Api\MaterialCheckController;
-use App\Http\Controllers\Api\JobReservationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
