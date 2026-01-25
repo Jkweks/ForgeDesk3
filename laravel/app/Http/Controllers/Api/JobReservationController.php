@@ -15,10 +15,19 @@ class JobReservationController extends Controller
 {
     /**
      * List all job reservations with summary data
+     * If $product is provided, returns reservations for that specific product (old API compatibility)
      */
-    public function index()
+    public function index($product = null)
     {
         try {
+            // Old API: product-specific reservations
+            if ($product !== null) {
+                // Return empty array for old product reservation system
+                // The new fulfillment system uses job-based reservations with line items
+                return response()->json([]);
+            }
+
+            // New API: all job reservations
             $reservations = JobReservation::with('items')
                 ->orderByRaw("CASE WHEN status IN ('fulfilled', 'cancelled') THEN 1 ELSE 0 END")
                 ->orderBy('created_at', 'desc')
@@ -375,5 +384,106 @@ class JobReservationController extends Controller
         return response()->json([
             'labels' => JobReservation::statusLabels(),
         ]);
+    }
+
+    /**
+     * Get active reservations for a product (old API compatibility)
+     */
+    public function active($product)
+    {
+        // Return empty array for old product reservation system
+        return response()->json([]);
+    }
+
+    /**
+     * Get all jobs (old API compatibility)
+     */
+    public function getAllJobs()
+    {
+        // Return all job numbers from new reservation system
+        try {
+            $jobs = JobReservation::select('job_number', 'job_name')
+                ->distinct()
+                ->orderBy('job_number')
+                ->get()
+                ->map(function ($reservation) {
+                    return [
+                        'job_number' => $reservation->job_number,
+                        'job_name' => $reservation->job_name,
+                    ];
+                });
+
+            return response()->json($jobs);
+        } catch (\Exception $e) {
+            return response()->json([]);
+        }
+    }
+
+    /**
+     * Get reservation statistics for a product (old API compatibility)
+     */
+    public function statistics($product)
+    {
+        // Return empty statistics for old product reservation system
+        return response()->json([
+            'total_reserved' => 0,
+            'total_fulfilled' => 0,
+            'total_pending' => 0,
+        ]);
+    }
+
+    /**
+     * Store a new reservation for a product (old API compatibility)
+     */
+    public function store(Request $request, $product)
+    {
+        return response()->json([
+            'error' => 'This feature has been replaced by the new Fulfillment Material Check process',
+            'message' => 'Please use Fulfillment > Material Check to create job reservations',
+        ], 410);
+    }
+
+    /**
+     * Update a reservation (old API compatibility)
+     */
+    public function update(Request $request, $product, $reservation)
+    {
+        return response()->json([
+            'error' => 'This feature has been replaced by the new Fulfillment process',
+            'message' => 'Please use Fulfillment > Job Reservations to manage reservations',
+        ], 410);
+    }
+
+    /**
+     * Fulfill a reservation (old API compatibility)
+     */
+    public function fulfill(Request $request, $product, $reservation)
+    {
+        return response()->json([
+            'error' => 'This feature has been replaced by the new Fulfillment process',
+            'message' => 'Please use Fulfillment > Job Reservations to complete jobs',
+        ], 410);
+    }
+
+    /**
+     * Release a reservation (old API compatibility)
+     */
+    public function release(Request $request, $product, $reservation)
+    {
+        return response()->json([
+            'error' => 'This feature has been replaced by the new Fulfillment process',
+            'message' => 'Please use Fulfillment > Job Reservations to manage reservations',
+        ], 410);
+    }
+
+    /**
+     * Delete a reservation (old API compatibility)
+     */
+    public function destroy($product, $reservation)
+    {
+        return response()->json([
+            'error' => 'This feature has been replaced by the new Fulfillment process',
+            'message' => 'Please use Fulfillment > Job Reservations to manage reservations',
+        ], 410);
     }
 }

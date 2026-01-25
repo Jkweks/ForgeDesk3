@@ -206,9 +206,35 @@
         let filteredReservations = [];
         let completeItems = [];
 
+        // Helper function to close modal
+        function closeModal(modalId) {
+            const modalElement = document.getElementById(modalId);
+            modalElement.classList.remove('show');
+            modalElement.style.display = 'none';
+            modalElement.setAttribute('aria-hidden', 'true');
+            modalElement.removeAttribute('aria-modal');
+            document.body.classList.remove('modal-open');
+
+            // Remove backdrop
+            const backdrop = document.querySelector(`.modal-backdrop[data-modal-id="${modalId}"]`);
+            if (backdrop) {
+                backdrop.remove();
+            }
+        }
+
         // Load reservations on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadReservations();
+
+            // Add close button handlers for all modals
+            document.querySelectorAll('[data-bs-dismiss="modal"]').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        closeModal(modal.id);
+                    }
+                });
+            });
         });
 
         async function loadReservations() {
@@ -430,8 +456,19 @@
                 </div>
             `;
 
-            const modal = new bootstrap.Modal(document.getElementById('detailModal'));
-            modal.show();
+            // Show modal using DOM manipulation
+            const modalElement = document.getElementById('detailModal');
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            // Add backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.setAttribute('data-modal-id', 'detailModal');
+            document.body.appendChild(backdrop);
         }
 
         function showStatusModal(id, currentStatus) {
@@ -439,8 +476,19 @@
             document.getElementById('newStatus').value = currentStatus;
             document.getElementById('statusWarnings').style.display = 'none';
 
-            const modal = new bootstrap.Modal(document.getElementById('statusModal'));
-            modal.show();
+            // Show modal using DOM manipulation
+            const modalElement = document.getElementById('statusModal');
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            // Add backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.setAttribute('data-modal-id', 'statusModal');
+            document.body.appendChild(backdrop);
         }
 
         async function confirmStatusChange() {
@@ -481,8 +529,18 @@
                     }
 
                     // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('statusModal'));
-                    modal.hide();
+                    const modalElement = document.getElementById('statusModal');
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = 'none';
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalElement.removeAttribute('aria-modal');
+                    document.body.classList.remove('modal-open');
+
+                    // Remove backdrop
+                    const backdrop = document.querySelector('.modal-backdrop[data-modal-id="statusModal"]');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
 
                     // Reload reservations
                     await loadReservations();
@@ -544,8 +602,19 @@
                         `;
                     }).join('');
 
-                    const modal = new bootstrap.Modal(document.getElementById('completeModal'));
-                    modal.show();
+                    // Show modal using DOM manipulation
+                    const modalElement = document.getElementById('completeModal');
+                    modalElement.classList.add('show');
+                    modalElement.style.display = 'block';
+                    modalElement.setAttribute('aria-modal', 'true');
+                    modalElement.removeAttribute('aria-hidden');
+                    document.body.classList.add('modal-open');
+
+                    // Add backdrop
+                    const backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    backdrop.setAttribute('data-modal-id', 'completeModal');
+                    document.body.appendChild(backdrop);
                 } else {
                     alert('Error loading reservation details');
                 }
@@ -604,8 +673,18 @@
                     const data = await response.json();
 
                     // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('completeModal'));
-                    modal.hide();
+                    const modalElement = document.getElementById('completeModal');
+                    modalElement.classList.remove('show');
+                    modalElement.style.display = 'none';
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalElement.removeAttribute('aria-modal');
+                    document.body.classList.remove('modal-open');
+
+                    // Remove backdrop
+                    const backdrop = document.querySelector('.modal-backdrop[data-modal-id="completeModal"]');
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
 
                     // Reload reservations
                     await loadReservations();
