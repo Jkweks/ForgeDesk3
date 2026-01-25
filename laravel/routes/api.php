@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\CycleCountController;
 use App\Http\Controllers\Api\MachineToolingController;
 use App\Http\Controllers\Api\MaterialCheckController;
+use App\Http\Controllers\Api\JobReservationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -66,6 +67,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/fulfillment/test', [MaterialCheckController::class, 'test']);
     Route::post('/fulfillment/material-check', [MaterialCheckController::class, 'checkMaterials']);
     Route::post('/fulfillment/commit-materials', [MaterialCheckController::class, 'commitMaterials']);
+
+    // Job Reservations
+    Route::get('/job-reservations', [JobReservationController::class, 'index']);
+    Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
+    Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);
+    Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

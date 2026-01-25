@@ -61,6 +61,9 @@
                     <a class="dropdown-item" href="/fulfillment/material-check">
                       <i class="ti ti-checklist me-2"></i>Material Check
                     </a>
+                    <a class="dropdown-item" href="/fulfillment/job-reservations">
+                      <i class="ti ti-clipboard-list me-2"></i>Job Reservations
+                    </a>
                   </div>
                 </li>
                 <li class="nav-item {{ Request::is('reports') ? 'active' : '' }}">

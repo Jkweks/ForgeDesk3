@@ -4,359 +4,228 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\JobReservation;
+use App\Models\JobReservationItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 
 class JobReservationController extends Controller
 {
     /**
-     * Get all reservations for a specific product
+     * List all job reservations with summary data
      */
-    public function index(Product $product)
+    public function index()
     {
-        $reservations = $product->jobReservations()
-            ->with(['reservedBy', 'releasedBy'])
-            ->orderBy('status')
-            ->orderBy('required_date', 'asc')
-            ->orderBy('reserved_date', 'desc')
-            ->get();
-
-        return response()->json($reservations);
-    }
-
-    /**
-     * Get all active reservations for a product
-     */
-    public function active(Product $product)
-    {
-        $reservations = $product->activeReservations()
-            ->with(['reservedBy'])
-            ->orderBy('required_date', 'asc')
-            ->get();
-
-        return response()->json($reservations);
-    }
-
-    /**
-     * Create a new reservation
-     */
-    public function store(Request $request, Product $product)
-    {
-        $validated = $request->validate([
-            'job_number' => 'required|string|max:255',
-            'job_name' => 'nullable|string|max:255',
-            'quantity_reserved' => 'required|integer|min:1',
-            'reserved_date' => 'required|date',
-            'required_date' => 'nullable|date|after_or_equal:reserved_date',
-            'notes' => 'nullable|string',
-        ]);
-
-        // Check if there's enough available inventory
-        $availableQuantity = $product->quantity_on_hand - $product->quantity_committed;
-
-        if ($validated['quantity_reserved'] > $availableQuantity) {
-            return response()->json([
-                'message' => 'Insufficient available inventory for reservation',
-                'errors' => [
-                    'quantity_reserved' => [
-                        "Only {$availableQuantity} units available. Cannot reserve {$validated['quantity_reserved']} units."
-                    ]
-                ],
-                'available' => $availableQuantity,
-                'requested' => $validated['quantity_reserved']
-            ], 422);
-        }
-
-        DB::beginTransaction();
         try {
-            // Create reservation
-            $reservation = $product->jobReservations()->create([
-                'job_number' => $validated['job_number'],
-                'job_name' => $validated['job_name'] ?? null,
-                'quantity_reserved' => $validated['quantity_reserved'],
-                'reserved_date' => $validated['reserved_date'],
-                'required_date' => $validated['required_date'] ?? null,
-                'status' => 'active',
-                'quantity_fulfilled' => 0,
-                'reserved_by' => auth()->id(),
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            // Update product committed quantity
-            $this->updateProductCommitted($product);
-
-            DB::commit();
-
-            return response()->json($reservation->load('reservedBy'), 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to create reservation'], 500);
-        }
-    }
-
-    /**
-     * Update a reservation
-     */
-    public function update(Request $request, Product $product, JobReservation $reservation)
-    {
-        // Verify the reservation belongs to this product
-        if ($reservation->product_id !== $product->id) {
-            return response()->json(['message' => 'Reservation not found'], 404);
-        }
-
-        $validated = $request->validate([
-            'job_number' => 'required|string|max:255',
-            'job_name' => 'nullable|string|max:255',
-            'quantity_reserved' => 'required|integer|min:1',
-            'required_date' => 'nullable|date',
-            'notes' => 'nullable|string',
-        ]);
-
-        // If changing quantity, check availability
-        if ($validated['quantity_reserved'] != $reservation->quantity_reserved) {
-            $difference = $validated['quantity_reserved'] - $reservation->quantity_reserved;
-            $availableQuantity = $product->quantity_on_hand - $product->quantity_committed + $reservation->quantity_reserved;
-
-            if ($validated['quantity_reserved'] > $availableQuantity) {
-                return response()->json([
-                    'message' => 'Insufficient available inventory',
-                    'errors' => [
-                        'quantity_reserved' => [
-                            "Only {$availableQuantity} units available."
-                        ]
-                    ]
-                ], 422);
-            }
-        }
-
-        DB::beginTransaction();
-        try {
-            $reservation->update([
-                'job_number' => $validated['job_number'],
-                'job_name' => $validated['job_name'] ?? $reservation->job_name,
-                'quantity_reserved' => $validated['quantity_reserved'],
-                'required_date' => $validated['required_date'] ?? $reservation->required_date,
-                'notes' => $validated['notes'] ?? $reservation->notes,
-            ]);
-
-            // Update product committed quantity
-            $this->updateProductCommitted($product);
-
-            DB::commit();
-
-            return response()->json($reservation->fresh()->load(['reservedBy', 'releasedBy']));
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to update reservation'], 500);
-        }
-    }
-
-    /**
-     * Partially fulfill a reservation
-     */
-    public function fulfill(Request $request, Product $product, JobReservation $reservation)
-    {
-        // Verify the reservation belongs to this product
-        if ($reservation->product_id !== $product->id) {
-            return response()->json(['message' => 'Reservation not found'], 404);
-        }
-
-        if ($reservation->status === 'fulfilled' || $reservation->status === 'cancelled') {
-            return response()->json([
-                'message' => 'Cannot fulfill a reservation that is already fulfilled or cancelled'
-            ], 422);
-        }
-
-        $validated = $request->validate([
-            'quantity_fulfilled' => 'required|integer|min:1',
-            'notes' => 'nullable|string',
-        ]);
-
-        $totalFulfilled = $reservation->quantity_fulfilled + $validated['quantity_fulfilled'];
-
-        if ($totalFulfilled > $reservation->quantity_reserved) {
-            return response()->json([
-                'message' => 'Fulfill quantity exceeds reserved quantity',
-                'errors' => [
-                    'quantity_fulfilled' => [
-                        "Cannot fulfill {$totalFulfilled} units when only {$reservation->quantity_reserved} were reserved."
-                    ]
-                ]
-            ], 422);
-        }
-
-        DB::beginTransaction();
-        try {
-            $reservation->quantity_fulfilled = $totalFulfilled;
-
-            // Update status
-            if ($totalFulfilled >= $reservation->quantity_reserved) {
-                $reservation->status = 'fulfilled';
-                $reservation->released_date = now();
-                $reservation->released_by = auth()->id();
-            } else {
-                $reservation->status = 'partially_fulfilled';
-            }
-
-            if ($validated['notes'] ?? false) {
-                $reservation->notes = ($reservation->notes ? $reservation->notes . "\n" : '') .
-                                     now()->format('Y-m-d H:i') . ': ' . $validated['notes'];
-            }
-
-            $reservation->save();
-
-            // Update product committed quantity
-            $this->updateProductCommitted($product);
-
-            // Reduce product quantity
-            $product->quantity_on_hand -= $validated['quantity_fulfilled'];
-            $product->save();
-            $product->updateStatus();
-
-            DB::commit();
+            $reservations = JobReservation::with('items')
+                ->orderByRaw("CASE WHEN status IN ('fulfilled', 'cancelled') THEN 1 ELSE 0 END")
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($reservation) {
+                    return [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'release_number' => $reservation->release_number,
+                        'job_name' => $reservation->job_name,
+                        'requested_by' => $reservation->requested_by,
+                        'needed_by' => $reservation->needed_by?->format('Y-m-d'),
+                        'status' => $reservation->status,
+                        'status_label' => $reservation->status_label,
+                        'notes' => $reservation->notes,
+                        'created_at' => $reservation->created_at->format('Y-m-d H:i:s'),
+                        'items_count' => $reservation->items->count(),
+                        'total_requested' => $reservation->items->sum('requested_qty'),
+                        'total_committed' => $reservation->items->sum('committed_qty'),
+                        'total_consumed' => $reservation->items->sum('consumed_qty'),
+                    ];
+                });
 
             return response()->json([
-                'message' => 'Reservation fulfilled successfully',
-                'reservation' => $reservation->fresh()->load(['reservedBy', 'releasedBy'])
+                'reservations' => $reservations,
             ]);
         } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to fulfill reservation'], 500);
-        }
-    }
-
-    /**
-     * Release/Cancel a reservation
-     */
-    public function release(Request $request, Product $product, JobReservation $reservation)
-    {
-        // Verify the reservation belongs to this product
-        if ($reservation->product_id !== $product->id) {
-            return response()->json(['message' => 'Reservation not found'], 404);
-        }
-
-        if ($reservation->status === 'fulfilled' || $reservation->status === 'cancelled') {
-            return response()->json([
-                'message' => 'Reservation is already fulfilled or cancelled'
-            ], 422);
-        }
-
-        $validated = $request->validate([
-            'notes' => 'nullable|string',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $reservation->status = 'cancelled';
-            $reservation->released_date = now();
-            $reservation->released_by = auth()->id();
-
-            if ($validated['notes'] ?? false) {
-                $reservation->notes = ($reservation->notes ? $reservation->notes . "\n" : '') .
-                                     now()->format('Y-m-d H:i') . ': ' . $validated['notes'];
-            }
-
-            $reservation->save();
-
-            // Update product committed quantity
-            $this->updateProductCommitted($product);
-
-            DB::commit();
-
-            return response()->json([
-                'message' => 'Reservation released successfully',
-                'reservation' => $reservation->fresh()->load(['reservedBy', 'releasedBy'])
+            Log::error('Failed to list reservations', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['message' => 'Failed to release reservation'], 500);
-        }
-    }
 
-    /**
-     * Delete a reservation (soft delete)
-     */
-    public function destroy(Product $product, JobReservation $reservation)
-    {
-        // Verify the reservation belongs to this product
-        if ($reservation->product_id !== $product->id) {
-            return response()->json(['message' => 'Reservation not found'], 404);
-        }
-
-        // Only allow deletion of cancelled or fulfilled reservations
-        if ($reservation->status === 'active' || $reservation->status === 'partially_fulfilled') {
             return response()->json([
-                'message' => 'Cannot delete active reservations. Please release or fulfill first.',
-                'errors' => ['status' => ['Active reservation cannot be deleted']]
-            ], 422);
+                'error' => 'Failed to list reservations',
+                'message' => $e->getMessage(),
+            ], 500);
         }
-
-        $reservation->delete();
-
-        return response()->json(['message' => 'Reservation deleted successfully'], 200);
     }
 
     /**
-     * Get reservation statistics for a product
+     * Get detailed reservation with line items
      */
-    public function statistics(Product $product)
+    public function show($id)
     {
-        $activeReservations = $product->activeReservations;
+        try {
+            $reservation = JobReservation::with(['items.product'])->findOrFail($id);
 
-        $stats = [
-            'total_reservations' => $product->jobReservations()->count(),
-            'active_reservations_count' => $activeReservations->count(),
-            'total_quantity_reserved' => $activeReservations->sum('quantity_reserved'),
-            'total_quantity_fulfilled' => $product->jobReservations()
-                ->whereIn('status', ['partially_fulfilled', 'fulfilled'])
-                ->sum('quantity_fulfilled'),
-            'quantity_on_hand' => $product->quantity_on_hand,
-            'quantity_committed' => $product->quantity_committed,
-            'quantity_available' => $product->quantity_available,
-            'atp' => $product->quantity_on_hand - $product->quantity_committed, // Available-to-Promise
-            'overdue_reservations' => $activeReservations->filter(function($r) {
-                return $r->required_date && $r->required_date->isPast();
-            })->count(),
-            'upcoming_reservations' => $activeReservations->filter(function($r) {
-                return $r->required_date && $r->required_date->isFuture() && $r->required_date->diffInDays(now()) <= 7;
-            })->count(),
-        ];
-
-        return response()->json($stats);
-    }
-
-    /**
-     * Get all unique job numbers
-     */
-    public function getAllJobs()
-    {
-        $jobs = JobReservation::select('job_number', 'job_name')
-            ->distinct()
-            ->orderBy('job_number', 'desc')
-            ->limit(100)
-            ->get()
-            ->map(function($job) {
+            $items = $reservation->items->map(function ($item) {
                 return [
-                    'job_number' => $job->job_number,
-                    'job_name' => $job->job_name,
-                    'label' => $job->job_name ? "{$job->job_number} - {$job->job_name}" : $job->job_number
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'requested_qty' => $item->requested_qty,
+                    'committed_qty' => $item->committed_qty,
+                    'consumed_qty' => $item->consumed_qty,
+                    'released_qty' => $item->released_qty,
+                    'shortfall' => $item->shortfall,
+                    'product' => [
+                        'id' => $item->product->id,
+                        'sku' => $item->product->sku,
+                        'part_number' => $item->product->part_number,
+                        'finish' => $item->product->finish,
+                        'description' => $item->product->description,
+                        'location' => $item->product->location,
+                        'quantity_on_hand' => $item->product->quantity_on_hand,
+                        'quantity_available' => $item->product->quantity_available,
+                    ],
                 ];
             });
 
-        return response()->json($jobs);
+            return response()->json([
+                'reservation' => [
+                    'id' => $reservation->id,
+                    'job_number' => $reservation->job_number,
+                    'release_number' => $reservation->release_number,
+                    'job_name' => $reservation->job_name,
+                    'requested_by' => $reservation->requested_by,
+                    'needed_by' => $reservation->needed_by?->format('Y-m-d'),
+                    'status' => $reservation->status,
+                    'status_label' => $reservation->status_label,
+                    'notes' => $reservation->notes,
+                    'created_at' => $reservation->created_at->format('Y-m-d H:i:s'),
+                    'updated_at' => $reservation->updated_at->format('Y-m-d H:i:s'),
+                ],
+                'items' => $items,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to fetch reservation', [
+                'reservation_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to fetch reservation',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
-     * Helper: Update product committed quantity from reservations
+     * Update reservation status with validation
      */
-    private function updateProductCommitted(Product $product)
+    public function updateStatus(Request $request, $id)
     {
-        $totalCommitted = $product->activeReservations()
-            ->sum(DB::raw('quantity_reserved - quantity_fulfilled'));
+        try {
+            $validator = Validator::make($request->all(), [
+                'status' => 'required|in:draft,active,in_progress,fulfilled,on_hold,cancelled',
+            ]);
 
-        $product->quantity_committed = $totalCommitted;
-        $product->save();
-        $product->updateStatus();
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                $reservation = JobReservation::with('items.product')->findOrFail($id);
+                $previousStatus = $reservation->status;
+                $targetStatus = $request->status;
+
+                // Prevent changes to terminal states
+                if (in_array($previousStatus, ['fulfilled', 'cancelled'])) {
+                    return response()->json([
+                        'error' => 'Cannot modify reservation',
+                        'message' => "Reservation is {$previousStatus} and cannot be changed",
+                    ], 422);
+                }
+
+                $warnings = [];
+                $insufficientItems = [];
+
+                // Validate transition to in_progress
+                if ($targetStatus === 'in_progress') {
+                    foreach ($reservation->items as $item) {
+                        if ($item->product->quantity_on_hand < $item->committed_qty) {
+                            $insufficientItems[] = [
+                                'product_id' => $item->product_id,
+                                'sku' => $item->product->sku,
+                                'part_number' => $item->product->part_number,
+                                'finish' => $item->product->finish,
+                                'committed_qty' => $item->committed_qty,
+                                'on_hand' => $item->product->quantity_on_hand,
+                                'shortage' => $item->committed_qty - $item->product->quantity_on_hand,
+                                'location' => $item->product->location,
+                            ];
+                        }
+                    }
+
+                    if (!empty($insufficientItems)) {
+                        $warnings[] = 'Some items have insufficient stock to fulfill commitment';
+                    }
+                }
+
+                // Update status
+                $reservation->status = $targetStatus;
+                $reservation->save();
+
+                DB::commit();
+
+                Log::info('Reservation status updated', [
+                    'reservation_id' => $id,
+                    'previous_status' => $previousStatus,
+                    'new_status' => $targetStatus,
+                ]);
+
+                return response()->json([
+                    'message' => 'Status updated successfully',
+                    'reservation' => [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'release_number' => $reservation->release_number,
+                        'previous_status' => $previousStatus,
+                        'new_status' => $targetStatus,
+                        'status_label' => $reservation->status_label,
+                    ],
+                    'warnings' => $warnings,
+                    'insufficient_items' => $insufficientItems,
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update reservation status', [
+                'reservation_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to update status',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get status labels
+     */
+    public function statusLabels()
+    {
+        return response()->json([
+            'labels' => JobReservation::statusLabels(),
+        ]);
     }
 }
