@@ -811,9 +811,12 @@ class MigrateFromForgeDesk2 extends Command
                 $location = substr($location, 0, 252) . '...';
             }
 
+            // Append ID to session_number to ensure uniqueness
+            $sessionNumber = $row['name'] . ' (#' . $row['id'] . ')';
+
             $inserts[] = [
                 'id' => $row['id'],
-                'session_number' => $row['name'],
+                'session_number' => $sessionNumber,
                 'location' => $location,
                 'status' => $status,
                 'scheduled_date' => substr($row['started_at'], 0, 10),
