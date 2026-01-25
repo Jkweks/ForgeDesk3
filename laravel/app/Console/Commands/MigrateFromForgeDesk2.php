@@ -354,10 +354,15 @@ class MigrateFromForgeDesk2 extends Command
                 $description .= ($description ? ' | ' : '') . "Type: {$row['system_type']}";
             }
 
+            // Use system field as code (unique), fallback to id-prefixed name
+            $code = $row['system']
+                ? strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $row['system']))
+                : 'CAT' . $row['id'];
+
             $inserts[] = [
                 'id' => $row['id'],
                 'name' => $row['name'],
-                'code' => strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $row['name']), 0, 10)),
+                'code' => substr($code, 0, 20),
                 'system' => $row['system'] ?? null,
                 'description' => $description ?: null,
                 'is_active' => true,
