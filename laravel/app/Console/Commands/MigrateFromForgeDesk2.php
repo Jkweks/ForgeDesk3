@@ -132,10 +132,10 @@ class MigrateFromForgeDesk2 extends Command
         }
 
         $user = User::firstOrCreate(
-            ['email' => 'migration@forgedesk.local'],
+            ['email' => 'admin@forgedesk.local'],
             [
-                'name' => 'System Migration',
-                'password' => bcrypt(Str::random(32)),
+                'name' => 'Admin',
+                'password' => bcrypt('password'),
             ]
         );
 
