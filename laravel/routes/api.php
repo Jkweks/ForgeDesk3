@@ -72,6 +72,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/job-reservations', [JobReservationController::class, 'index']);
     Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
     Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);
+    Route::post('/job-reservations/{id}/complete', [JobReservationController::class, 'complete']);
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 });
 

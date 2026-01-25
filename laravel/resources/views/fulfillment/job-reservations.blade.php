@@ -160,9 +160,51 @@
       </div>
     </div>
 
+    <!-- Complete Job Modal -->
+    <div class="modal modal-blur fade" id="completeModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Complete Job</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="completeReservationId">
+            <div class="alert alert-info">
+              Enter the actual consumed quantities for each item. Items will be deducted from inventory.
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Part #</th>
+                    <th>Finish</th>
+                    <th>Committed</th>
+                    <th>Already Consumed</th>
+                    <th>Actual Consumed</th>
+                    <th>To Release</th>
+                  </tr>
+                </thead>
+                <tbody id="completeItemsTable">
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="confirmComplete()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+              Complete Job
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
         let reservations = [];
         let filteredReservations = [];
+        let completeItems = [];
 
         // Load reservations on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -225,6 +267,11 @@
                                 <button class="btn btn-sm btn-primary" onclick="viewDetails(${res.id})" title="View Details">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6" /></svg>
                                 </button>
+                                ${res.status === 'in_progress' ? `
+                                    <button class="btn btn-sm btn-success" onclick="showCompleteModal(${res.id})" title="Complete Job">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                                    </button>
+                                ` : ''}
                                 ${res.status !== 'fulfilled' && res.status !== 'cancelled' ? `
                                     <button class="btn btn-sm btn-secondary" onclick="showStatusModal(${res.id}, '${res.status}')" title="Change Status">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 5h-2a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-12a2 2 0 0 0 -2 -2h-2" /><path d="M9 3m0 2a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v0a2 2 0 0 1 -2 2h-2a2 2 0 0 1 -2 -2z" /><path d="M9 12l2 2l4 -4" /></svg>
@@ -448,6 +495,134 @@
             } catch (error) {
                 console.error('Error updating status:', error);
                 alert('Error updating status: ' + error.message);
+            }
+        }
+
+        async function showCompleteModal(id) {
+            try {
+                const response = await fetch(`/api/v1/job-reservations/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const items = data.items;
+
+                    document.getElementById('completeReservationId').value = id;
+                    completeItems = items;
+
+                    const tbody = document.getElementById('completeItemsTable');
+                    tbody.innerHTML = items.map((item, index) => {
+                        const toRelease = item.committed_qty - item.consumed_qty;
+                        return `
+                            <tr>
+                                <td><strong>${item.product.part_number}</strong></td>
+                                <td>${item.product.finish || '-'}</td>
+                                <td>${item.committed_qty}</td>
+                                <td>${item.consumed_qty}</td>
+                                <td>
+                                    <input type="number"
+                                        class="form-control form-control-sm"
+                                        id="consumed_${item.product_id}"
+                                        data-product-id="${item.product_id}"
+                                        data-committed="${item.committed_qty}"
+                                        data-already-consumed="${item.consumed_qty}"
+                                        value="${item.consumed_qty}"
+                                        min="${item.consumed_qty}"
+                                        max="${item.committed_qty}"
+                                        onchange="updateToRelease(${item.product_id})"
+                                        style="width: 100px;">
+                                </td>
+                                <td>
+                                    <span id="release_${item.product_id}" class="badge bg-info">${toRelease}</span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    const modal = new bootstrap.Modal(document.getElementById('completeModal'));
+                    modal.show();
+                } else {
+                    alert('Error loading reservation details');
+                }
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                alert('Error loading reservation details');
+            }
+        }
+
+        function updateToRelease(productId) {
+            const input = document.getElementById(`consumed_${productId}`);
+            const consumed = parseInt(input.value) || 0;
+            const committed = parseInt(input.dataset.committed);
+            const alreadyConsumed = parseInt(input.dataset.alreadyConsumed);
+
+            // Validate constraints
+            if (consumed < alreadyConsumed) {
+                alert(`Cannot reduce consumed quantity below already consumed (${alreadyConsumed})`);
+                input.value = alreadyConsumed;
+                return;
+            }
+
+            if (consumed > committed) {
+                alert(`Cannot consume more than committed quantity (${committed})`);
+                input.value = committed;
+                return;
+            }
+
+            // Update to release badge
+            const toRelease = committed - consumed;
+            document.getElementById(`release_${productId}`).textContent = toRelease;
+        }
+
+        async function confirmComplete() {
+            const id = document.getElementById('completeReservationId').value;
+            const consumedQuantities = {};
+
+            // Gather all consumed quantities
+            completeItems.forEach(item => {
+                const input = document.getElementById(`consumed_${item.product_id}`);
+                consumedQuantities[item.product_id] = parseInt(input.value) || 0;
+            });
+
+            try {
+                const response = await fetch(`/api/v1/job-reservations/${id}/complete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({ consumed_quantities: consumedQuantities })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('completeModal'));
+                    modal.hide();
+
+                    // Reload reservations
+                    await loadReservations();
+
+                    // Show success message
+                    const summary = data.items.map(item =>
+                        `${item.part_number}-${item.finish}: Consumed ${item.consumed}, Released ${item.released}`
+                    ).join('\n');
+
+                    alert(`✅ Job completed successfully!\n\nJob: ${data.reservation.job_number} Release ${data.reservation.release_number}\nTotal Consumed: ${data.reservation.total_consumed}\nTotal Released: ${data.reservation.total_released}\n\n${summary}`);
+                } else {
+                    const error = await response.json();
+                    alert('Error completing job: ' + (error.message || error.error));
+                }
+            } catch (error) {
+                console.error('Error completing job:', error);
+                alert('Error completing job: ' + error.message);
             }
         }
     </script>

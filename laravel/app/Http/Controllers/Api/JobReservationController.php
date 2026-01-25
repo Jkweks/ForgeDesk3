@@ -220,6 +220,154 @@ class JobReservationController extends Controller
     }
 
     /**
+     * Complete a job reservation with actual consumption quantities
+     */
+    public function complete(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'consumed_quantities' => 'required|array',
+                'consumed_quantities.*' => 'required|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                $reservation = JobReservation::with('items.product')->findOrFail($id);
+
+                // Validate status
+                if ($reservation->status !== 'in_progress') {
+                    return response()->json([
+                        'error' => 'Invalid status',
+                        'message' => 'Reservation must be in_progress to complete',
+                    ], 422);
+                }
+
+                $consumedQuantities = $request->consumed_quantities;
+                $totalConsumed = 0;
+                $totalReleased = 0;
+                $itemsData = [];
+
+                // Validate and process each item
+                foreach ($reservation->items as $item) {
+                    $productId = $item->product_id;
+
+                    if (!isset($consumedQuantities[$productId])) {
+                        return response()->json([
+                            'error' => 'Missing consumption data',
+                            'message' => "Consumed quantity required for product ID {$productId}",
+                        ], 422);
+                    }
+
+                    $actualQty = $consumedQuantities[$productId];
+
+                    // Validate consumed quantity
+                    if ($actualQty < $item->consumed_qty) {
+                        return response()->json([
+                            'error' => 'Invalid consumption',
+                            'message' => "Cannot reduce consumed quantity below already consumed ({$item->consumed_qty})",
+                        ], 422);
+                    }
+
+                    if ($actualQty > $item->committed_qty) {
+                        return response()->json([
+                            'error' => 'Invalid consumption',
+                            'message' => "Cannot consume more than committed quantity ({$item->committed_qty})",
+                        ], 422);
+                    }
+
+                    // Calculate deltas
+                    $consumedDelta = $actualQty - $item->consumed_qty;
+                    $releasedQty = $item->committed_qty - $actualQty;
+
+                    $totalConsumed += $consumedDelta;
+                    $totalReleased += $releasedQty;
+
+                    // Update reservation item
+                    $item->consumed_qty = $actualQty;
+                    $item->save();
+
+                    // Update product stock
+                    if ($consumedDelta > 0) {
+                        $product = $item->product;
+                        $stockBefore = $product->quantity_on_hand;
+                        $product->quantity_on_hand -= $consumedDelta;
+                        $product->save();
+
+                        Log::info('Stock updated for product', [
+                            'product_id' => $productId,
+                            'consumed_delta' => $consumedDelta,
+                            'stock_before' => $stockBefore,
+                            'stock_after' => $product->quantity_on_hand,
+                        ]);
+                    }
+
+                    $itemsData[] = [
+                        'product_id' => $productId,
+                        'sku' => $item->product->sku,
+                        'part_number' => $item->product->part_number,
+                        'finish' => $item->product->finish,
+                        'consumed' => $actualQty,
+                        'consumed_delta' => $consumedDelta,
+                        'released' => $releasedQty,
+                    ];
+                }
+
+                // Update reservation status to fulfilled
+                $reservation->status = 'fulfilled';
+                $reservation->save();
+
+                DB::commit();
+
+                Log::info('Job reservation completed', [
+                    'reservation_id' => $id,
+                    'job_number' => $reservation->job_number,
+                    'release_number' => $reservation->release_number,
+                    'total_consumed' => $totalConsumed,
+                    'total_released' => $totalReleased,
+                ]);
+
+                return response()->json([
+                    'message' => 'Job completed successfully',
+                    'reservation' => [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'release_number' => $reservation->release_number,
+                        'status' => $reservation->status,
+                        'total_consumed' => $totalConsumed,
+                        'total_released' => $totalReleased,
+                    ],
+                    'items' => $itemsData,
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to complete reservation', [
+                'reservation_id' => $id,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to complete reservation',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get status labels
      */
     public function statusLabels()
