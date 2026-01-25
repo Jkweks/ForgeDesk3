@@ -87,7 +87,11 @@
                 <div class="card">
                   <div class="card-header">
                     <h3 class="card-title">Material Check Results</h3>
-                    <div class="col-auto ms-auto">
+                    <div class="col-auto ms-auto d-flex gap-2">
+                      <button class="btn btn-success btn-sm" id="commitButton" onclick="showCommitModal()" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+                        Commit to Job
+                      </button>
                       <button class="btn btn-sm" onclick="exportResults()">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
                         Export Results
@@ -115,6 +119,7 @@
                       <table class="table table-vcenter" id="resultsTable">
                         <thead>
                           <tr>
+                            <th width="40"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
                             <th>Status</th>
                             <th>Part #</th>
                             <th>Finish</th>
@@ -141,9 +146,64 @@
       </main>
     </div>
 
+    <!-- Commit Modal -->
+    <div class="modal modal-blur fade" id="commitModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Commit Materials to Job</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="commitForm">
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label required">Job Number</label>
+                  <input type="text" class="form-control" id="jobNumber" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label required">Release Number</label>
+                  <input type="number" class="form-control" id="releaseNumber" required min="1">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label required">Job Name</label>
+                <input type="text" class="form-control" id="jobName" required>
+              </div>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label class="form-label required">Requested By</label>
+                  <input type="text" class="form-control" id="requestedBy" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Needed By</label>
+                  <input type="date" class="form-control" id="neededBy">
+                </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" rows="3"></textarea>
+              </div>
+              <div class="alert alert-info">
+                <strong id="selectedCount">0</strong> items selected for commitment
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" onclick="commitMaterials()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
+              Commit Materials
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
         let checkResults = [];
         let filteredResults = [];
+        let selectedItems = new Set();
 
         async function checkMaterials() {
             const fileInput = document.getElementById('estimateFile');
@@ -204,28 +264,39 @@
             const tbody = document.getElementById('resultsTableBody');
             tbody.innerHTML = '';
 
-            results.forEach(item => {
+            results.forEach((item, index) => {
                 const row = document.createElement('tr');
 
                 let statusBadge = '';
                 let statusClass = '';
+                let canCommit = false;
 
                 if (item.status === 'available') {
                     statusBadge = '<span class="badge bg-success">Available</span>';
                     statusClass = '';
+                    canCommit = true;
                 } else if (item.status === 'partial') {
                     statusBadge = '<span class="badge bg-warning">Partial</span>';
                     statusClass = 'table-warning';
+                    canCommit = true;
                 } else if (item.status === 'unavailable') {
                     statusBadge = '<span class="badge bg-danger">Out of Stock</span>';
                     statusClass = 'table-danger';
+                    canCommit = false;
                 } else if (item.status === 'not_found') {
                     statusBadge = '<span class="badge bg-secondary">Not Found</span>';
                     statusClass = 'table-secondary';
+                    canCommit = false;
                 }
+
+                // Only show checkbox for items found in inventory
+                const checkboxHtml = item.product_id && canCommit
+                    ? `<input type="checkbox" class="item-checkbox" data-index="${index}" onchange="toggleItemSelection(${index})" ${selectedItems.has(index) ? 'checked' : ''}>`
+                    : '';
 
                 row.className = statusClass;
                 row.innerHTML = `
+                    <td>${checkboxHtml}</td>
                     <td>${statusBadge}</td>
                     <td><strong>${item.part_number}</strong></td>
                     <td>${item.finish || '-'}</td>
@@ -234,13 +305,49 @@
                     <td><small class="text-muted">${item.sheet || '-'}</small></td>
                     <td><small class="text-muted">${item.row || '-'}</small></td>
                     <td>${item.required_quantity}</td>
-                    <td>${item.available_quantity}</td>
+                    <td>${item.available_quantity !== null ? item.available_quantity : '-'}</td>
                     <td>${item.shortage > 0 ? '<span class="text-danger">' + item.shortage + '</span>' : '-'}</td>
                     <td>${item.location || '-'}</td>
                 `;
 
                 tbody.appendChild(row);
             });
+
+            updateCommitButton();
+        }
+
+        function toggleItemSelection(index) {
+            if (selectedItems.has(index)) {
+                selectedItems.delete(index);
+            } else {
+                selectedItems.add(index);
+            }
+            updateCommitButton();
+        }
+
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+
+            selectedItems.clear();
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                if (selectAll.checked) {
+                    const index = parseInt(checkbox.dataset.index);
+                    selectedItems.add(index);
+                }
+            });
+
+            updateCommitButton();
+        }
+
+        function updateCommitButton() {
+            const commitButton = document.getElementById('commitButton');
+            if (selectedItems.size > 0) {
+                commitButton.style.display = 'inline-flex';
+            } else {
+                commitButton.style.display = 'none';
+            }
         }
 
         function filterResults() {
@@ -260,6 +367,101 @@
             });
 
             updateResultsTable(filteredResults);
+        }
+
+        function showCommitModal() {
+            if (selectedItems.size === 0) {
+                alert('Please select items to commit');
+                return;
+            }
+
+            // Update selected count
+            document.getElementById('selectedCount').textContent = selectedItems.size;
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('commitModal'));
+            modal.show();
+        }
+
+        async function commitMaterials() {
+            // Validate form
+            const form = document.getElementById('commitForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            // Prepare items array
+            const items = [];
+            selectedItems.forEach(index => {
+                const item = filteredResults[index];
+                if (item.product_id) {
+                    items.push({
+                        product_id: item.product_id,
+                        part_number: item.part_number,
+                        finish: item.finish,
+                        sku: item.sku,
+                        requested_qty: item.required_quantity,
+                        committed_qty: Math.min(item.required_quantity, item.available_quantity || 0)
+                    });
+                }
+            });
+
+            if (items.length === 0) {
+                alert('No valid items to commit');
+                return;
+            }
+
+            // Prepare request payload
+            const payload = {
+                job_number: document.getElementById('jobNumber').value,
+                release_number: parseInt(document.getElementById('releaseNumber').value),
+                job_name: document.getElementById('jobName').value,
+                requested_by: document.getElementById('requestedBy').value,
+                needed_by: document.getElementById('neededBy').value || null,
+                notes: document.getElementById('notes').value || null,
+                items: items
+            };
+
+            try {
+                const authToken = localStorage.getItem('authToken');
+                const response = await fetch('/api/v1/fulfillment/commit-materials', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${authToken}`,
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('commitModal'));
+                    modal.hide();
+
+                    // Show success message
+                    alert(`✅ Materials committed successfully!\n\nReservation ID: ${data.reservation.id}\nJob: ${data.reservation.job_number} Release ${data.reservation.release_number}\nTotal Committed: ${data.reservation.total_committed} items`);
+
+                    // Reset form and selections
+                    form.reset();
+                    selectedItems.clear();
+                    document.getElementById('selectAll').checked = false;
+                    updateCommitButton();
+
+                    // You could refresh the results to show updated availability
+                    // checkMaterials();
+                } else {
+                    const error = await response.json();
+                    alert('Error committing materials: ' + (error.message || error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error committing materials:', error);
+                alert('Error committing materials: ' + error.message);
+            }
         }
 
         function exportResults() {
