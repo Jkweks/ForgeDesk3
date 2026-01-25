@@ -88,7 +88,7 @@
                   <div class="card-header">
                     <h3 class="card-title">Material Check Results</h3>
                     <div class="col-auto ms-auto d-flex gap-2">
-                      <button class="btn btn-success btn-sm" id="commitButton" onclick="showCommitModal()" style="display: none;">
+                      <button class="btn btn-success btn-sm" id="commitButton" data-bs-toggle="modal" data-bs-target="#commitModal" onclick="prepareCommitModal()" style="display: none;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10" /></svg>
                         Commit to Job
                       </button>
@@ -369,34 +369,15 @@
             updateResultsTable(filteredResults);
         }
 
-        function showCommitModal() {
+        function prepareCommitModal() {
             if (selectedItems.size === 0) {
                 alert('Please select items to commit');
-                return;
+                event.preventDefault(); // Prevent modal from opening
+                return false;
             }
 
             // Update selected count
             document.getElementById('selectedCount').textContent = selectedItems.size;
-
-            // Show modal - check if bootstrap is available
-            const modalElement = document.getElementById('commitModal');
-            if (typeof bootstrap !== 'undefined') {
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-            } else {
-                // Fallback: manually add Bootstrap classes
-                modalElement.classList.add('show');
-                modalElement.style.display = 'block';
-                modalElement.setAttribute('aria-modal', 'true');
-                modalElement.setAttribute('role', 'dialog');
-                document.body.classList.add('modal-open');
-
-                // Add backdrop
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop fade show';
-                backdrop.id = 'commitModalBackdrop';
-                document.body.appendChild(backdrop);
-            }
         }
 
         async function commitMaterials() {
@@ -455,26 +436,17 @@
                 if (response.ok) {
                     const data = await response.json();
 
-                    // Close modal
+                    // Close modal using Bootstrap's built-in method
                     const modalElement = document.getElementById('commitModal');
-                    if (typeof bootstrap !== 'undefined') {
-                        const modal = bootstrap.Modal.getInstance(modalElement);
-                        if (modal) {
-                            modal.hide();
-                        }
-                    } else {
-                        // Fallback: manually remove Bootstrap classes
-                        modalElement.classList.remove('show');
-                        modalElement.style.display = 'none';
-                        modalElement.removeAttribute('aria-modal');
-                        modalElement.removeAttribute('role');
-                        document.body.classList.remove('modal-open');
+                    const modalBackdrop = document.querySelector('.modal-backdrop');
 
-                        // Remove backdrop
-                        const backdrop = document.getElementById('commitModalBackdrop');
-                        if (backdrop) {
-                            backdrop.remove();
-                        }
+                    modalElement.classList.remove('show');
+                    modalElement.setAttribute('aria-hidden', 'true');
+                    modalElement.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+
+                    if (modalBackdrop) {
+                        modalBackdrop.remove();
                     }
 
                     // Show success message

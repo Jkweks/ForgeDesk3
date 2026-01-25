@@ -107,9 +107,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{{ asset('assets/tabler/js/tabler.min.js') }}"></script>
-  <script src="{{ asset('assets/tabler/js/tabler-theme.min.js') }}"></script>
 
   @include('partials.auth-scripts')
 
