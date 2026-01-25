@@ -714,9 +714,12 @@ class MigrateFromForgeDesk2 extends Command
 
         $inserts = [];
         foreach ($rows as $row) {
+            // Generate fallback PO number if missing
+            $poNumber = $row['order_number'] ?: 'FD2-PO-' . $row['id'];
+
             $inserts[] = [
                 'id' => $row['id'],
-                'po_number' => $row['order_number'],
+                'po_number' => $poNumber,
                 'supplier_id' => $row['supplier_id'] ?: null,
                 'status' => $this->mapPoStatus($row['status'] ?? 'draft'),
                 'order_date' => $row['order_date'],
