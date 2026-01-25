@@ -378,9 +378,25 @@
             // Update selected count
             document.getElementById('selectedCount').textContent = selectedItems.size;
 
-            // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('commitModal'));
-            modal.show();
+            // Show modal - check if bootstrap is available
+            const modalElement = document.getElementById('commitModal');
+            if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            } else {
+                // Fallback: manually add Bootstrap classes
+                modalElement.classList.add('show');
+                modalElement.style.display = 'block';
+                modalElement.setAttribute('aria-modal', 'true');
+                modalElement.setAttribute('role', 'dialog');
+                document.body.classList.add('modal-open');
+
+                // Add backdrop
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'commitModalBackdrop';
+                document.body.appendChild(backdrop);
+            }
         }
 
         async function commitMaterials() {
@@ -440,8 +456,26 @@
                     const data = await response.json();
 
                     // Close modal
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('commitModal'));
-                    modal.hide();
+                    const modalElement = document.getElementById('commitModal');
+                    if (typeof bootstrap !== 'undefined') {
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) {
+                            modal.hide();
+                        }
+                    } else {
+                        // Fallback: manually remove Bootstrap classes
+                        modalElement.classList.remove('show');
+                        modalElement.style.display = 'none';
+                        modalElement.removeAttribute('aria-modal');
+                        modalElement.removeAttribute('role');
+                        document.body.classList.remove('modal-open');
+
+                        // Remove backdrop
+                        const backdrop = document.getElementById('commitModalBackdrop');
+                        if (backdrop) {
+                            backdrop.remove();
+                        }
+                    }
 
                     // Show success message
                     alert(`✅ Materials committed successfully!\n\nReservation ID: ${data.reservation.id}\nJob: ${data.reservation.job_number} Release ${data.reservation.release_number}\nTotal Committed: ${data.reservation.total_committed} items`);
