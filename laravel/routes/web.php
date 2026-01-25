@@ -40,6 +40,15 @@ Route::get('/transactions', function () {
     return view('transactions');
 });
 
+// Fulfillment
+Route::get('/fulfillment/material-check', function () {
+    return view('fulfillment.material-check');
+});
+
+Route::get('/fulfillment/job-reservations', function () {
+    return view('fulfillment.job-reservations');
+});
+
 // Reports & Maintenance
 Route::get('/reports', function () {
     return view('reports');
