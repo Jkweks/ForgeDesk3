@@ -425,10 +425,16 @@ class JobReservationController extends Controller
     public function statistics($product)
     {
         // Return empty statistics for old product reservation system
+        // Get product quantity_on_hand for ATP calculation
+        $productModel = Product::find($product);
+        $quantityOnHand = $productModel ? $productModel->quantity_on_hand : 0;
+
         return response()->json([
-            'total_reserved' => 0,
-            'total_fulfilled' => 0,
-            'total_pending' => 0,
+            'active_reservations_count' => 0,
+            'quantity_committed' => 0,
+            'atp' => $quantityOnHand,
+            'overdue_reservations' => 0,
+            'upcoming_reservations' => 0,
         ]);
     }
 
