@@ -22,9 +22,35 @@ class JobReservationController extends Controller
         try {
             // Old API: product-specific reservations
             if ($product !== null) {
-                // Return empty array for old product reservation system
-                // The new fulfillment system uses job-based reservations with line items
-                return response()->json([]);
+                // Get reservations that include this product as a line item
+                $reservations = JobReservation::whereHas('items', function ($query) use ($product) {
+                    $query->where('product_id', $product);
+                })
+                ->with(['items' => function ($query) use ($product) {
+                    $query->where('product_id', $product);
+                }])
+                ->orderByRaw("CASE WHEN status IN ('fulfilled', 'cancelled') THEN 1 ELSE 0 END")
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($reservation) {
+                    $item = $reservation->items->first(); // Get this product's line item
+
+                    return [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'job_name' => $reservation->job_name,
+                        'status' => $reservation->status,
+                        'quantity_reserved' => $item->committed_qty,
+                        'quantity_fulfilled' => $item->consumed_qty,
+                        'reserved_date' => $reservation->created_at->format('Y-m-d'),
+                        'needed_date' => $reservation->needed_by?->format('Y-m-d'),
+                        'notes' => $reservation->notes,
+                        'created_at' => $reservation->created_at->toISOString(),
+                        'updated_at' => $reservation->updated_at->toISOString(),
+                    ];
+                });
+
+                return response()->json($reservations);
             }
 
             // New API: all job reservations
