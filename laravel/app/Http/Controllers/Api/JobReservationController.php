@@ -450,18 +450,69 @@ class JobReservationController extends Controller
      */
     public function statistics($product)
     {
-        // Return empty statistics for old product reservation system
-        // Get product quantity_on_hand for ATP calculation
-        $productModel = Product::find($product);
-        $quantityOnHand = $productModel ? $productModel->quantity_on_hand : 0;
+        try {
+            // Get product quantity_on_hand for ATP calculation
+            $productModel = Product::find($product);
+            if (!$productModel) {
+                return response()->json([
+                    'active_reservations_count' => 0,
+                    'quantity_committed' => 0,
+                    'atp' => 0,
+                    'overdue_reservations' => 0,
+                    'upcoming_reservations' => 0,
+                ]);
+            }
 
-        return response()->json([
-            'active_reservations_count' => 0,
-            'quantity_committed' => 0,
-            'atp' => $quantityOnHand,
-            'overdue_reservations' => 0,
-            'upcoming_reservations' => 0,
-        ]);
+            // Calculate committed quantities from active reservations
+            $activeReservations = JobReservationItem::where('product_id', $product)
+                ->whereHas('reservation', function ($query) {
+                    $query->whereIn('status', ['active', 'in_progress', 'on_hold']);
+                })
+                ->with('reservation')
+                ->get();
+
+            $quantityCommitted = $activeReservations->sum(function ($item) {
+                return $item->committed_qty - $item->consumed_qty;
+            });
+
+            $activeCount = $activeReservations->unique('reservation_id')->count();
+
+            // Count overdue (needed_by < today) and upcoming (needed_by in next 7 days)
+            $today = now()->startOfDay();
+            $nextWeek = now()->addDays(7)->endOfDay();
+
+            $overdueCount = $activeReservations->filter(function ($item) use ($today) {
+                return $item->reservation->needed_by &&
+                       $item->reservation->needed_by < $today;
+            })->unique('reservation_id')->count();
+
+            $upcomingCount = $activeReservations->filter(function ($item) use ($today, $nextWeek) {
+                return $item->reservation->needed_by &&
+                       $item->reservation->needed_by >= $today &&
+                       $item->reservation->needed_by <= $nextWeek;
+            })->unique('reservation_id')->count();
+
+            return response()->json([
+                'active_reservations_count' => $activeCount,
+                'quantity_committed' => $quantityCommitted,
+                'atp' => $productModel->quantity_on_hand - $quantityCommitted,
+                'overdue_reservations' => $overdueCount,
+                'upcoming_reservations' => $upcomingCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to get reservation statistics', [
+                'product_id' => $product,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'active_reservations_count' => 0,
+                'quantity_committed' => 0,
+                'atp' => 0,
+                'overdue_reservations' => 0,
+                'upcoming_reservations' => 0,
+            ]);
+        }
     }
 
     /**
