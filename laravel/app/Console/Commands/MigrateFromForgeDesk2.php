@@ -805,10 +805,16 @@ class MigrateFromForgeDesk2 extends Command
                 default => 'in_progress',
             };
 
+            // Truncate location to fit VARCHAR(255)
+            $location = $row['location_filter'];
+            if ($location && strlen($location) > 255) {
+                $location = substr($location, 0, 252) . '...';
+            }
+
             $inserts[] = [
                 'id' => $row['id'],
                 'session_number' => $row['name'],
-                'location' => $row['location_filter'],
+                'location' => $location,
                 'status' => $status,
                 'scheduled_date' => substr($row['started_at'], 0, 10),
                 'started_at' => $row['started_at'],
