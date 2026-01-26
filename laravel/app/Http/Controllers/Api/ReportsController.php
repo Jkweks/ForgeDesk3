@@ -46,23 +46,44 @@ class ReportsController extends Controller
 
     /**
      * Get committed parts report
+     * Uses the fulfillment system (job_reservation_items) to calculate committed quantities
      */
     public function committedPartsReport(Request $request)
     {
-        $committedProducts = Product::where('quantity_committed', '>', 0)
-            ->where('is_active', true)
-            ->with(['category', 'supplier', 'jobReservations' => function($query) {
-                $query->where('status', 'active');
+        // Get products that have active reservation items
+        // Active statuses per fulfillment process: 'active', 'in_progress', 'on_hold'
+        $committedProducts = Product::where('is_active', true)
+            ->whereHas('reservationItems', function($query) {
+                $query->whereHas('reservation', function($resQuery) {
+                    $resQuery->whereIn('status', ['active', 'in_progress', 'on_hold']);
+                });
+            })
+            ->with(['category', 'supplier', 'reservationItems' => function($query) {
+                $query->whereHas('reservation', function($resQuery) {
+                    $resQuery->whereIn('status', ['active', 'in_progress', 'on_hold']);
+                })->with('reservation');
             }])
             ->get()
             ->map(function ($product) {
                 $data = $this->enrichProductData($product);
-                $data['reservations'] = $product->jobReservations->map(function ($reservation) {
+
+                // Calculate committed quantity from active reservation items
+                $committedQty = $product->reservationItems->sum('committed_qty');
+                $data['committed'] = $committedQty;
+                $data['available'] = $product->quantity_on_hand - $committedQty;
+
+                // Map reservation items to reservation details
+                $data['reservations'] = $product->reservationItems->map(function ($item) {
                     return [
-                        'id' => $reservation->id,
-                        'job_number' => $reservation->job_number,
-                        'quantity' => $reservation->quantity_reserved,
-                        'reserved_date' => $reservation->reserved_date,
+                        'id' => $item->reservation->id,
+                        'job_number' => $item->reservation->job_number,
+                        'release_number' => $item->reservation->release_number,
+                        'job_name' => $item->reservation->job_name,
+                        'quantity' => $item->committed_qty,
+                        'requested_qty' => $item->requested_qty,
+                        'consumed_qty' => $item->consumed_qty,
+                        'status' => $item->reservation->status,
+                        'needed_by' => $item->reservation->needed_by,
                     ];
                 });
                 return $data;

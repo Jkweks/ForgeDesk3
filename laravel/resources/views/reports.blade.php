@@ -648,9 +648,14 @@ async function loadCommittedReport() {
           <td class="text-end">${item.committed}</td>
           <td class="text-end">${item.available}</td>
           <td>
-            ${item.reservations.map(r =>
-              `<span class="badge text-bg-info me-1">${r.job_number}: ${r.quantity}</span>`
-            ).join('')}
+            ${item.reservations.map(r => {
+              const statusBadge = {
+                'active': 'text-bg-info',
+                'in_progress': 'text-bg-primary',
+                'on_hold': 'text-bg-warning'
+              }[r.status] || 'text-bg-secondary';
+              return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''}">${r.job_number}-${r.release_number || 1}: ${r.quantity}</span>`;
+            }).join('')}
           </td>
         </tr>
       `).join('');

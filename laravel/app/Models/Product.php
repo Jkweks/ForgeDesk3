@@ -136,14 +136,47 @@ class Product extends Model
         return $this->hasMany(InventoryLocation::class);
     }
 
-    public function jobReservations()
+    /**
+     * Get reservation items for this product (through job_reservation_items table)
+     */
+    public function reservationItems()
     {
-        return $this->hasMany(JobReservation::class);
+        return $this->hasMany(JobReservationItem::class);
     }
 
-    public function activeReservations()
+    /**
+     * Get active reservation items (where reservation status is active, in_progress, or on_hold)
+     */
+    public function activeReservationItems()
     {
-        return $this->jobReservations()->where('status', 'active');
+        return $this->reservationItems()
+            ->whereHas('reservation', function($query) {
+                $query->whereIn('status', ['active', 'in_progress', 'on_hold']);
+            });
+    }
+
+    /**
+     * Get job reservations through reservation items
+     * @deprecated Use reservationItems() for the new fulfillment schema
+     */
+    public function jobReservations()
+    {
+        return $this->hasManyThrough(
+            JobReservation::class,
+            JobReservationItem::class,
+            'product_id',       // Foreign key on job_reservation_items
+            'id',               // Foreign key on job_reservations
+            'id',               // Local key on products
+            'reservation_id'    // Local key on job_reservation_items
+        );
+    }
+
+    /**
+     * Calculate committed quantity from active reservations (real-time)
+     */
+    public function getCommittedFromReservationsAttribute()
+    {
+        return $this->activeReservationItems()->sum('committed_qty');
     }
 
     public function requiredParts()
