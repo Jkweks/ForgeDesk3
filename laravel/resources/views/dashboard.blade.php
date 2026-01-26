@@ -121,6 +121,13 @@
                       <tbody id="inventoryTableBody"></tbody>
                     </table>
                   </div>
+                  <!-- Pagination -->
+                  <div class="card-footer d-flex align-items-center" id="paginationContainer" style="display: none;">
+                    <p class="m-0 text-muted">Showing <span id="paginationFrom">1</span> to <span id="paginationTo">50</span> of <span id="paginationTotal">0</span> items</p>
+                    <ul class="pagination m-0 ms-auto" id="paginationNav">
+                      <!-- Pagination will be rendered by JavaScript -->
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1204,16 +1211,20 @@
     // Dashboard-specific state
     let currentTab = 'all';
     let currentCategoryFilter = '';
+    let currentPage = 1;
+    let paginationData = null;
 
-    async function loadDashboard() {
+    async function loadDashboard(page = 1) {
       try {
+        currentPage = page;
         document.getElementById('loadingIndicator').style.display = 'block';
         document.getElementById('inventoryTableContainer').style.display = 'none';
+        document.getElementById('paginationContainer').style.display = 'none';
 
-        // Build URL with category filter if selected
-        let url = '/dashboard';
+        // Build URL with category filter and page
+        let url = `/dashboard?page=${page}`;
         if (currentCategoryFilter) {
-          url += `?category_id=${currentCategoryFilter}`;
+          url += `&category_id=${currentCategoryFilter}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
@@ -1226,6 +1237,7 @@
         document.getElementById('badgeCritical').textContent = data.stats.critical_count;
 
         renderInventoryTable(data.inventory.data);
+        renderPagination(data.inventory);
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('inventoryTableContainer').style.display = 'block';
@@ -1238,6 +1250,11 @@
     function renderInventoryTable(products) {
       const tbody = document.getElementById('inventoryTableBody');
       tbody.innerHTML = '';
+
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No inventory items found</td></tr>';
+        return;
+      }
 
       products.forEach(product => {
         const statusBadge = getStatusBadge(product.status);
@@ -1266,6 +1283,107 @@
       });
     }
 
+    function renderPagination(pagination) {
+      paginationData = pagination;
+      const container = document.getElementById('paginationContainer');
+      const nav = document.getElementById('paginationNav');
+
+      if (!pagination || pagination.total === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      // Update showing text
+      document.getElementById('paginationFrom').textContent = pagination.from || 0;
+      document.getElementById('paginationTo').textContent = pagination.to || 0;
+      document.getElementById('paginationTotal').textContent = pagination.total.toLocaleString();
+
+      // Build pagination nav
+      const currentPage = pagination.current_page;
+      const lastPage = pagination.last_page;
+
+      let html = '';
+
+      // Previous button
+      html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;" tabindex="-1" ${currentPage === 1 ? 'aria-disabled="true"' : ''}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+              <path d="M15 6l-6 6l6 6"></path>
+            </svg>
+          </a>
+        </li>
+      `;
+
+      // Page numbers - show max 7 pages with ellipsis
+      const pageNumbers = getPageNumbers(currentPage, lastPage, 7);
+      pageNumbers.forEach(pageNum => {
+        if (pageNum === '...') {
+          html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        } else {
+          html += `
+            <li class="page-item ${pageNum === currentPage ? 'active' : ''}">
+              <a class="page-link" href="#" onclick="goToPage(${pageNum}); return false;">${pageNum}</a>
+            </li>
+          `;
+        }
+      });
+
+      // Next button
+      html += `
+        <li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;" ${currentPage === lastPage ? 'aria-disabled="true"' : ''}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+              <path d="M9 6l6 6l-6 6"></path>
+            </svg>
+          </a>
+        </li>
+      `;
+
+      nav.innerHTML = html;
+      container.style.display = pagination.last_page > 1 ? 'flex' : 'none';
+    }
+
+    function getPageNumbers(current, last, maxVisible) {
+      if (last <= maxVisible) {
+        return Array.from({length: last}, (_, i) => i + 1);
+      }
+
+      const pages = [];
+      const half = Math.floor(maxVisible / 2);
+
+      if (current <= half + 1) {
+        // Near start
+        for (let i = 1; i <= maxVisible - 2; i++) pages.push(i);
+        pages.push('...');
+        pages.push(last);
+      } else if (current >= last - half) {
+        // Near end
+        pages.push(1);
+        pages.push('...');
+        for (let i = last - maxVisible + 3; i <= last; i++) pages.push(i);
+      } else {
+        // Middle
+        pages.push(1);
+        pages.push('...');
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(last);
+      }
+
+      return pages;
+    }
+
+    function goToPage(page) {
+      if (!paginationData || page < 1 || page > paginationData.last_page) return;
+
+      if (currentTab === 'all') {
+        loadDashboard(page);
+      } else {
+        loadByStatus(currentTab, page);
+      }
+    }
+
     function getStatusBadge(status) {
       const badges = {
         'in_stock': '<span class="badge text-bg-success status-badge">In Stock</span>',
@@ -1281,25 +1399,35 @@
         e.preventDefault();
         document.querySelectorAll('.nav-link[data-tab]').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
-        
+
         currentTab = e.target.dataset.tab;
+        currentPage = 1; // Reset to first page on tab change
         if (currentTab === 'all') {
-          loadDashboard();
+          loadDashboard(1);
         } else {
-          await loadByStatus(currentTab);
+          await loadByStatus(currentTab, 1);
         }
       });
     });
 
-    async function loadByStatus(status) {
+    async function loadByStatus(status, page = 1) {
       try {
-        let url = `/dashboard/inventory/${status}`;
+        currentPage = page;
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('inventoryTableContainer').style.display = 'none';
+        document.getElementById('paginationContainer').style.display = 'none';
+
+        let url = `/dashboard/inventory/${status}?page=${page}`;
         if (currentCategoryFilter) {
-          url += `?category_id=${currentCategoryFilter}`;
+          url += `&category_id=${currentCategoryFilter}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
         renderInventoryTable(data.data);
+        renderPagination(data);
+
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('inventoryTableContainer').style.display = 'block';
       } catch (error) {
         console.error('Error loading filtered inventory:', error);
       }

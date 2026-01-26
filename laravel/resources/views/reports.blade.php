@@ -140,6 +140,7 @@
                   <tbody id="lowStockTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="lowStockPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -205,6 +206,7 @@
                   <tbody id="committedTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="committedPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -287,6 +289,7 @@
                   <tbody id="velocityTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="velocityPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -355,6 +358,7 @@
                   <tbody id="reorderTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="reorderPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -428,6 +432,7 @@
                   <tbody id="obsoleteTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="obsoletePagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -579,7 +584,7 @@ function showReport(reportType) {
 }
 
 // Low Stock Report
-async function loadLowStockReport() {
+async function loadLowStockReport(page = 1) {
   try {
     document.getElementById('lowStockLoading').style.display = 'block';
     document.getElementById('lowStockContent').style.display = 'none';
@@ -592,26 +597,12 @@ async function loadLowStockReport() {
     document.getElementById('totalAffected').textContent = response.summary.total_affected;
     document.getElementById('valueAtRisk').textContent = formatCurrency(response.summary.estimated_value_at_risk);
 
-    // Render table
-    const tbody = document.getElementById('lowStockTableBody');
+    // Store full data for pagination
     const allItems = [...response.low_stock, ...response.critical];
+    reportPaginationState.lowStock = allItems;
 
-    if (allItems.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No low stock items</td></tr>';
-    } else {
-      tbody.innerHTML = allItems.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.on_hand}</td>
-          <td class="text-end">${item.available}</td>
-          <td class="text-end">${item.minimum}</td>
-          <td>${getStatusBadge(item.status)}</td>
-          <td class="text-end">${formatCurrency(item.total_value)}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderLowStockTable(page);
 
     document.getElementById('lowStockLoading').style.display = 'none';
     document.getElementById('lowStockContent').style.display = 'block';
@@ -621,8 +612,34 @@ async function loadLowStockReport() {
   }
 }
 
+function renderLowStockTable(page = 1) {
+  const allItems = reportPaginationState.lowStock || [];
+  const pagination = paginateData(allItems, page);
+  const tbody = document.getElementById('lowStockTableBody');
+
+  if (allItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No low stock items</td></tr>';
+    document.getElementById('lowStockPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${item.on_hand}</td>
+        <td class="text-end">${item.available}</td>
+        <td class="text-end">${item.minimum}</td>
+        <td>${getStatusBadge(item.status)}</td>
+        <td class="text-end">${formatCurrency(item.total_value)}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('lowStockPagination', pagination, renderLowStockTable);
+  }
+}
+
 // Committed Parts Report
-async function loadCommittedReport() {
+async function loadCommittedReport(page = 1) {
   try {
     document.getElementById('committedLoading').style.display = 'block';
     document.getElementById('committedContent').style.display = 'none';
@@ -634,32 +651,11 @@ async function loadCommittedReport() {
     document.getElementById('totalQtyCommitted').textContent = response.summary.total_quantity_committed;
     document.getElementById('valueCommitted').textContent = formatCurrency(response.summary.total_value_committed);
 
-    // Render table
-    const tbody = document.getElementById('committedTableBody');
+    // Store full data for pagination
+    reportPaginationState.committed = response.committed_products;
 
-    if (response.committed_products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
-    } else {
-      tbody.innerHTML = response.committed_products.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.committed}</td>
-          <td class="text-end">${item.available}</td>
-          <td>
-            ${item.reservations.map(r => {
-              const statusBadge = {
-                'active': 'text-bg-info',
-                'in_progress': 'text-bg-primary',
-                'on_hold': 'text-bg-warning'
-              }[r.status] || 'text-bg-secondary';
-              return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''}">${r.job_number}-${r.release_number || 1}: ${r.quantity}</span>`;
-            }).join('')}
-          </td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderCommittedTable(page);
 
     document.getElementById('committedLoading').style.display = 'none';
     document.getElementById('committedContent').style.display = 'block';
@@ -669,8 +665,41 @@ async function loadCommittedReport() {
   }
 }
 
+function renderCommittedTable(page = 1) {
+  const allItems = reportPaginationState.committed || [];
+  const pagination = paginateData(allItems, page);
+  const tbody = document.getElementById('committedTableBody');
+
+  if (allItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
+    document.getElementById('committedPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${item.committed}</td>
+        <td class="text-end">${item.available}</td>
+        <td>
+          ${item.reservations.map(r => {
+            const statusBadge = {
+              'active': 'text-bg-info',
+              'in_progress': 'text-bg-primary',
+              'on_hold': 'text-bg-warning'
+            }[r.status] || 'text-bg-secondary';
+            return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''}">${r.job_number}-${r.release_number || 1}: ${r.quantity}</span>`;
+          }).join('')}
+        </td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('committedPagination', pagination, renderCommittedTable);
+  }
+}
+
 // Velocity Analysis Report
-async function loadVelocityReport() {
+async function loadVelocityReport(page = 1) {
   try {
     const days = document.getElementById('velocityDays').value;
     document.getElementById('velocityLoading').style.display = 'block';
@@ -684,34 +713,11 @@ async function loadVelocityReport() {
     document.getElementById('slowMovers').textContent = response.summary.slow_movers;
     document.getElementById('totalAnalyzed').textContent = response.summary.total_analyzed;
 
-    // Render table
-    const tbody = document.getElementById('velocityTableBody');
+    // Store full data for pagination
+    reportPaginationState.velocity = response.products;
 
-    if (response.products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data</td></tr>';
-    } else {
-      tbody.innerHTML = response.products.map(item => {
-        const velocityBadge = {
-          'fast': '<span class="badge text-bg-success">Fast</span>',
-          'medium': '<span class="badge text-bg-info">Medium</span>',
-          'slow': '<span class="badge text-bg-warning">Slow</span>'
-        }[item.velocity];
-
-        return `
-          <tr>
-            <td><strong>${escapeHtml(item.sku)}</strong></td>
-            <td>${escapeHtml(item.description)}</td>
-            <td>${item.category || '-'}</td>
-            <td class="text-end">${item.on_hand}</td>
-            <td class="text-end">${item.receipts}</td>
-            <td class="text-end">${item.shipments}</td>
-            <td class="text-end">${item.turnover_rate}%</td>
-            <td>${velocityBadge}</td>
-            <td class="text-end">${item.days_until_stockout || '-'}</td>
-          </tr>
-        `;
-      }).join('');
-    }
+    // Render paginated table
+    renderVelocityTable(page);
 
     document.getElementById('velocityLoading').style.display = 'none';
     document.getElementById('velocityContent').style.display = 'block';
@@ -721,8 +727,43 @@ async function loadVelocityReport() {
   }
 }
 
+function renderVelocityTable(page = 1) {
+  const allItems = reportPaginationState.velocity || [];
+  const pagination = paginateData(allItems, page);
+  const tbody = document.getElementById('velocityTableBody');
+
+  if (allItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data</td></tr>';
+    document.getElementById('velocityPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => {
+      const velocityBadge = {
+        'fast': '<span class="badge text-bg-success">Fast</span>',
+        'medium': '<span class="badge text-bg-info">Medium</span>',
+        'slow': '<span class="badge text-bg-warning">Slow</span>'
+      }[item.velocity];
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.sku)}</strong></td>
+          <td>${escapeHtml(item.description)}</td>
+          <td>${item.category || '-'}</td>
+          <td class="text-end">${item.on_hand}</td>
+          <td class="text-end">${item.receipts}</td>
+          <td class="text-end">${item.shipments}</td>
+          <td class="text-end">${item.turnover_rate}%</td>
+          <td>${velocityBadge}</td>
+          <td class="text-end">${item.days_until_stockout || '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    renderReportPagination('velocityPagination', pagination, renderVelocityTable);
+  }
+}
+
 // Reorder Recommendations Report
-async function loadReorderReport() {
+async function loadReorderReport(page = 1) {
   try {
     document.getElementById('reorderLoading').style.display = 'block';
     document.getElementById('reorderContent').style.display = 'none';
@@ -734,26 +775,11 @@ async function loadReorderReport() {
     document.getElementById('criticalReorderItems').textContent = response.summary.critical_items;
     document.getElementById('totalOrderValue').textContent = formatCurrency(response.summary.total_order_value);
 
-    // Render table
-    const tbody = document.getElementById('reorderTableBody');
+    // Store full data for pagination
+    reportPaginationState.reorder = response.recommendations;
 
-    if (response.recommendations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No reorder recommendations</td></tr>';
-    } else {
-      tbody.innerHTML = response.recommendations.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.supplier || '-'}</td>
-          <td class="text-end">${item.available}</td>
-          <td class="text-end">${item.reorder_point}</td>
-          <td class="text-end text-danger">${item.shortage}</td>
-          <td class="text-end"><strong>${item.recommended_order_qty}</strong></td>
-          <td class="text-end">${formatCurrency(item.recommended_order_value)}</td>
-          <td>${getStatusBadge(item.status)}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderReorderTable(page);
 
     document.getElementById('reorderLoading').style.display = 'none';
     document.getElementById('reorderContent').style.display = 'block';
@@ -763,8 +789,35 @@ async function loadReorderReport() {
   }
 }
 
+function renderReorderTable(page = 1) {
+  const allItems = reportPaginationState.reorder || [];
+  const pagination = paginateData(allItems, page);
+  const tbody = document.getElementById('reorderTableBody');
+
+  if (allItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No reorder recommendations</td></tr>';
+    document.getElementById('reorderPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.supplier || '-'}</td>
+        <td class="text-end">${item.available}</td>
+        <td class="text-end">${item.reorder_point}</td>
+        <td class="text-end text-danger">${item.shortage}</td>
+        <td class="text-end"><strong>${item.recommended_order_qty}</strong></td>
+        <td class="text-end">${formatCurrency(item.recommended_order_value)}</td>
+        <td>${getStatusBadge(item.status)}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('reorderPagination', pagination, renderReorderTable);
+  }
+}
+
 // Obsolete Inventory Report
-async function loadObsoleteReport() {
+async function loadObsoleteReport(page = 1) {
   try {
     const days = document.getElementById('obsoleteDays').value;
     document.getElementById('obsoleteLoading').style.display = 'block';
@@ -777,32 +830,44 @@ async function loadObsoleteReport() {
     document.getElementById('usedInBom').textContent = response.summary.used_in_bom;
     document.getElementById('obsoleteValue').textContent = formatCurrency(response.summary.total_value_at_risk);
 
-    // Render table
-    const tbody = document.getElementById('obsoleteTableBody');
+    // Store full data for pagination
+    reportPaginationState.obsolete = response.obsolete_candidates;
 
-    if (response.obsolete_candidates.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No obsolete items found</td></tr>';
-    } else {
-      tbody.innerHTML = response.obsolete_candidates.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.on_hand}</td>
-          <td class="text-end">${formatCurrency(item.unit_cost)}</td>
-          <td class="text-end">${formatCurrency(item.total_value)}</td>
-          <td>${item.last_shipment_date || 'Never'}</td>
-          <td class="text-end">${item.days_since_last_use}</td>
-          <td>${item.is_used_in_bom ? '<span class="badge text-bg-info">Yes</span>' : '-'}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderObsoleteTable(page);
 
     document.getElementById('obsoleteLoading').style.display = 'none';
     document.getElementById('obsoleteContent').style.display = 'block';
   } catch (error) {
     console.error('Error loading obsolete report:', error);
     showNotification('Error loading obsolete report', 'danger');
+  }
+}
+
+function renderObsoleteTable(page = 1) {
+  const allItems = reportPaginationState.obsolete || [];
+  const pagination = paginateData(allItems, page);
+  const tbody = document.getElementById('obsoleteTableBody');
+
+  if (allItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No obsolete items found</td></tr>';
+    document.getElementById('obsoletePagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${item.on_hand}</td>
+        <td class="text-end">${formatCurrency(item.unit_cost)}</td>
+        <td class="text-end">${formatCurrency(item.total_value)}</td>
+        <td>${item.last_shipment_date || 'Never'}</td>
+        <td class="text-end">${item.days_since_last_use}</td>
+        <td>${item.is_used_in_bom ? '<span class="badge text-bg-info">Yes</span>' : '-'}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('obsoletePagination', pagination, renderObsoleteTable);
   }
 }
 
@@ -901,7 +966,122 @@ function refreshAllReports() {
   }
 }
 
+// ============================================
+// Client-Side Pagination Helper
+// ============================================
+const ITEMS_PER_PAGE = 50;
+const reportPaginationState = {};
+
+function paginateData(data, page, perPage = ITEMS_PER_PAGE) {
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  return {
+    data: data.slice(startIndex, endIndex),
+    currentPage: page,
+    lastPage: Math.ceil(data.length / perPage),
+    total: data.length,
+    from: data.length > 0 ? startIndex + 1 : 0,
+    to: Math.min(endIndex, data.length)
+  };
+}
+
+function renderReportPagination(containerId, pagination, onPageChange) {
+  const container = document.getElementById(containerId);
+  if (!container || !pagination || pagination.total === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  const { currentPage, lastPage, total, from, to } = pagination;
+
+  if (lastPage <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  // Build page numbers - show max 7 pages
+  const pageNumbers = getReportPageNumbers(currentPage, lastPage, 7);
+
+  let html = `
+    <p class="m-0 text-muted">Showing ${from} to ${to} of ${total.toLocaleString()} items</p>
+    <ul class="pagination m-0 ms-auto">
+      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${currentPage - 1}" tabindex="-1" ${currentPage === 1 ? 'aria-disabled="true"' : ''}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+            <path d="M15 6l-6 6l6 6"></path>
+          </svg>
+        </a>
+      </li>
+  `;
+
+  pageNumbers.forEach(pageNum => {
+    if (pageNum === '...') {
+      html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+    } else {
+      html += `
+        <li class="page-item ${pageNum === currentPage ? 'active' : ''}">
+          <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
+        </li>
+      `;
+    }
+  });
+
+  html += `
+      <li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${currentPage + 1}" ${currentPage === lastPage ? 'aria-disabled="true"' : ''}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+            <path d="M9 6l6 6l-6 6"></path>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  `;
+
+  container.innerHTML = html;
+  container.style.display = 'flex';
+
+  // Add click handlers
+  container.querySelectorAll('.page-link[data-page]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = parseInt(link.dataset.page);
+      if (page >= 1 && page <= lastPage && page !== currentPage) {
+        onPageChange(page);
+      }
+    });
+  });
+}
+
+function getReportPageNumbers(current, last, maxVisible) {
+  if (last <= maxVisible) {
+    return Array.from({length: last}, (_, i) => i + 1);
+  }
+
+  const pages = [];
+  const half = Math.floor(maxVisible / 2);
+
+  if (current <= half + 1) {
+    for (let i = 1; i <= maxVisible - 2; i++) pages.push(i);
+    pages.push('...');
+    pages.push(last);
+  } else if (current >= last - half) {
+    pages.push(1);
+    pages.push('...');
+    for (let i = last - maxVisible + 3; i <= last; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    pages.push('...');
+    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+    pages.push('...');
+    pages.push(last);
+  }
+
+  return pages;
+}
+
+// ============================================
 // Helper functions
+// ============================================
 function getStatusBadge(status) {
   const badges = {
     'in_stock': '<span class="badge text-bg-success">In Stock</span>',
