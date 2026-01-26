@@ -123,18 +123,21 @@
             </div>
 
             <div id="lowStockContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="lowStockSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="lowStockTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Available</th>
-                      <th class="text-end">Minimum</th>
-                      <th>Status</th>
-                      <th class="text-end">Value</th>
+                      <th class="sortable-report" data-sort="sku" data-report="lowStock" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="lowStock" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="lowStock" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="lowStock" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="lowStock" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="minimum" data-report="lowStock" style="cursor: pointer;">Minimum <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="status" data-report="lowStock" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="total_value" data-report="lowStock" style="cursor: pointer;">Value <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="lowStockTableBody"></tbody>
@@ -191,15 +194,18 @@
             </div>
 
             <div id="committedContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="committedSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="committedTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">Committed</th>
-                      <th class="text-end">Available</th>
+                      <th class="sortable-report" data-sort="sku" data-report="committed" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="committed" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="committed" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="committed" data-report="committed" style="cursor: pointer;">Committed <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="committed" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
                       <th>Reservations</th>
                     </tr>
                   </thead>
@@ -271,19 +277,22 @@
             </div>
 
             <div id="velocityContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="velocitySearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="velocityTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Receipts</th>
-                      <th class="text-end">Shipments</th>
-                      <th class="text-end">Turnover %</th>
-                      <th>Velocity</th>
-                      <th class="text-end">Days to Stockout</th>
+                      <th class="sortable-report" data-sort="sku" data-report="velocity" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="velocity" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="velocity" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="velocity" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="receipts" data-report="velocity" style="cursor: pointer;">Receipts <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="shipments" data-report="velocity" style="cursor: pointer;">Shipments <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="turnover_rate" data-report="velocity" style="cursor: pointer;">Turnover % <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="velocity" data-report="velocity" style="cursor: pointer;">Velocity <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="days_until_stockout" data-report="velocity" style="cursor: pointer;">Days to Stockout <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="velocityTableBody"></tbody>
@@ -340,19 +349,22 @@
             </div>
 
             <div id="reorderContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="reorderSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="reorderTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Supplier</th>
-                      <th class="text-end">Available</th>
-                      <th class="text-end">Reorder Point</th>
-                      <th class="text-end">Shortage</th>
-                      <th class="text-end">Recommended Qty</th>
-                      <th class="text-end">Est. Cost</th>
-                      <th>Status</th>
+                      <th class="sortable-report" data-sort="sku" data-report="reorder" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="reorder" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="supplier" data-report="reorder" style="cursor: pointer;">Supplier <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="reorder" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="reorder_point" data-report="reorder" style="cursor: pointer;">Reorder Point <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="shortage" data-report="reorder" style="cursor: pointer;">Shortage <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="recommended_order_qty" data-report="reorder" style="cursor: pointer;">Recommended Qty <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="recommended_order_value" data-report="reorder" style="cursor: pointer;">Est. Cost <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="status" data-report="reorder" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="reorderTableBody"></tbody>
@@ -414,19 +426,22 @@
             </div>
 
             <div id="obsoleteContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="obsoleteSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="obsoleteTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Unit Cost</th>
-                      <th class="text-end">Total Value</th>
-                      <th>Last Used</th>
-                      <th class="text-end">Days Inactive</th>
-                      <th>In BOM</th>
+                      <th class="sortable-report" data-sort="sku" data-report="obsolete" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="obsolete" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="obsolete" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="obsolete" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="unit_cost" data-report="obsolete" style="cursor: pointer;">Unit Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="total_value" data-report="obsolete" style="cursor: pointer;">Total Value <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="last_shipment_date" data-report="obsolete" style="cursor: pointer;">Last Used <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="days_since_last_use" data-report="obsolete" style="cursor: pointer;">Days Inactive <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="is_used_in_bom" data-report="obsolete" style="cursor: pointer;">In BOM <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="obsoleteTableBody"></tbody>
@@ -613,11 +628,13 @@ async function loadLowStockReport(page = 1) {
 }
 
 function renderLowStockTable(page = 1) {
-  const allItems = reportPaginationState.lowStock || [];
-  const pagination = paginateData(allItems, page);
+  const processedData = getProcessedReportData('lowStock');
+  const pagination = paginateData(processedData, page);
   const tbody = document.getElementById('lowStockTableBody');
 
-  if (allItems.length === 0) {
+  updateReportSortIcons('lowStock');
+
+  if (processedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No low stock items</td></tr>';
     document.getElementById('lowStockPagination').style.display = 'none';
   } else {
@@ -666,11 +683,13 @@ async function loadCommittedReport(page = 1) {
 }
 
 function renderCommittedTable(page = 1) {
-  const allItems = reportPaginationState.committed || [];
-  const pagination = paginateData(allItems, page);
+  const processedData = getProcessedReportData('committed');
+  const pagination = paginateData(processedData, page);
   const tbody = document.getElementById('committedTableBody');
 
-  if (allItems.length === 0) {
+  updateReportSortIcons('committed');
+
+  if (processedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
     document.getElementById('committedPagination').style.display = 'none';
   } else {
@@ -728,11 +747,13 @@ async function loadVelocityReport(page = 1) {
 }
 
 function renderVelocityTable(page = 1) {
-  const allItems = reportPaginationState.velocity || [];
-  const pagination = paginateData(allItems, page);
+  const processedData = getProcessedReportData('velocity');
+  const pagination = paginateData(processedData, page);
   const tbody = document.getElementById('velocityTableBody');
 
-  if (allItems.length === 0) {
+  updateReportSortIcons('velocity');
+
+  if (processedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data</td></tr>';
     document.getElementById('velocityPagination').style.display = 'none';
   } else {
@@ -790,11 +811,13 @@ async function loadReorderReport(page = 1) {
 }
 
 function renderReorderTable(page = 1) {
-  const allItems = reportPaginationState.reorder || [];
-  const pagination = paginateData(allItems, page);
+  const processedData = getProcessedReportData('reorder');
+  const pagination = paginateData(processedData, page);
   const tbody = document.getElementById('reorderTableBody');
 
-  if (allItems.length === 0) {
+  updateReportSortIcons('reorder');
+
+  if (processedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No reorder recommendations</td></tr>';
     document.getElementById('reorderPagination').style.display = 'none';
   } else {
@@ -845,11 +868,13 @@ async function loadObsoleteReport(page = 1) {
 }
 
 function renderObsoleteTable(page = 1) {
-  const allItems = reportPaginationState.obsolete || [];
-  const pagination = paginateData(allItems, page);
+  const processedData = getProcessedReportData('obsolete');
+  const pagination = paginateData(processedData, page);
   const tbody = document.getElementById('obsoleteTableBody');
 
-  if (allItems.length === 0) {
+  updateReportSortIcons('obsolete');
+
+  if (processedData.length === 0) {
     tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No obsolete items found</td></tr>';
     document.getElementById('obsoletePagination').style.display = 'none';
   } else {
@@ -967,10 +992,128 @@ function refreshAllReports() {
 }
 
 // ============================================
-// Client-Side Pagination Helper
+// Client-Side Pagination, Sorting & Search
 // ============================================
 const ITEMS_PER_PAGE = 50;
 const reportPaginationState = {};
+const reportSortState = {
+  lowStock: { sortBy: 'sku', sortDir: 'asc' },
+  committed: { sortBy: 'sku', sortDir: 'asc' },
+  velocity: { sortBy: 'sku', sortDir: 'asc' },
+  reorder: { sortBy: 'sku', sortDir: 'asc' },
+  obsolete: { sortBy: 'sku', sortDir: 'asc' }
+};
+const reportSearchState = {
+  lowStock: '',
+  committed: '',
+  velocity: '',
+  reorder: '',
+  obsolete: ''
+};
+
+// Debounce timer for search
+let reportSearchDebounceTimer = null;
+
+// Sort data by column
+function sortReportData(data, sortBy, sortDir) {
+  return [...data].sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+
+    // Handle null/undefined values
+    if (aVal === null || aVal === undefined) aVal = '';
+    if (bVal === null || bVal === undefined) bVal = '';
+
+    // Handle numeric sorting
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    // Handle string sorting
+    const aStr = String(aVal).toLowerCase();
+    const bStr = String(bVal).toLowerCase();
+    if (sortDir === 'asc') {
+      return aStr.localeCompare(bStr);
+    } else {
+      return bStr.localeCompare(aStr);
+    }
+  });
+}
+
+// Filter data by search term
+function filterReportData(data, searchTerm) {
+  if (!searchTerm) return data;
+  const term = searchTerm.toLowerCase();
+  return data.filter(item => {
+    const sku = (item.sku || '').toLowerCase();
+    const description = (item.description || '').toLowerCase();
+    return sku.includes(term) || description.includes(term);
+  });
+}
+
+// Handle report column sort click
+function handleReportSort(reportName, column) {
+  const state = reportSortState[reportName];
+  if (state.sortBy === column) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortBy = column;
+    state.sortDir = 'asc';
+  }
+  updateReportSortIcons(reportName);
+  renderReportByName(reportName, 1);
+}
+
+// Update sort icons for a report
+function updateReportSortIcons(reportName) {
+  const state = reportSortState[reportName];
+  document.querySelectorAll(`.sortable-report[data-report="${reportName}"]`).forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    const column = th.dataset.sort;
+    if (column === state.sortBy) {
+      icon.innerHTML = state.sortDir === 'asc'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+    } else {
+      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+    }
+  });
+}
+
+// Handle report search
+function handleReportSearch(reportName, searchTerm) {
+  clearTimeout(reportSearchDebounceTimer);
+  reportSearchDebounceTimer = setTimeout(() => {
+    reportSearchState[reportName] = searchTerm;
+    renderReportByName(reportName, 1);
+  }, 300);
+}
+
+// Render report by name
+function renderReportByName(reportName, page) {
+  switch(reportName) {
+    case 'lowStock': renderLowStockTable(page); break;
+    case 'committed': renderCommittedTable(page); break;
+    case 'velocity': renderVelocityTable(page); break;
+    case 'reorder': renderReorderTable(page); break;
+    case 'obsolete': renderObsoleteTable(page); break;
+  }
+}
+
+// Get filtered and sorted data for a report
+function getProcessedReportData(reportName) {
+  let data = reportPaginationState[reportName] || [];
+  const searchTerm = reportSearchState[reportName];
+  const { sortBy, sortDir } = reportSortState[reportName];
+
+  // Filter by search
+  data = filterReportData(data, searchTerm);
+
+  // Sort
+  data = sortReportData(data, sortBy, sortDir);
+
+  return data;
+}
 
 function paginateData(data, page, perPage = ITEMS_PER_PAGE) {
   const startIndex = (page - 1) * perPage;
@@ -1105,6 +1248,35 @@ function escapeHtml(text) {
 // Load first report on page load
 document.addEventListener('DOMContentLoaded', () => {
   showReport('lowStock');
+
+  // Add event listeners for sortable headers
+  document.querySelectorAll('.sortable-report').forEach(th => {
+    th.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      const report = this.dataset.report;
+      if (column && report) {
+        handleReportSort(report, column);
+      }
+    });
+  });
+
+  // Add event listeners for search inputs
+  const searchInputs = {
+    'lowStockSearch': 'lowStock',
+    'committedSearch': 'committed',
+    'velocitySearch': 'velocity',
+    'reorderSearch': 'reorder',
+    'obsoleteSearch': 'obsolete'
+  };
+
+  Object.entries(searchInputs).forEach(([inputId, reportName]) => {
+    const input = document.getElementById(inputId);
+    if (input) {
+      input.addEventListener('input', (e) => {
+        handleReportSearch(reportName, e.target.value.trim());
+      });
+    }
+  });
 });
 </script>
 @endsection

@@ -108,13 +108,25 @@
                     <table class="table table-vcenter card-table table-striped">
                       <thead>
                         <tr>
-                          <th>SKU</th>
-                          <th>Description</th>
+                          <th class="sortable" data-sort="sku" style="cursor: pointer;">
+                            SKU <span class="sort-icon"></span>
+                          </th>
+                          <th class="sortable" data-sort="description" style="cursor: pointer;">
+                            Description <span class="sort-icon"></span>
+                          </th>
                           <th>Locations</th>
-                          <th class="text-end">On Hand</th>
-                          <th class="text-end">Committed</th>
-                          <th class="text-end">Available</th>
-                          <th>Status</th>
+                          <th class="text-end sortable" data-sort="quantity_on_hand" style="cursor: pointer;">
+                            On Hand <span class="sort-icon"></span>
+                          </th>
+                          <th class="text-end sortable" data-sort="quantity_committed" style="cursor: pointer;">
+                            Committed <span class="sort-icon"></span>
+                          </th>
+                          <th class="text-end sortable" data-sort="quantity_available" style="cursor: pointer;">
+                            Available <span class="sort-icon"></span>
+                          </th>
+                          <th class="sortable" data-sort="status" style="cursor: pointer;">
+                            Status <span class="sort-icon"></span>
+                          </th>
                           <th class="w-1"></th>
                         </tr>
                       </thead>
@@ -1213,6 +1225,10 @@
     let currentCategoryFilter = '';
     let currentPage = 1;
     let paginationData = null;
+    let currentSortBy = 'sku';
+    let currentSortDir = 'asc';
+    let currentSearch = '';
+    let searchDebounceTimer = null;
 
     async function loadDashboard(page = 1) {
       try {
@@ -1221,10 +1237,13 @@
         document.getElementById('inventoryTableContainer').style.display = 'none';
         document.getElementById('paginationContainer').style.display = 'none';
 
-        // Build URL with category filter and page
-        let url = `/dashboard?page=${page}`;
+        // Build URL with all filters
+        let url = `/dashboard?page=${page}&sort_by=${currentSortBy}&sort_dir=${currentSortDir}`;
         if (currentCategoryFilter) {
           url += `&category_id=${currentCategoryFilter}`;
+        }
+        if (currentSearch) {
+          url += `&search=${encodeURIComponent(currentSearch)}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
@@ -1238,6 +1257,7 @@
 
         renderInventoryTable(data.inventory.data);
         renderPagination(data.inventory);
+        updateSortIcons();
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('inventoryTableContainer').style.display = 'block';
@@ -1245,6 +1265,53 @@
         console.error('Error loading dashboard:', error);
         alert('Failed to load dashboard data');
       }
+    }
+
+    // Sort by column
+    function sortByColumn(column) {
+      if (currentSortBy === column) {
+        // Toggle direction if same column
+        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortBy = column;
+        currentSortDir = 'asc';
+      }
+      currentPage = 1; // Reset to first page
+      if (currentTab === 'all') {
+        loadDashboard(1);
+      } else {
+        loadByStatus(currentTab, 1);
+      }
+    }
+
+    // Update sort icons in table headers
+    function updateSortIcons() {
+      document.querySelectorAll('.sortable').forEach(th => {
+        const icon = th.querySelector('.sort-icon');
+        const column = th.dataset.sort;
+        if (column === currentSortBy) {
+          icon.innerHTML = currentSortDir === 'asc'
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+        } else {
+          icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+        }
+      });
+    }
+
+    // Search handler with debounce
+    function handleSearch(e) {
+      const searchTerm = e.target.value.trim();
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        currentSearch = searchTerm;
+        currentPage = 1; // Reset to first page
+        if (currentTab === 'all') {
+          loadDashboard(1);
+        } else {
+          loadByStatus(currentTab, 1);
+        }
+      }, 300); // 300ms debounce
     }
 
     function renderInventoryTable(products) {
@@ -1417,14 +1484,18 @@
         document.getElementById('inventoryTableContainer').style.display = 'none';
         document.getElementById('paginationContainer').style.display = 'none';
 
-        let url = `/dashboard/inventory/${status}?page=${page}`;
+        let url = `/dashboard/inventory/${status}?page=${page}&sort_by=${currentSortBy}&sort_dir=${currentSortDir}`;
         if (currentCategoryFilter) {
           url += `&category_id=${currentCategoryFilter}`;
+        }
+        if (currentSearch) {
+          url += `&search=${encodeURIComponent(currentSearch)}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
         renderInventoryTable(data.data);
         renderPagination(data);
+        updateSortIcons();
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('inventoryTableContainer').style.display = 'block';
@@ -3368,11 +3439,25 @@
     // Category filter event listener
     document.getElementById('categoryFilter').addEventListener('change', function(e) {
       currentCategoryFilter = e.target.value;
+      currentPage = 1; // Reset to first page
       if (currentTab === 'all') {
-        loadDashboard();
+        loadDashboard(1);
       } else {
-        loadByStatus(currentTab);
+        loadByStatus(currentTab, 1);
       }
+    });
+
+    // Search input event listener
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+    // Sort column click handlers
+    document.querySelectorAll('.sortable').forEach(th => {
+      th.addEventListener('click', function() {
+        const column = this.dataset.sort;
+        if (column) {
+          sortByColumn(column);
+        }
+      });
     });
     function htmlEscape(text) {
       const div = document.createElement('div');

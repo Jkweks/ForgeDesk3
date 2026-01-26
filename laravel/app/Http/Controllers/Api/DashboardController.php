@@ -50,6 +50,16 @@ class DashboardController extends Controller
     {
         $categoryId = $request->get('category_id');
         $perPage = $request->get('per_page', 50);
+        $sortBy = $request->get('sort_by', 'sku');
+        $sortDir = $request->get('sort_dir', 'asc');
+        $search = $request->get('search');
+
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = ['sku', 'description', 'quantity_on_hand', 'quantity_committed', 'quantity_available', 'status'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'sku';
+        }
+        $sortDir = strtolower($sortDir) === 'desc' ? 'desc' : 'asc';
 
         // Get committed quantities from fulfillment system
         $committedByProduct = $this->getCommittedByProduct();
@@ -58,6 +68,13 @@ class DashboardController extends Controller
         $statsQuery = Product::where('is_active', true);
         if ($categoryId) {
             $statsQuery->where('category_id', $categoryId);
+        }
+        if ($search) {
+            $statsQuery->where(function($q) use ($search) {
+                $q->where('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('part_number', 'like', "%{$search}%");
+            });
         }
 
         // Calculate units_available using fulfillment system
@@ -83,15 +100,57 @@ class DashboardController extends Controller
             $inventoryQuery->where('category_id', $categoryId);
         }
 
-        $inventory = $inventoryQuery->orderBy('sku')->paginate($perPage);
+        if ($search) {
+            $inventoryQuery->where(function($q) use ($search) {
+                $q->where('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('part_number', 'like', "%{$search}%");
+            });
+        }
 
-        // Enrich inventory items with real-time committed quantities from fulfillment
-        $inventory->getCollection()->transform(function ($product) use ($committedByProduct) {
-            $committedQty = $committedByProduct[$product->id] ?? 0;
-            $product->quantity_committed = $committedQty;
-            $product->quantity_available = $product->quantity_on_hand - $committedQty;
-            return $product;
-        });
+        // Handle sorting - for calculated fields, we need to sort after fetching
+        if (in_array($sortBy, ['quantity_committed', 'quantity_available'])) {
+            // Fetch all matching products first, enrich, then sort and paginate manually
+            $allProducts = $inventoryQuery->get();
+
+            // Enrich with committed quantities
+            $allProducts->transform(function ($product) use ($committedByProduct) {
+                $committedQty = $committedByProduct[$product->id] ?? 0;
+                $product->quantity_committed = $committedQty;
+                $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                return $product;
+            });
+
+            // Sort by the calculated field
+            $allProducts = $sortDir === 'asc'
+                ? $allProducts->sortBy($sortBy)->values()
+                : $allProducts->sortByDesc($sortBy)->values();
+
+            // Manual pagination
+            $total = $allProducts->count();
+            $page = $request->get('page', 1);
+            $offset = ($page - 1) * $perPage;
+            $items = $allProducts->slice($offset, $perPage)->values();
+
+            $inventory = new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            // Standard database sorting
+            $inventory = $inventoryQuery->orderBy($sortBy, $sortDir)->paginate($perPage);
+
+            // Enrich inventory items with real-time committed quantities from fulfillment
+            $inventory->getCollection()->transform(function ($product) use ($committedByProduct) {
+                $committedQty = $committedByProduct[$product->id] ?? 0;
+                $product->quantity_committed = $committedQty;
+                $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                return $product;
+            });
+        }
 
         $lowStock = Product::where('status', 'low_stock')
             ->where('is_active', true)
@@ -143,25 +202,71 @@ class DashboardController extends Controller
     {
         $categoryId = $request->get('category_id');
         $perPage = $request->get('per_page', 50);
+        $sortBy = $request->get('sort_by', 'sku');
+        $sortDir = $request->get('sort_dir', 'asc');
+        $search = $request->get('search');
+
+        // Validate sort column
+        $allowedSortColumns = ['sku', 'description', 'quantity_on_hand', 'quantity_committed', 'quantity_available', 'status'];
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'sku';
+        }
+        $sortDir = strtolower($sortDir) === 'desc' ? 'desc' : 'asc';
 
         // Get committed quantities from fulfillment system
         $committedByProduct = $this->getCommittedByProduct();
 
-        $products = Product::where('status', $status)
+        $query = Product::where('status', $status)
             ->where('is_active', true)
             ->when($categoryId, function($q) use ($categoryId) {
                 return $q->where('category_id', $categoryId);
             })
-            ->with('category')
-            ->paginate($perPage);
+            ->when($search, function($q) use ($search) {
+                return $q->where(function($sq) use ($search) {
+                    $sq->where('sku', 'like', "%{$search}%")
+                       ->orWhere('description', 'like', "%{$search}%")
+                       ->orWhere('part_number', 'like', "%{$search}%");
+                });
+            })
+            ->with('category');
 
-        // Enrich with real-time committed quantities
-        $products->getCollection()->transform(function ($product) use ($committedByProduct) {
-            $committedQty = $committedByProduct[$product->id] ?? 0;
-            $product->quantity_committed = $committedQty;
-            $product->quantity_available = $product->quantity_on_hand - $committedQty;
-            return $product;
-        });
+        // Handle sorting for calculated fields
+        if (in_array($sortBy, ['quantity_committed', 'quantity_available'])) {
+            $allProducts = $query->get();
+
+            $allProducts->transform(function ($product) use ($committedByProduct) {
+                $committedQty = $committedByProduct[$product->id] ?? 0;
+                $product->quantity_committed = $committedQty;
+                $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                return $product;
+            });
+
+            $allProducts = $sortDir === 'asc'
+                ? $allProducts->sortBy($sortBy)->values()
+                : $allProducts->sortByDesc($sortBy)->values();
+
+            $total = $allProducts->count();
+            $page = $request->get('page', 1);
+            $offset = ($page - 1) * $perPage;
+            $items = $allProducts->slice($offset, $perPage)->values();
+
+            $products = new \Illuminate\Pagination\LengthAwarePaginator(
+                $items,
+                $total,
+                $perPage,
+                $page,
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+        } else {
+            $products = $query->orderBy($sortBy, $sortDir)->paginate($perPage);
+
+            $products->getCollection()->transform(function ($product) use ($committedByProduct) {
+                $committedQty = $committedByProduct[$product->id] ?? 0;
+                $product->quantity_committed = $committedQty;
+                $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                return $product;
+            });
+        }
 
         return response()->json($products);
     }
