@@ -1330,13 +1330,17 @@
           ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
           : '<span class="text-muted">-</span>';
 
+        const committedDisplay = product.quantity_committed > 0
+          ? `<a href="#" class="text-decoration-none" onclick="viewProductReservations(${product.id}); return false;" title="View reservations">${product.quantity_committed.toLocaleString()}</a>`
+          : product.quantity_committed.toLocaleString();
+
         const row = `
           <tr>
             <td><span class="text-muted">${product.sku}</span></td>
             <td>${product.description}</td>
             <td>${locationsDisplay}</td>
             <td class="text-end">${product.quantity_on_hand.toLocaleString()}</td>
-            <td class="text-end">${product.quantity_committed.toLocaleString()}</td>
+            <td class="text-end">${committedDisplay}</td>
             <td class="text-end">${product.quantity_available.toLocaleString()}</td>
             <td>${statusBadge}</td>
             <td class="table-actions">
@@ -1537,6 +1541,18 @@
 
     let currentProductId = null;
     let currentProductLocations = [];
+
+    // View product and open reservations tab directly
+    async function viewProductReservations(id) {
+      await viewProduct(id);
+      // Switch to reservations tab after modal opens
+      setTimeout(() => {
+        const reservationsTab = document.getElementById('reservations-tab');
+        if (reservationsTab) {
+          reservationsTab.click();
+        }
+      }, 100);
+    }
 
     async function viewProduct(id) {
       try {

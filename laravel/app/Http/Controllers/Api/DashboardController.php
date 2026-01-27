@@ -70,10 +70,11 @@ class DashboardController extends Controller
             $statsQuery->where('category_id', $categoryId);
         }
         if ($search) {
-            $statsQuery->where(function($q) use ($search) {
-                $q->where('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('part_number', 'like', "%{$search}%");
+            $searchLower = strtolower($search);
+            $statsQuery->where(function($q) use ($searchLower) {
+                $q->whereRaw('LOWER(sku) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(part_number) LIKE ?', ["%{$searchLower}%"]);
             });
         }
 
@@ -101,10 +102,11 @@ class DashboardController extends Controller
         }
 
         if ($search) {
-            $inventoryQuery->where(function($q) use ($search) {
-                $q->where('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('part_number', 'like', "%{$search}%");
+            $searchLower = strtolower($search);
+            $inventoryQuery->where(function($q) use ($searchLower) {
+                $q->whereRaw('LOWER(sku) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(description) LIKE ?', ["%{$searchLower}%"])
+                  ->orWhereRaw('LOWER(part_number) LIKE ?', ["%{$searchLower}%"]);
             });
         }
 
@@ -222,10 +224,11 @@ class DashboardController extends Controller
                 return $q->where('category_id', $categoryId);
             })
             ->when($search, function($q) use ($search) {
-                return $q->where(function($sq) use ($search) {
-                    $sq->where('sku', 'like', "%{$search}%")
-                       ->orWhere('description', 'like', "%{$search}%")
-                       ->orWhere('part_number', 'like', "%{$search}%");
+                $searchLower = strtolower($search);
+                return $q->where(function($sq) use ($searchLower) {
+                    $sq->whereRaw('LOWER(sku) LIKE ?', ["%{$searchLower}%"])
+                       ->orWhereRaw('LOWER(description) LIKE ?', ["%{$searchLower}%"])
+                       ->orWhereRaw('LOWER(part_number) LIKE ?', ["%{$searchLower}%"]);
                 });
             })
             ->with('category');
