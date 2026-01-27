@@ -128,9 +128,13 @@ class DashboardController extends Controller
             // Enrich with committed quantities (eaches and packs)
             $allProducts->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
+                $committedPacks = $product->eachesToPacksNeeded($committedQty);
+                $onHandPacks = $product->eachesToFullPacks($product->quantity_on_hand);
+
                 $product->quantity_committed = $committedQty;
-                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
+                $product->quantity_committed_packs = $committedPacks;
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                $product->quantity_available_packs = max(0, $onHandPacks - $committedPacks);
                 return $product;
             });
 
@@ -159,9 +163,13 @@ class DashboardController extends Controller
             // Enrich inventory items with real-time committed quantities from fulfillment (eaches and packs)
             $inventory->getCollection()->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
+                $committedPacks = $product->eachesToPacksNeeded($committedQty);
+                $onHandPacks = $product->eachesToFullPacks($product->quantity_on_hand);
+
                 $product->quantity_committed = $committedQty;
-                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
+                $product->quantity_committed_packs = $committedPacks;
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                $product->quantity_available_packs = max(0, $onHandPacks - $committedPacks);
                 return $product;
             });
         }
@@ -204,9 +212,13 @@ class DashboardController extends Controller
             ->get()
             ->map(function ($product) {
                 $committedQty = $product->reservationItems->sum('committed_qty');
+                $committedPacks = $product->eachesToPacksNeeded($committedQty);
+                $onHandPacks = $product->eachesToFullPacks($product->quantity_on_hand);
+
                 $product->quantity_committed = $committedQty;
-                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
+                $product->quantity_committed_packs = $committedPacks;
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                $product->quantity_available_packs = max(0, $onHandPacks - $committedPacks);
                 return $product;
             });
 
@@ -260,9 +272,13 @@ class DashboardController extends Controller
 
             $allProducts->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
+                $committedPacks = $product->eachesToPacksNeeded($committedQty);
+                $onHandPacks = $product->eachesToFullPacks($product->quantity_on_hand);
+
                 $product->quantity_committed = $committedQty;
-                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
+                $product->quantity_committed_packs = $committedPacks;
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                $product->quantity_available_packs = max(0, $onHandPacks - $committedPacks);
                 return $product;
             });
 
@@ -287,9 +303,13 @@ class DashboardController extends Controller
 
             $products->getCollection()->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
+                $committedPacks = $product->eachesToPacksNeeded($committedQty);
+                $onHandPacks = $product->eachesToFullPacks($product->quantity_on_hand);
+
                 $product->quantity_committed = $committedQty;
-                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
+                $product->quantity_committed_packs = $committedPacks;
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
+                $product->quantity_available_packs = max(0, $onHandPacks - $committedPacks);
                 return $product;
             });
         }

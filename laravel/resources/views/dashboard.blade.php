@@ -1514,16 +1514,21 @@
     /**
      * Format available quantity display
      * Shows available packs if product has pack_size > 1
+     * Available packs = on-hand packs - committed packs (can be 0 or negative)
      */
     function formatAvailableDisplay(product) {
       const availableEaches = product.quantity_available || 0;
-      const availablePacks = product.quantity_available_packs || availableEaches;
       const packSize = product.pack_size || 1;
       const hasPackSize = packSize > 1;
 
       if (hasPackSize) {
+        // Calculate available packs: on-hand full packs minus committed packs needed
+        // Use nullish coalescing (??) to properly handle 0 values
+        const onHandPacks = product.quantity_on_hand_packs ?? Math.floor((product.quantity_on_hand || 0) / packSize);
+        const committedPacks = product.quantity_committed_packs ?? Math.ceil((product.quantity_committed || 0) / packSize);
+        const availablePacks = product.quantity_available_packs ?? Math.max(0, onHandPacks - committedPacks);
         const packLabel = availablePacks === 1 ? 'pack' : 'packs';
-        const title = `${availableEaches.toLocaleString()} eaches available`;
+        const title = `${availableEaches.toLocaleString()} eaches available (${onHandPacks} on hand - ${committedPacks} committed)`;
         return `<span title="${title}">${availablePacks.toLocaleString()} ${packLabel}</span>`;
       }
 
