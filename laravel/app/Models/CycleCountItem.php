@@ -32,6 +32,8 @@ class CycleCountItem extends Model
         'adjustment_created' => 'boolean',
     ];
 
+    protected $appends = ['counting_unit', 'pack_size', 'system_quantity_eaches', 'counted_quantity_eaches'];
+
     // Relationships
     public function session()
     {
@@ -59,6 +61,70 @@ class CycleCountItem extends Model
     }
 
     // Computed properties
+
+    /**
+     * Get the pack size for this item's product
+     */
+    public function getPackSizeAttribute()
+    {
+        return $this->product?->pack_size ?? 1;
+    }
+
+    /**
+     * Check if this product is counted in packs
+     */
+    public function hasPackSize()
+    {
+        return $this->pack_size > 1;
+    }
+
+    /**
+     * Get the counting unit label
+     */
+    public function getCountingUnitAttribute()
+    {
+        if ($this->hasPackSize()) {
+            return $this->product?->purchase_uom ?? 'packs';
+        }
+        return $this->product?->stock_uom ?? 'EA';
+    }
+
+    /**
+     * Get system quantity in eaches (converts from packs if applicable)
+     */
+    public function getSystemQuantityEachesAttribute()
+    {
+        if ($this->hasPackSize()) {
+            return $this->system_quantity * $this->pack_size;
+        }
+        return $this->system_quantity;
+    }
+
+    /**
+     * Get counted quantity in eaches (converts from packs if applicable)
+     */
+    public function getCountedQuantityEachesAttribute()
+    {
+        if ($this->counted_quantity === null) {
+            return null;
+        }
+        if ($this->hasPackSize()) {
+            return $this->counted_quantity * $this->pack_size;
+        }
+        return $this->counted_quantity;
+    }
+
+    /**
+     * Get variance in eaches
+     */
+    public function getVarianceEachesAttribute()
+    {
+        if ($this->hasPackSize()) {
+            return $this->variance * $this->pack_size;
+        }
+        return $this->variance;
+    }
+
     public function getVariancePercentageAttribute()
     {
         if ($this->system_quantity == 0) {
@@ -74,7 +140,10 @@ class CycleCountItem extends Model
 
     public function getNeedsReviewAttribute()
     {
-        return abs($this->variance) > 5; // Threshold can be configurable
+        // For pack-based items, use a smaller threshold (e.g., 1 pack)
+        // For each-based items, use 5 eaches
+        $threshold = $this->hasPackSize() ? 1 : 5;
+        return abs($this->variance) > $threshold;
     }
 
     // Record count
@@ -112,30 +181,40 @@ class CycleCountItem extends Model
             return null;
         }
 
-        // Create inventory adjustment transaction
+        // Get values in eaches (convert from packs if applicable)
+        $varianceEaches = $this->variance_eaches;
+        $systemEaches = $this->system_quantity_eaches;
+        $countedEaches = $this->counted_quantity_eaches;
+
+        // Build notes with pack information if applicable
+        $notes = $this->hasPackSize()
+            ? "Cycle count adjustment: Expected {$this->system_quantity} packs ({$systemEaches} ea), Counted {$this->counted_quantity} packs ({$countedEaches} ea). " . ($this->count_notes ?? '')
+            : "Cycle count adjustment: Expected {$this->system_quantity}, Counted {$this->counted_quantity}. " . ($this->count_notes ?? '');
+
+        // Create inventory adjustment transaction (in eaches)
         $transaction = InventoryTransaction::create([
             'product_id' => $this->product_id,
             'type' => 'cycle_count',
-            'quantity' => $this->variance,
-            'quantity_before' => $this->system_quantity,
-            'quantity_after' => $this->counted_quantity,
+            'quantity' => $varianceEaches,
+            'quantity_before' => $systemEaches,
+            'quantity_after' => $countedEaches,
             'reference_number' => $this->session->session_number,
             'reference_type' => 'cycle_count',
             'reference_id' => $this->session_id,
-            'notes' => "Cycle count adjustment: Expected {$this->system_quantity}, Counted {$this->counted_quantity}. " . ($this->count_notes ?? ''),
+            'notes' => $notes,
             'user_id' => $userId,
             'transaction_date' => now(),
         ]);
 
-        // Update product quantity
+        // Update product quantity (in eaches)
         $product = $this->product;
-        $product->quantity_on_hand = $this->counted_quantity;
+        $product->quantity_on_hand = $countedEaches;
         $product->save();
 
-        // Update location quantity if location-specific
+        // Update location quantity if location-specific (in eaches)
         if ($this->location_id) {
             $location = $this->location;
-            $location->quantity = $this->counted_quantity;
+            $location->quantity = $countedEaches;
             $location->save();
         }
 

@@ -1330,18 +1330,19 @@
           ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
           : '<span class="text-muted">-</span>';
 
-        const committedDisplay = product.quantity_committed > 0
-          ? `<a href="#" class="text-decoration-none" onclick="viewProductReservations(${product.id}); return false;" title="View reservations">${product.quantity_committed.toLocaleString()}</a>`
-          : product.quantity_committed.toLocaleString();
+        // Use pack-aware display functions
+        const onHandDisplay = formatOnHandDisplay(product);
+        const committedDisplay = formatCommittedDisplay(product, true);
+        const availableDisplay = formatAvailableDisplay(product);
 
         const row = `
           <tr>
             <td><span class="text-muted">${product.sku}</span></td>
             <td>${product.description}</td>
             <td>${locationsDisplay}</td>
-            <td class="text-end">${product.quantity_on_hand.toLocaleString()}</td>
+            <td class="text-end">${onHandDisplay}</td>
             <td class="text-end">${committedDisplay}</td>
-            <td class="text-end">${product.quantity_available.toLocaleString()}</td>
+            <td class="text-end">${availableDisplay}</td>
             <td>${statusBadge}</td>
             <td class="table-actions">
               <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="viewProduct(${product.id})" title="View">
@@ -1453,6 +1454,80 @@
       } else {
         loadByStatus(currentTab, page);
       }
+    }
+
+    /**
+     * Format committed quantity display
+     * Shows packs needed if product has pack_size > 1, with eaches in tooltip
+     * Example: "2 packs" with title="137 eaches total"
+     */
+    function formatCommittedDisplay(product, linkable = true) {
+      const committedEaches = product.quantity_committed || 0;
+      const committedPacks = product.quantity_committed_packs || committedEaches;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      const countingUnit = product.counting_unit || 'EA';
+
+      if (committedEaches === 0) {
+        return hasPackSize ? '0 packs' : '0';
+      }
+
+      let display;
+      let title;
+
+      if (hasPackSize) {
+        // Show packs with eaches in tooltip
+        const packLabel = committedPacks === 1 ? 'pack' : 'packs';
+        display = `${committedPacks.toLocaleString()} ${packLabel}`;
+        title = `${committedEaches.toLocaleString()} eaches total (${packSize} per pack)`;
+      } else {
+        display = committedEaches.toLocaleString();
+        title = `${committedEaches.toLocaleString()} ${countingUnit}`;
+      }
+
+      if (linkable && committedEaches > 0) {
+        return `<a href="#" class="text-decoration-none" onclick="viewProductReservations(${product.id}); return false;" title="${title}">${display}</a>`;
+      }
+
+      return `<span title="${title}">${display}</span>`;
+    }
+
+    /**
+     * Format on-hand quantity display
+     * Shows full packs if product has pack_size > 1, with eaches in tooltip
+     */
+    function formatOnHandDisplay(product) {
+      const onHandEaches = product.quantity_on_hand || 0;
+      const onHandPacks = product.quantity_on_hand_packs || onHandEaches;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+
+      if (hasPackSize) {
+        const packLabel = onHandPacks === 1 ? 'pack' : 'packs';
+        const title = `${onHandEaches.toLocaleString()} eaches total (${packSize} per pack)`;
+        return `<span title="${title}">${onHandPacks.toLocaleString()} ${packLabel}</span>`;
+      }
+
+      return onHandEaches.toLocaleString();
+    }
+
+    /**
+     * Format available quantity display
+     * Shows available packs if product has pack_size > 1
+     */
+    function formatAvailableDisplay(product) {
+      const availableEaches = product.quantity_available || 0;
+      const availablePacks = product.quantity_available_packs || availableEaches;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+
+      if (hasPackSize) {
+        const packLabel = availablePacks === 1 ? 'pack' : 'packs';
+        const title = `${availableEaches.toLocaleString()} eaches available`;
+        return `<span title="${title}">${availablePacks.toLocaleString()} ${packLabel}</span>`;
+      }
+
+      return availableEaches.toLocaleString();
     }
 
     function getStatusBadge(status) {
@@ -1605,19 +1680,22 @@
           </div>
 
           <hr>
-          <h5 class="mb-3">Inventory Status</h5>
+          <h5 class="mb-3">Inventory Status ${product.pack_size > 1 ? '<small class="text-muted">(showing packs)</small>' : ''}</h5>
           <div class="row mb-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">On Hand</label>
-              <p>${(product.quantity_on_hand ?? 0).toLocaleString()}</p>
+              <p>${formatOnHandDisplay(product)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_on_hand ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Committed</label>
-              <p>${(product.quantity_committed ?? 0).toLocaleString()}</p>
+              <p>${formatCommittedDisplay(product, false)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_committed ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Available</label>
-              <p class="text-success fw-bold">${(product.quantity_available ?? 0).toLocaleString()}</p>
+              <p class="text-success fw-bold">${formatAvailableDisplay(product)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_available ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">On Order</label>

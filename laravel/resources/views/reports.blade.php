@@ -693,13 +693,16 @@ function renderCommittedTable(page = 1) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
     document.getElementById('committedPagination').style.display = 'none';
   } else {
-    tbody.innerHTML = pagination.data.map(item => `
+    tbody.innerHTML = pagination.data.map(item => {
+      const packSize = item.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      return `
       <tr>
         <td><strong>${escapeHtml(item.sku)}</strong></td>
-        <td>${escapeHtml(item.description)}</td>
+        <td>${escapeHtml(item.description)}${hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : ''}</td>
         <td>${item.category || '-'}</td>
-        <td class="text-end">${item.committed}</td>
-        <td class="text-end">${item.available}</td>
+        <td class="text-end">${formatPackCommitted(item)}</td>
+        <td class="text-end">${formatPackAvailable(item)}</td>
         <td>
           ${item.reservations.map(r => {
             const statusBadge = {
@@ -707,11 +710,13 @@ function renderCommittedTable(page = 1) {
               'in_progress': 'text-bg-primary',
               'on_hold': 'text-bg-warning'
             }[r.status] || 'text-bg-secondary';
-            return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''}">${r.job_number}-${r.release_number || 1}: ${r.quantity}</span>`;
+            const qtyDisplay = hasPackSize ? `${r.quantity_packs || Math.ceil(r.quantity / packSize)} pk` : r.quantity;
+            const qtyTitle = hasPackSize ? `${r.quantity} eaches` : '';
+            return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''} ${qtyTitle}">${r.job_number}-${r.release_number || 1}: ${qtyDisplay}</span>`;
           }).join('')}
         </td>
       </tr>
-    `).join('');
+    `;}).join('');
 
     renderReportPagination('committedPagination', pagination, renderCommittedTable);
   }
@@ -1243,6 +1248,62 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/**
+ * Format committed quantity showing packs if applicable
+ * Shows "X packs" with eaches in tooltip when pack_size > 1
+ */
+function formatPackCommitted(item) {
+  const committed = item.committed || 0;
+  const committedPacks = item.committed_packs || committed;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (committed === 0) {
+    return hasPackSize ? '0 packs' : '0';
+  }
+
+  if (hasPackSize) {
+    const packLabel = committedPacks === 1 ? 'pack' : 'packs';
+    return `<span title="${committed} eaches (${packSize}/pack)">${committedPacks} ${packLabel}</span>`;
+  }
+
+  return committed.toLocaleString();
+}
+
+/**
+ * Format on-hand quantity showing packs if applicable
+ */
+function formatPackOnHand(item) {
+  const onHand = item.on_hand || 0;
+  const onHandPacks = item.on_hand_packs || onHand;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (hasPackSize) {
+    const packLabel = onHandPacks === 1 ? 'pack' : 'packs';
+    return `<span title="${onHand} eaches (${packSize}/pack)">${onHandPacks} ${packLabel}</span>`;
+  }
+
+  return onHand.toLocaleString();
+}
+
+/**
+ * Format available quantity showing packs if applicable
+ */
+function formatPackAvailable(item) {
+  const available = item.available || 0;
+  const availablePacks = item.available_packs || available;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (hasPackSize) {
+    const packLabel = availablePacks === 1 ? 'pack' : 'packs';
+    return `<span title="${available} eaches">${availablePacks} ${packLabel}</span>`;
+  }
+
+  return available.toLocaleString();
 }
 
 // Load first report on page load

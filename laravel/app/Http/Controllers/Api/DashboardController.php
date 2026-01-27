@@ -125,10 +125,11 @@ class DashboardController extends Controller
             // Fetch all matching products first, enrich, then sort and paginate manually
             $allProducts = $inventoryQuery->get();
 
-            // Enrich with committed quantities
+            // Enrich with committed quantities (eaches and packs)
             $allProducts->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
                 $product->quantity_committed = $committedQty;
+                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
                 return $product;
             });
@@ -155,10 +156,11 @@ class DashboardController extends Controller
             // Standard database sorting
             $inventory = $inventoryQuery->orderBy($sortBy, $sortDir)->paginate($perPage);
 
-            // Enrich inventory items with real-time committed quantities from fulfillment
+            // Enrich inventory items with real-time committed quantities from fulfillment (eaches and packs)
             $inventory->getCollection()->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
                 $product->quantity_committed = $committedQty;
+                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
                 return $product;
             });
@@ -203,6 +205,7 @@ class DashboardController extends Controller
             ->map(function ($product) {
                 $committedQty = $product->reservationItems->sum('committed_qty');
                 $product->quantity_committed = $committedQty;
+                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
                 return $product;
             });
@@ -258,6 +261,7 @@ class DashboardController extends Controller
             $allProducts->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
                 $product->quantity_committed = $committedQty;
+                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
                 return $product;
             });
@@ -284,6 +288,7 @@ class DashboardController extends Controller
             $products->getCollection()->transform(function ($product) use ($committedByProduct) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
                 $product->quantity_committed = $committedQty;
+                $product->quantity_committed_packs = $product->eachesToPacksNeeded($committedQty);
                 $product->quantity_available = $product->quantity_on_hand - $committedQty;
                 return $product;
             });

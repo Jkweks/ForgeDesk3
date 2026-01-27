@@ -754,19 +754,31 @@ async function enterCounts(sessionId) {
       if (variance > 0) varianceClass = 'text-success';
       else if (variance < 0) varianceClass = 'text-danger';
 
+      // Determine counting unit (packs or eaches)
+      const packSize = item.pack_size || item.product?.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      const countingUnit = item.counting_unit || (hasPackSize ? 'packs' : 'EA');
+      const unitLabel = hasPackSize ? 'packs' : '';
+      const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
+
       return `
         <tr>
           <td><strong>${escapeHtml(item.product.sku)}</strong></td>
-          <td>${escapeHtml(item.product.description)}</td>
+          <td>${escapeHtml(item.product.description)}${packInfo}</td>
           <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
-          <td class="text-end">${item.system_quantity}</td>
+          <td class="text-end">
+            ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
+          </td>
           <td>
-            <input type="number" class="form-control form-control-sm" id="counted${item.id}"
-                   value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
-                   min="0" style="width: 100px;" onchange="recordItemCount(${item.id})">
+            <div class="input-group input-group-sm" style="width: 140px;">
+              <input type="number" class="form-control form-control-sm" id="counted${item.id}"
+                     value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
+                     min="0" onchange="recordItemCount(${item.id})">
+              ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
+            </div>
           </td>
           <td class="text-end ${varianceClass}">
-            <strong id="variance${item.id}">${item.counted_quantity !== null ? variance : '-'}</strong>
+            <strong id="variance${item.id}">${item.counted_quantity !== null ? (variance > 0 ? '+' : '') + variance + (unitLabel ? ' ' + unitLabel : '') : '-'}</strong>
           </td>
           <td>
             <span class="badge ${getVarianceStatusBadge(item.variance_status)}" id="status${item.id}">
@@ -843,19 +855,31 @@ async function viewVarianceReport(sessionId) {
         ? Math.round((item.variance / item.system_quantity) * 100)
         : 0;
 
+      // Determine counting unit (packs or eaches)
+      const packSize = item.pack_size || item.product?.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      const unitLabel = hasPackSize ? 'packs' : '';
+      const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pk)</small>` : '';
+
+      // Calculate eaches for display in tooltip
+      const systemEaches = hasPackSize ? item.system_quantity * packSize : item.system_quantity;
+      const countedEaches = hasPackSize ? item.counted_quantity * packSize : item.counted_quantity;
+      const varianceEaches = hasPackSize ? item.variance * packSize : item.variance;
+      const eachesInfo = hasPackSize ? ` title="System: ${systemEaches} ea, Counted: ${countedEaches} ea, Variance: ${varianceEaches > 0 ? '+' : ''}${varianceEaches} ea"` : '';
+
       return `
-        <tr>
+        <tr${eachesInfo}>
           <td>
             ${item.variance_status !== 'approved' ? `
               <input type="checkbox" class="form-check-input variance-check" data-item-id="${item.id}" checked>
             ` : ''}
           </td>
-          <td><strong>${escapeHtml(item.product.sku)}</strong></td>
+          <td><strong>${escapeHtml(item.product.sku)}</strong>${packInfo}</td>
           <td>${escapeHtml(item.product.description)}</td>
-          <td class="text-end">${item.system_quantity}</td>
-          <td class="text-end">${item.counted_quantity}</td>
+          <td class="text-end">${item.system_quantity}${unitLabel ? ` <small>${unitLabel}</small>` : ''}</td>
+          <td class="text-end">${item.counted_quantity}${unitLabel ? ` <small>${unitLabel}</small>` : ''}</td>
           <td class="text-end ${item.variance > 0 ? 'text-success' : 'text-danger'}">
-            <strong>${item.variance > 0 ? '+' : ''}${item.variance}</strong>
+            <strong>${item.variance > 0 ? '+' : ''}${item.variance}</strong>${unitLabel ? ` <small>${unitLabel}</small>` : ''}
           </td>
           <td class="text-end ${Math.abs(variancePercent) > 10 ? 'text-danger' : 'text-warning'}">
             ${variancePercent}%
