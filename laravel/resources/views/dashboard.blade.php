@@ -1324,7 +1324,7 @@
       }
 
       products.forEach(product => {
-        const statusBadge = getStatusBadge(product.status);
+        const statusBadge = getStatusBadge(product.status, product.on_order_qty);
         const locationCount = product.inventory_locations?.length || 0;
         const locationsDisplay = locationCount > 0
           ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
@@ -1535,14 +1535,21 @@
       return availableEaches.toLocaleString();
     }
 
-    function getStatusBadge(status) {
+    function getStatusBadge(status, onOrderQty = 0) {
       const badges = {
         'in_stock': '<span class="badge text-bg-success status-badge">In Stock</span>',
         'low_stock': '<span class="badge text-bg-warning status-badge">Low Stock</span>',
         'critical': '<span class="badge text-bg-danger status-badge">Critical</span>',
         'out_of_stock': '<span class="badge text-bg-dark status-badge">Out of Stock</span>'
       };
-      return badges[status] || badges['in_stock'];
+      let badge = badges[status] || badges['in_stock'];
+
+      // Add "On Order" indicator if there's pending order quantity
+      if (onOrderQty && onOrderQty > 0) {
+        badge += ` <span class="badge text-bg-info status-badge" title="${onOrderQty} on order">On Order</span>`;
+      }
+
+      return badge;
     }
 
     document.querySelectorAll('.nav-link[data-tab]').forEach(link => {
@@ -1790,7 +1797,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
-              <p>${getStatusBadge(product.status)}</p>
+              <p>${getStatusBadge(product.status, product.on_order_qty)}</p>
             </div>
           </div>
         `;
