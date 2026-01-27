@@ -25,7 +25,13 @@ class DashboardController extends Controller
             ->where('p.is_active', true);
 
         if ($categoryId) {
-            $query->where('p.category_id', $categoryId);
+            // Filter by category using the category_product pivot table
+            $query->whereExists(function ($subquery) use ($categoryId) {
+                $subquery->select(DB::raw(1))
+                    ->from('category_product as cp')
+                    ->whereColumn('cp.product_id', 'p.id')
+                    ->where('cp.category_id', $categoryId);
+            });
         }
 
         return $query->sum('ri.committed_qty');
@@ -67,7 +73,9 @@ class DashboardController extends Controller
         // Base query for stats (apply category filter if present)
         $statsQuery = Product::where('is_active', true);
         if ($categoryId) {
-            $statsQuery->where('category_id', $categoryId);
+            $statsQuery->whereHas('categories', function($q) use ($categoryId) {
+                $q->where('categories.id', $categoryId);
+            });
         }
         if ($search) {
             $searchLower = strtolower($search);
@@ -94,11 +102,13 @@ class DashboardController extends Controller
             'pending_orders' => Order::whereIn('status', ['pending', 'processing'])->count(),
         ];
 
-        $inventoryQuery = Product::with(['inventoryLocations', 'category'])
+        $inventoryQuery = Product::with(['inventoryLocations', 'categories'])
             ->where('is_active', true);
 
         if ($categoryId) {
-            $inventoryQuery->where('category_id', $categoryId);
+            $inventoryQuery->whereHas('categories', function($q) use ($categoryId) {
+                $q->where('categories.id', $categoryId);
+            });
         }
 
         if ($search) {
@@ -157,14 +167,18 @@ class DashboardController extends Controller
         $lowStock = Product::where('status', 'low_stock')
             ->where('is_active', true)
             ->when($categoryId, function($q) use ($categoryId) {
-                return $q->where('category_id', $categoryId);
+                return $q->whereHas('categories', function($sq) use ($categoryId) {
+                    $sq->where('categories.id', $categoryId);
+                });
             })
             ->get();
 
         $criticalStock = Product::where('status', 'critical')
             ->where('is_active', true)
             ->when($categoryId, function($q) use ($categoryId) {
-                return $q->where('category_id', $categoryId);
+                return $q->whereHas('categories', function($sq) use ($categoryId) {
+                    $sq->where('categories.id', $categoryId);
+                });
             })
             ->get();
 
@@ -181,7 +195,9 @@ class DashboardController extends Controller
             }])
             ->where('is_active', true)
             ->when($categoryId, function($q) use ($categoryId) {
-                return $q->where('category_id', $categoryId);
+                return $q->whereHas('categories', function($sq) use ($categoryId) {
+                    $sq->where('categories.id', $categoryId);
+                });
             })
             ->get()
             ->map(function ($product) {
@@ -221,7 +237,9 @@ class DashboardController extends Controller
         $query = Product::where('status', $status)
             ->where('is_active', true)
             ->when($categoryId, function($q) use ($categoryId) {
-                return $q->where('category_id', $categoryId);
+                return $q->whereHas('categories', function($sq) use ($categoryId) {
+                    $sq->where('categories.id', $categoryId);
+                });
             })
             ->when($search, function($q) use ($search) {
                 $searchLower = strtolower($search);
@@ -231,7 +249,7 @@ class DashboardController extends Controller
                        ->orWhereRaw('LOWER(part_number) LIKE ?', ["%{$searchLower}%"]);
                 });
             })
-            ->with('category');
+            ->with('categories');
 
         // Handle sorting for calculated fields
         if (in_array($sortBy, ['quantity_committed', 'quantity_available'])) {
