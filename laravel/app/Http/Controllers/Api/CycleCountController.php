@@ -143,6 +143,9 @@ class CycleCountController extends Controller
 
             // Create cycle count items
             foreach ($products as $product) {
+                // Initialize location variable
+                $location = null;
+
                 // Get system quantity (in eaches from database)
                 if ($request->location) {
                     // Location-specific count
@@ -150,10 +153,10 @@ class CycleCountController extends Controller
                         ->where('location', $request->location)
                         ->first();
 
-                    $systemQtyEaches = $location ? $location->quantity : 0;
+                    $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
                 } else {
                     // Product-level count
-                    $systemQtyEaches = $product->quantity_on_hand;
+                    $systemQtyEaches = $product->quantity_on_hand ?? 0;
                 }
 
                 // Convert to packs if product has pack_size > 1
@@ -164,7 +167,7 @@ class CycleCountController extends Controller
 
                 $session->items()->create([
                     'product_id' => $product->id,
-                    'location_id' => $request->location && isset($location) ? ($location->id ?? null) : null,
+                    'location_id' => ($request->location && $location) ? $location->id : null,
                     'system_quantity' => $systemQtyForCount,
                     'counted_quantity' => null,
                     'variance' => 0,
@@ -183,9 +186,20 @@ class CycleCountController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log the full error for debugging
+            \Log::error('Cycle count creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error creating cycle count session',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile()),
             ], 500);
         }
     }

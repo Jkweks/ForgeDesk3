@@ -2,6 +2,11 @@
 
 use Illuminate\Support\Facades\Route;
 
+// Login route (required by Laravel auth system)
+Route::get('/login', function () {
+    return view('dashboard'); // The dashboard view handles login UI
+})->name('login');
+
 Route::get('/', function () {
     return view('dashboard');
 });
