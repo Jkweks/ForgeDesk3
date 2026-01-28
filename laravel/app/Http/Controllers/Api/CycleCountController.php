@@ -153,10 +153,10 @@ class CycleCountController extends Controller
                         ->where('location', $request->location)
                         ->first();
 
-                    $systemQtyEaches = $location ? $location->quantity : 0;
+                    $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
                 } else {
                     // Product-level count
-                    $systemQtyEaches = $product->quantity_on_hand;
+                    $systemQtyEaches = $product->quantity_on_hand ?? 0;
                 }
 
                 // Convert to packs if product has pack_size > 1
