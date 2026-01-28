@@ -225,6 +225,7 @@
           <table class="table table-vcenter">
             <thead>
               <tr>
+                <th style="width: 80px;">Skip</th>
                 <th>SKU</th>
                 <th>Description</th>
                 <th>Location</th>
@@ -764,7 +765,15 @@ async function enterCounts(sessionId) {
       const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
 
       return `
-        <tr>
+        <tr id="row${item.id}">
+          <td>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="skip${item.id}" onchange="toggleSkip(${item.id})">
+              <label class="form-check-label" for="skip${item.id}">
+                <small class="text-muted">Skip</small>
+              </label>
+            </div>
+          </td>
           <td><strong>${escapeHtml(item.product.sku)}</strong></td>
           <td>${escapeHtml(item.product.description)}${packInfo}</td>
           <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
@@ -775,7 +784,7 @@ async function enterCounts(sessionId) {
             <div class="input-group input-group-sm" style="width: 140px;">
               <input type="number" class="form-control form-control-sm" id="counted${item.id}"
                      value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
-                     min="0" onchange="recordItemCount(${item.id})">
+                     min="0" onchange="recordItemCount(${item.id})" data-unit="${unitLabel}">
               ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
             </div>
           </td>
@@ -802,6 +811,27 @@ async function enterCounts(sessionId) {
   }
 }
 
+// Toggle skip checkbox
+function toggleSkip(itemId) {
+  const skipCheckbox = document.getElementById(`skip${itemId}`);
+  const countedInput = document.getElementById(`counted${itemId}`);
+  const notesInput = document.getElementById(`notes${itemId}`);
+
+  if (skipCheckbox.checked) {
+    // Disable inputs when skipped
+    countedInput.disabled = true;
+    notesInput.disabled = true;
+    countedInput.style.backgroundColor = '#f8f9fa';
+    notesInput.style.backgroundColor = '#f8f9fa';
+  } else {
+    // Enable inputs when not skipped
+    countedInput.disabled = false;
+    notesInput.disabled = false;
+    countedInput.style.backgroundColor = '';
+    notesInput.style.backgroundColor = '';
+  }
+}
+
 // Record item count
 async function recordItemCount(itemId) {
   try {
@@ -812,7 +842,7 @@ async function recordItemCount(itemId) {
 
     const sessionId = document.getElementById('countSessionId').value;
 
-    await authenticatedFetch(`/cycle-counts/${sessionId}/record-count`, {
+    const response = await authenticatedFetch(`/cycle-counts/${sessionId}/record-count`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -822,8 +852,32 @@ async function recordItemCount(itemId) {
       }),
     });
 
-    // Refresh the session data
-    enterCounts(sessionId);
+    // Update only this row's variance and status without refreshing the whole table
+    const item = response.item;
+    const variance = item.counted_quantity - item.system_quantity;
+    const unitLabel = document.getElementById(`counted${itemId}`).getAttribute('data-unit');
+
+    // Update variance display
+    let varianceClass = '';
+    if (variance > 0) varianceClass = 'text-success';
+    else if (variance < 0) varianceClass = 'text-danger';
+
+    const varianceCell = document.getElementById(`variance${itemId}`);
+    varianceCell.className = varianceClass;
+    varianceCell.innerHTML = `<strong>${variance > 0 ? '+' : ''}${variance}${unitLabel ? ' ' + unitLabel : ''}</strong>`;
+
+    // Update status badge
+    const statusCell = document.getElementById(`status${itemId}`);
+    statusCell.className = `badge ${getVarianceStatusBadge(item.variance_status)}`;
+    statusCell.textContent = formatVarianceStatus(item.variance_status);
+
+    // Update progress in header
+    const sessionIdValue = document.getElementById('countSessionId').value;
+    const sessionData = await authenticatedFetch(`/cycle-counts/${sessionIdValue}`);
+    document.getElementById('countProgress').textContent = `${sessionData.counted_items} / ${sessionData.total_items} items`;
+    document.getElementById('countVariances').textContent = `${sessionData.variance_items} items`;
+
+    showNotification('Count recorded successfully', 'success');
   } catch (error) {
     console.error('Error recording count:', error);
     showNotification(error.message || 'Error recording count', 'danger');
