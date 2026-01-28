@@ -186,9 +186,20 @@ class CycleCountController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log the full error for debugging
+            \Log::error('Cycle count creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error creating cycle count session',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile()),
             ], 500);
         }
     }
