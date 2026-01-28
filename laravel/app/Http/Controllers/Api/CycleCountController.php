@@ -167,7 +167,7 @@ class CycleCountController extends Controller
 
                 $session->items()->create([
                     'product_id' => $product->id,
-                    'location_id' => $request->location && isset($location) ? ($location->id ?? null) : null,
+                    'location_id' => ($request->location && $location) ? $location->id : null,
                     'system_quantity' => $systemQtyForCount,
                     'counted_quantity' => null,
                     'variance' => 0,
