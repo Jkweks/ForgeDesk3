@@ -143,6 +143,9 @@ class CycleCountController extends Controller
 
             // Create cycle count items
             foreach ($products as $product) {
+                // Initialize location variable
+                $location = null;
+
                 // Get system quantity (in eaches from database)
                 if ($request->location) {
                     // Location-specific count
