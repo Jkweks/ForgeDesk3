@@ -143,33 +143,33 @@ class CycleCountController extends Controller
 
             // Create cycle count items
             foreach ($products as $product) {
-                // Get system quantity
+                // Get system quantity (in eaches from database)
                 if ($request->location) {
                     // Location-specific count
                     $location = $product->inventoryLocations()
                         ->where('location', $request->location)
                         ->first();
 
-                    // Create item even if location doesn't exist yet (system qty = 0)
-                    $session->items()->create([
-                        'product_id' => $product->id,
-                        'location_id' => $location ? $location->id : null,
-                        'system_quantity' => $location ? $location->quantity : 0,
-                        'counted_quantity' => null,
-                        'variance' => 0,
-                        'variance_status' => 'pending',
-                    ]);
+                    $systemQtyEaches = $location ? $location->quantity : 0;
                 } else {
                     // Product-level count
-                    $session->items()->create([
-                        'product_id' => $product->id,
-                        'location_id' => null,
-                        'system_quantity' => $product->quantity_on_hand,
-                        'counted_quantity' => null,
-                        'variance' => 0,
-                        'variance_status' => 'pending',
-                    ]);
+                    $systemQtyEaches = $product->quantity_on_hand;
                 }
+
+                // Convert to packs if product has pack_size > 1
+                // We count in full packs, so use floor for system quantity
+                $systemQtyForCount = $product->hasPackSize()
+                    ? $product->eachesToFullPacks($systemQtyEaches)
+                    : $systemQtyEaches;
+
+                $session->items()->create([
+                    'product_id' => $product->id,
+                    'location_id' => $request->location && isset($location) ? ($location->id ?? null) : null,
+                    'system_quantity' => $systemQtyForCount,
+                    'counted_quantity' => null,
+                    'variance' => 0,
+                    'variance_status' => 'pending',
+                ]);
             }
 
             DB::commit();

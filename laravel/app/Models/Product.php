@@ -40,7 +40,14 @@ class Product extends Model
         'tool_specifications' => 'array',
     ];
 
-    protected $appends = ['quantity_available', 'suggested_order_qty', 'days_until_stockout'];
+    protected $appends = [
+        'quantity_available',
+        'suggested_order_qty',
+        'days_until_stockout',
+        'quantity_on_hand_packs',
+        'quantity_available_packs',
+        'counting_unit',
+    ];
 
     // Finish codes configuration
     public static $finishCodes = [
@@ -136,14 +143,47 @@ class Product extends Model
         return $this->hasMany(InventoryLocation::class);
     }
 
-    public function jobReservations()
+    /**
+     * Get reservation items for this product (through job_reservation_items table)
+     */
+    public function reservationItems()
     {
-        return $this->hasMany(JobReservation::class);
+        return $this->hasMany(JobReservationItem::class);
     }
 
-    public function activeReservations()
+    /**
+     * Get active reservation items (where reservation status is active, in_progress, or on_hold)
+     */
+    public function activeReservationItems()
     {
-        return $this->jobReservations()->where('status', 'active');
+        return $this->reservationItems()
+            ->whereHas('reservation', function($query) {
+                $query->whereIn('status', ['active', 'in_progress', 'on_hold']);
+            });
+    }
+
+    /**
+     * Get job reservations through reservation items
+     * @deprecated Use reservationItems() for the new fulfillment schema
+     */
+    public function jobReservations()
+    {
+        return $this->hasManyThrough(
+            JobReservation::class,
+            JobReservationItem::class,
+            'product_id',       // Foreign key on job_reservation_items
+            'id',               // Foreign key on job_reservations
+            'id',               // Local key on products
+            'reservation_id'    // Local key on job_reservation_items
+        );
+    }
+
+    /**
+     * Calculate committed quantity from active reservations (real-time)
+     */
+    public function getCommittedFromReservationsAttribute()
+    {
+        return $this->activeReservationItems()->sum('committed_qty');
     }
 
     public function requiredParts()
@@ -325,6 +365,106 @@ class Product extends Model
             return $stockQty / $this->pack_size;
         }
         return $stockQty;
+    }
+
+    /**
+     * Check if product is tracked in packs (has a pack_size > 1)
+     */
+    public function hasPackSize()
+    {
+        return $this->pack_size && $this->pack_size > 1;
+    }
+
+    /**
+     * Get the effective pack size (1 if no pack defined)
+     */
+    public function getEffectivePackSize()
+    {
+        return $this->hasPackSize() ? $this->pack_size : 1;
+    }
+
+    /**
+     * Calculate the number of full packs for a given quantity in eaches
+     * This is used for on-hand inventory (floor - only count complete packs)
+     */
+    public function eachesToFullPacks($eachesQty)
+    {
+        if (!$this->hasPackSize()) {
+            return $eachesQty;
+        }
+        return (int) floor($eachesQty / $this->pack_size);
+    }
+
+    /**
+     * Calculate the number of packs needed to fulfill a quantity in eaches
+     * This is used for committed quantities (ceil - need full packs to cover the requirement)
+     */
+    public function eachesToPacksNeeded($eachesQty)
+    {
+        if (!$this->hasPackSize()) {
+            return $eachesQty;
+        }
+        return (int) ceil($eachesQty / $this->pack_size);
+    }
+
+    /**
+     * Convert packs to eaches
+     */
+    public function packsToEaches($packsQty)
+    {
+        if (!$this->hasPackSize()) {
+            return $packsQty;
+        }
+        return $packsQty * $this->pack_size;
+    }
+
+    /**
+     * Get quantity on hand in packs (full packs only)
+     */
+    public function getQuantityOnHandPacksAttribute()
+    {
+        return $this->eachesToFullPacks($this->quantity_on_hand);
+    }
+
+    /**
+     * Get committed quantity in packs (packs needed to fulfill commitments)
+     * Note: This uses the quantity_committed field. For real-time calculations,
+     * use getCommittedPacksFromReservations()
+     */
+    public function getQuantityCommittedPacksAttribute()
+    {
+        return $this->eachesToPacksNeeded($this->quantity_committed);
+    }
+
+    /**
+     * Get committed packs from active reservations (real-time calculation)
+     */
+    public function getCommittedPacksFromReservationsAttribute()
+    {
+        $totalEaches = $this->activeReservationItems()->sum('committed_qty');
+        return $this->eachesToPacksNeeded($totalEaches);
+    }
+
+    /**
+     * Get available quantity in packs (on-hand packs minus committed packs)
+     */
+    public function getQuantityAvailablePacksAttribute()
+    {
+        $onHandPacks = $this->quantity_on_hand_packs;
+        $committedPacks = $this->committed_packs_from_reservations;
+        return max(0, $onHandPacks - $committedPacks);
+    }
+
+    /**
+     * Get the counting unit label for this product
+     * Returns 'packs' if has pack_size, otherwise the stock UOM or 'eaches'
+     */
+    public function getCountingUnitAttribute()
+    {
+        if ($this->hasPackSize()) {
+            return $this->purchase_uom ?: 'packs';
+        }
+        return $this->stock_uom ?: 'EA';
     }
 
     /**

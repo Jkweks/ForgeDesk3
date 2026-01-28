@@ -125,10 +125,9 @@
                             <th>Finish</th>
                             <th>SKU</th>
                             <th>Description</th>
-                            <th>Sheet</th>
-                            <th>Row</th>
-                            <th>Required Qty</th>
-                            <th>Available Qty</th>
+                            <th>Pack Size</th>
+                            <th>Required</th>
+                            <th>Available</th>
                             <th>Shortage</th>
                             <th>Location</th>
                           </tr>
@@ -136,6 +135,11 @@
                         <tbody id="resultsTableBody">
                         </tbody>
                       </table>
+                    </div>
+                    <div class="card-footer">
+                      <small class="text-muted">
+                        <strong>Note:</strong> Quantities entered in EZ Estimate are in packs. Decimal values represent partial packs (e.g., 0.86 = 86 eaches from a 100-pack).
+                      </small>
                     </div>
                   </div>
                 </div>
@@ -294,6 +298,36 @@
                     ? `<input type="checkbox" class="item-checkbox" data-index="${index}" onchange="toggleItemSelection(${index})" ${selectedItems.has(index) ? 'checked' : ''}>`
                     : '';
 
+                // Format pack size display
+                const packSize = item.pack_size || 1;
+                const hasPackSize = packSize > 1;
+                const packSizeDisplay = hasPackSize ? packSize : '-';
+
+                // Format required quantity (packs and eaches)
+                const reqPacks = item.required_qty_packs ?? item.required_quantity ?? 0;
+                const reqEaches = item.required_qty_eaches ?? item.required_quantity ?? 0;
+                const requiredDisplay = hasPackSize
+                    ? `<span title="${reqEaches} eaches">${reqPacks} pk</span><br><small class="text-muted">${reqEaches} ea</small>`
+                    : reqEaches;
+
+                // Format available quantity (packs and eaches)
+                const availPacks = item.available_qty_packs ?? 0;
+                const availEaches = item.available_qty_eaches ?? item.available_quantity ?? 0;
+                const availableDisplay = item.status === 'not_found'
+                    ? '-'
+                    : (hasPackSize
+                        ? `<span title="${availEaches} eaches">${availPacks} pk</span><br><small class="text-muted">${availEaches} ea</small>`
+                        : availEaches);
+
+                // Format shortage (packs and eaches)
+                const shortPacks = item.shortage_packs ?? item.shortage ?? 0;
+                const shortEaches = item.shortage_eaches ?? item.shortage ?? 0;
+                const shortageDisplay = shortEaches > 0
+                    ? (hasPackSize
+                        ? `<span class="text-danger" title="${shortEaches} eaches">${shortPacks} pk</span><br><small class="text-danger">${shortEaches} ea</small>`
+                        : `<span class="text-danger">${shortEaches}</span>`)
+                    : '-';
+
                 row.className = statusClass;
                 row.innerHTML = `
                     <td>${checkboxHtml}</td>
@@ -302,11 +336,10 @@
                     <td>${item.finish || '-'}</td>
                     <td><code>${item.sku || '-'}</code></td>
                     <td>${item.description || '-'}</td>
-                    <td><small class="text-muted">${item.sheet || '-'}</small></td>
-                    <td><small class="text-muted">${item.row || '-'}</small></td>
-                    <td>${item.required_quantity}</td>
-                    <td>${item.available_quantity !== null ? item.available_quantity : '-'}</td>
-                    <td>${item.shortage > 0 ? '<span class="text-danger">' + item.shortage + '</span>' : '-'}</td>
+                    <td class="text-center">${packSizeDisplay}</td>
+                    <td class="text-end">${requiredDisplay}</td>
+                    <td class="text-end">${availableDisplay}</td>
+                    <td class="text-end">${shortageDisplay}</td>
                     <td>${item.location || '-'}</td>
                 `;
 
@@ -388,18 +421,22 @@
                 return;
             }
 
-            // Prepare items array
+            // Prepare items array - commit in EACHES (not packs)
             const items = [];
             selectedItems.forEach(index => {
                 const item = filteredResults[index];
                 if (item.product_id) {
+                    // Use eaches values for commitment
+                    const requiredEaches = item.required_qty_eaches ?? item.required_quantity ?? 0;
+                    const availableEaches = item.available_qty_eaches ?? item.available_quantity ?? 0;
+
                     items.push({
                         product_id: item.product_id,
                         part_number: item.part_number,
                         finish: item.finish,
                         sku: item.sku,
-                        requested_qty: item.required_quantity,
-                        committed_qty: Math.min(item.required_quantity, item.available_quantity || 0)
+                        requested_qty: requiredEaches,
+                        committed_qty: Math.min(requiredEaches, availableEaches)
                     });
                 }
             });
@@ -476,19 +513,21 @@
                 return;
             }
 
-            // Create CSV content
-            const headers = ['Status', 'Part Number', 'Finish', 'SKU', 'Description', 'Sheet', 'Row', 'Required Qty', 'Available Qty', 'Shortage', 'Location'];
+            // Create CSV content with pack information
+            const headers = ['Status', 'Part Number', 'Finish', 'SKU', 'Description', 'Pack Size', 'Required (packs)', 'Required (eaches)', 'Available (packs)', 'Available (eaches)', 'Shortage (packs)', 'Shortage (eaches)', 'Location'];
             const rows = checkResults.map(item => [
                 item.status,
                 item.part_number,
                 item.finish || '',
                 item.sku || '',
                 item.description || '',
-                item.sheet || '',
-                item.row || '',
-                item.required_quantity,
-                item.available_quantity,
-                item.shortage,
+                item.pack_size || 1,
+                item.required_qty_packs ?? item.required_quantity ?? 0,
+                item.required_qty_eaches ?? item.required_quantity ?? 0,
+                item.available_qty_packs ?? 0,
+                item.available_qty_eaches ?? item.available_quantity ?? 0,
+                item.shortage_packs ?? item.shortage ?? 0,
+                item.shortage_eaches ?? item.shortage ?? 0,
                 item.location || ''
             ]);
 

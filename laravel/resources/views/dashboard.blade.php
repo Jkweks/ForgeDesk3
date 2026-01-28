@@ -108,18 +108,37 @@
                     <table class="table table-vcenter card-table table-striped">
                       <thead>
                         <tr>
-                          <th>SKU</th>
-                          <th>Description</th>
+                          <th class="sortable" data-sort="sku" style="cursor: pointer;">
+                            SKU <span class="sort-icon"></span>
+                          </th>
+                          <th class="sortable" data-sort="description" style="cursor: pointer;">
+                            Description <span class="sort-icon"></span>
+                          </th>
                           <th>Locations</th>
-                          <th class="text-end">On Hand</th>
-                          <th class="text-end">Committed</th>
-                          <th class="text-end">Available</th>
-                          <th>Status</th>
+                          <th class="text-end sortable" data-sort="quantity_on_hand" style="cursor: pointer;">
+                            On Hand <span class="sort-icon"></span>
+                          </th>
+                          <th class="text-end sortable" data-sort="quantity_committed" style="cursor: pointer;">
+                            Committed <span class="sort-icon"></span>
+                          </th>
+                          <th class="text-end sortable" data-sort="quantity_available" style="cursor: pointer;">
+                            Available <span class="sort-icon"></span>
+                          </th>
+                          <th class="sortable" data-sort="status" style="cursor: pointer;">
+                            Status <span class="sort-icon"></span>
+                          </th>
                           <th class="w-1"></th>
                         </tr>
                       </thead>
                       <tbody id="inventoryTableBody"></tbody>
                     </table>
+                  </div>
+                  <!-- Pagination -->
+                  <div class="card-footer d-flex align-items-center" id="paginationContainer" style="display: none;">
+                    <p class="m-0 text-muted">Showing <span id="paginationFrom">1</span> to <span id="paginationTo">50</span> of <span id="paginationTotal">0</span> items</p>
+                    <ul class="pagination m-0 ms-auto" id="paginationNav">
+                      <!-- Pagination will be rendered by JavaScript -->
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -1204,16 +1223,27 @@
     // Dashboard-specific state
     let currentTab = 'all';
     let currentCategoryFilter = '';
+    let currentPage = 1;
+    let paginationData = null;
+    let currentSortBy = 'sku';
+    let currentSortDir = 'asc';
+    let currentSearch = '';
+    let searchDebounceTimer = null;
 
-    async function loadDashboard() {
+    async function loadDashboard(page = 1) {
       try {
+        currentPage = page;
         document.getElementById('loadingIndicator').style.display = 'block';
         document.getElementById('inventoryTableContainer').style.display = 'none';
+        document.getElementById('paginationContainer').style.display = 'none';
 
-        // Build URL with category filter if selected
-        let url = '/dashboard';
+        // Build URL with all filters
+        let url = `/dashboard?page=${page}&sort_by=${currentSortBy}&sort_dir=${currentSortDir}`;
         if (currentCategoryFilter) {
-          url += `?category_id=${currentCategoryFilter}`;
+          url += `&category_id=${currentCategoryFilter}`;
+        }
+        if (currentSearch) {
+          url += `&search=${encodeURIComponent(currentSearch)}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
@@ -1226,6 +1256,8 @@
         document.getElementById('badgeCritical').textContent = data.stats.critical_count;
 
         renderInventoryTable(data.inventory.data);
+        renderPagination(data.inventory);
+        updateSortIcons();
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('inventoryTableContainer').style.display = 'block';
@@ -1235,25 +1267,82 @@
       }
     }
 
+    // Sort by column
+    function sortByColumn(column) {
+      if (currentSortBy === column) {
+        // Toggle direction if same column
+        currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSortBy = column;
+        currentSortDir = 'asc';
+      }
+      currentPage = 1; // Reset to first page
+      if (currentTab === 'all') {
+        loadDashboard(1);
+      } else {
+        loadByStatus(currentTab, 1);
+      }
+    }
+
+    // Update sort icons in table headers
+    function updateSortIcons() {
+      document.querySelectorAll('.sortable').forEach(th => {
+        const icon = th.querySelector('.sort-icon');
+        const column = th.dataset.sort;
+        if (column === currentSortBy) {
+          icon.innerHTML = currentSortDir === 'asc'
+            ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+            : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+        } else {
+          icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+        }
+      });
+    }
+
+    // Search handler with debounce
+    function handleSearch(e) {
+      const searchTerm = e.target.value.trim();
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(() => {
+        currentSearch = searchTerm;
+        currentPage = 1; // Reset to first page
+        if (currentTab === 'all') {
+          loadDashboard(1);
+        } else {
+          loadByStatus(currentTab, 1);
+        }
+      }, 300); // 300ms debounce
+    }
+
     function renderInventoryTable(products) {
       const tbody = document.getElementById('inventoryTableBody');
       tbody.innerHTML = '';
 
+      if (products.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No inventory items found</td></tr>';
+        return;
+      }
+
       products.forEach(product => {
-        const statusBadge = getStatusBadge(product.status);
+        const statusBadge = getStatusBadge(product.status, product.on_order_qty);
         const locationCount = product.inventory_locations?.length || 0;
         const locationsDisplay = locationCount > 0
           ? `<span class="badge text-bg-azure">${locationCount} <i class="ti ti-map-pin"></i></span>`
           : '<span class="text-muted">-</span>';
+
+        // Use pack-aware display functions
+        const onHandDisplay = formatOnHandDisplay(product);
+        const committedDisplay = formatCommittedDisplay(product, true);
+        const availableDisplay = formatAvailableDisplay(product);
 
         const row = `
           <tr>
             <td><span class="text-muted">${product.sku}</span></td>
             <td>${product.description}</td>
             <td>${locationsDisplay}</td>
-            <td class="text-end">${product.quantity_on_hand.toLocaleString()}</td>
-            <td class="text-end">${product.quantity_committed.toLocaleString()}</td>
-            <td class="text-end">${product.quantity_available.toLocaleString()}</td>
+            <td class="text-end">${onHandDisplay}</td>
+            <td class="text-end">${committedDisplay}</td>
+            <td class="text-end">${availableDisplay}</td>
             <td>${statusBadge}</td>
             <td class="table-actions">
               <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="viewProduct(${product.id})" title="View">
@@ -1266,14 +1355,201 @@
       });
     }
 
-    function getStatusBadge(status) {
+    function renderPagination(pagination) {
+      paginationData = pagination;
+      const container = document.getElementById('paginationContainer');
+      const nav = document.getElementById('paginationNav');
+
+      if (!pagination || pagination.total === 0) {
+        container.style.display = 'none';
+        return;
+      }
+
+      // Update showing text
+      document.getElementById('paginationFrom').textContent = pagination.from || 0;
+      document.getElementById('paginationTo').textContent = pagination.to || 0;
+      document.getElementById('paginationTotal').textContent = pagination.total.toLocaleString();
+
+      // Build pagination nav
+      const currentPage = pagination.current_page;
+      const lastPage = pagination.last_page;
+
+      let html = '';
+
+      // Previous button
+      html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="goToPage(${currentPage - 1}); return false;" tabindex="-1" ${currentPage === 1 ? 'aria-disabled="true"' : ''}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+              <path d="M15 6l-6 6l6 6"></path>
+            </svg>
+          </a>
+        </li>
+      `;
+
+      // Page numbers - show max 7 pages with ellipsis
+      const pageNumbers = getPageNumbers(currentPage, lastPage, 7);
+      pageNumbers.forEach(pageNum => {
+        if (pageNum === '...') {
+          html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        } else {
+          html += `
+            <li class="page-item ${pageNum === currentPage ? 'active' : ''}">
+              <a class="page-link" href="#" onclick="goToPage(${pageNum}); return false;">${pageNum}</a>
+            </li>
+          `;
+        }
+      });
+
+      // Next button
+      html += `
+        <li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="goToPage(${currentPage + 1}); return false;" ${currentPage === lastPage ? 'aria-disabled="true"' : ''}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+              <path d="M9 6l6 6l-6 6"></path>
+            </svg>
+          </a>
+        </li>
+      `;
+
+      nav.innerHTML = html;
+      container.style.display = pagination.last_page > 1 ? 'flex' : 'none';
+    }
+
+    function getPageNumbers(current, last, maxVisible) {
+      if (last <= maxVisible) {
+        return Array.from({length: last}, (_, i) => i + 1);
+      }
+
+      const pages = [];
+      const half = Math.floor(maxVisible / 2);
+
+      if (current <= half + 1) {
+        // Near start
+        for (let i = 1; i <= maxVisible - 2; i++) pages.push(i);
+        pages.push('...');
+        pages.push(last);
+      } else if (current >= last - half) {
+        // Near end
+        pages.push(1);
+        pages.push('...');
+        for (let i = last - maxVisible + 3; i <= last; i++) pages.push(i);
+      } else {
+        // Middle
+        pages.push(1);
+        pages.push('...');
+        for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(last);
+      }
+
+      return pages;
+    }
+
+    function goToPage(page) {
+      if (!paginationData || page < 1 || page > paginationData.last_page) return;
+
+      if (currentTab === 'all') {
+        loadDashboard(page);
+      } else {
+        loadByStatus(currentTab, page);
+      }
+    }
+
+    /**
+     * Format committed quantity display
+     * Shows packs needed if product has pack_size > 1, with eaches in tooltip
+     * Example: "2 packs" with title="137 eaches total"
+     */
+    function formatCommittedDisplay(product, linkable = true) {
+      const committedEaches = product.quantity_committed || 0;
+      const committedPacks = product.quantity_committed_packs || committedEaches;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      const countingUnit = product.counting_unit || 'EA';
+
+      if (committedEaches === 0) {
+        return hasPackSize ? '0 packs' : '0';
+      }
+
+      let display;
+      let title;
+
+      if (hasPackSize) {
+        // Show packs with eaches in tooltip
+        const packLabel = committedPacks === 1 ? 'pack' : 'packs';
+        display = `${committedPacks.toLocaleString()} ${packLabel}`;
+        title = `${committedEaches.toLocaleString()} eaches total (${packSize} per pack)`;
+      } else {
+        display = committedEaches.toLocaleString();
+        title = `${committedEaches.toLocaleString()} ${countingUnit}`;
+      }
+
+      if (linkable && committedEaches > 0) {
+        return `<a href="#" class="text-decoration-none" onclick="viewProductReservations(${product.id}); return false;" title="${title}">${display}</a>`;
+      }
+
+      return `<span title="${title}">${display}</span>`;
+    }
+
+    /**
+     * Format on-hand quantity display
+     * Shows full packs if product has pack_size > 1, with eaches in tooltip
+     */
+    function formatOnHandDisplay(product) {
+      const onHandEaches = product.quantity_on_hand || 0;
+      const onHandPacks = product.quantity_on_hand_packs || onHandEaches;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+
+      if (hasPackSize) {
+        const packLabel = onHandPacks === 1 ? 'pack' : 'packs';
+        const title = `${onHandEaches.toLocaleString()} eaches total (${packSize} per pack)`;
+        return `<span title="${title}">${onHandPacks.toLocaleString()} ${packLabel}</span>`;
+      }
+
+      return onHandEaches.toLocaleString();
+    }
+
+    /**
+     * Format available quantity display
+     * Shows available packs if product has pack_size > 1
+     * Available packs = on-hand packs - committed packs (can be 0 or negative)
+     */
+    function formatAvailableDisplay(product) {
+      const availableEaches = product.quantity_available || 0;
+      const packSize = product.pack_size || 1;
+      const hasPackSize = packSize > 1;
+
+      if (hasPackSize) {
+        // Calculate available packs: on-hand full packs minus committed packs needed
+        // Use nullish coalescing (??) to properly handle 0 values
+        const onHandPacks = product.quantity_on_hand_packs ?? Math.floor((product.quantity_on_hand || 0) / packSize);
+        const committedPacks = product.quantity_committed_packs ?? Math.ceil((product.quantity_committed || 0) / packSize);
+        const availablePacks = product.quantity_available_packs ?? Math.max(0, onHandPacks - committedPacks);
+        const packLabel = availablePacks === 1 ? 'pack' : 'packs';
+        const title = `${availableEaches.toLocaleString()} eaches available (${onHandPacks} on hand - ${committedPacks} committed)`;
+        return `<span title="${title}">${availablePacks.toLocaleString()} ${packLabel}</span>`;
+      }
+
+      return availableEaches.toLocaleString();
+    }
+
+    function getStatusBadge(status, onOrderQty = 0) {
       const badges = {
         'in_stock': '<span class="badge text-bg-success status-badge">In Stock</span>',
         'low_stock': '<span class="badge text-bg-warning status-badge">Low Stock</span>',
         'critical': '<span class="badge text-bg-danger status-badge">Critical</span>',
         'out_of_stock': '<span class="badge text-bg-dark status-badge">Out of Stock</span>'
       };
-      return badges[status] || badges['in_stock'];
+      let badge = badges[status] || badges['in_stock'];
+
+      // Add "On Order" indicator if there's pending order quantity
+      if (onOrderQty && onOrderQty > 0) {
+        badge += ` <span class="badge text-bg-info status-badge" title="${onOrderQty} on order">On Order</span>`;
+      }
+
+      return badge;
     }
 
     document.querySelectorAll('.nav-link[data-tab]').forEach(link => {
@@ -1281,25 +1557,39 @@
         e.preventDefault();
         document.querySelectorAll('.nav-link[data-tab]').forEach(l => l.classList.remove('active'));
         e.target.classList.add('active');
-        
+
         currentTab = e.target.dataset.tab;
+        currentPage = 1; // Reset to first page on tab change
         if (currentTab === 'all') {
-          loadDashboard();
+          loadDashboard(1);
         } else {
-          await loadByStatus(currentTab);
+          await loadByStatus(currentTab, 1);
         }
       });
     });
 
-    async function loadByStatus(status) {
+    async function loadByStatus(status, page = 1) {
       try {
-        let url = `/dashboard/inventory/${status}`;
+        currentPage = page;
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('inventoryTableContainer').style.display = 'none';
+        document.getElementById('paginationContainer').style.display = 'none';
+
+        let url = `/dashboard/inventory/${status}?page=${page}&sort_by=${currentSortBy}&sort_dir=${currentSortDir}`;
         if (currentCategoryFilter) {
-          url += `?category_id=${currentCategoryFilter}`;
+          url += `&category_id=${currentCategoryFilter}`;
+        }
+        if (currentSearch) {
+          url += `&search=${encodeURIComponent(currentSearch)}`;
         }
         const response = await apiCall(url);
         const data = await response.json();
         renderInventoryTable(data.data);
+        renderPagination(data);
+        updateSortIcons();
+
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('inventoryTableContainer').style.display = 'block';
       } catch (error) {
         console.error('Error loading filtered inventory:', error);
       }
@@ -1338,6 +1628,18 @@
 
     let currentProductId = null;
     let currentProductLocations = [];
+
+    // View product and open reservations tab directly
+    async function viewProductReservations(id) {
+      await viewProduct(id);
+      // Switch to reservations tab after modal opens
+      setTimeout(() => {
+        const reservationsTab = document.getElementById('reservations-tab');
+        if (reservationsTab) {
+          reservationsTab.click();
+        }
+      }, 100);
+    }
 
     async function viewProduct(id) {
       try {
@@ -1390,19 +1692,22 @@
           </div>
 
           <hr>
-          <h5 class="mb-3">Inventory Status</h5>
+          <h5 class="mb-3">Inventory Status ${product.pack_size > 1 ? '<small class="text-muted">(showing packs)</small>' : ''}</h5>
           <div class="row mb-3">
             <div class="col-md-3">
               <label class="form-label fw-bold">On Hand</label>
-              <p>${(product.quantity_on_hand ?? 0).toLocaleString()}</p>
+              <p>${formatOnHandDisplay(product)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_on_hand ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Committed</label>
-              <p>${(product.quantity_committed ?? 0).toLocaleString()}</p>
+              <p>${formatCommittedDisplay(product, false)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_committed ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Available</label>
-              <p class="text-success fw-bold">${(product.quantity_available ?? 0).toLocaleString()}</p>
+              <p class="text-success fw-bold">${formatAvailableDisplay(product)}</p>
+              ${product.pack_size > 1 ? `<small class="text-muted">${(product.quantity_available ?? 0).toLocaleString()} eaches</small>` : ''}
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">On Order</label>
@@ -1492,7 +1797,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Status</label>
-              <p>${getStatusBadge(product.status)}</p>
+              <p>${getStatusBadge(product.status, product.on_order_qty)}</p>
             </div>
           </div>
         `;
@@ -3240,11 +3545,25 @@
     // Category filter event listener
     document.getElementById('categoryFilter').addEventListener('change', function(e) {
       currentCategoryFilter = e.target.value;
+      currentPage = 1; // Reset to first page
       if (currentTab === 'all') {
-        loadDashboard();
+        loadDashboard(1);
       } else {
-        loadByStatus(currentTab);
+        loadByStatus(currentTab, 1);
       }
+    });
+
+    // Search input event listener
+    document.getElementById('searchInput').addEventListener('input', handleSearch);
+
+    // Sort column click handlers
+    document.querySelectorAll('.sortable').forEach(th => {
+      th.addEventListener('click', function() {
+        const column = this.dataset.sort;
+        if (column) {
+          sortByColumn(column);
+        }
+      });
     });
     function htmlEscape(text) {
       const div = document.createElement('div');

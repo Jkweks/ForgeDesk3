@@ -361,7 +361,10 @@ class MaterialCheckController extends Controller
 
     /**
      * Process a single EZ Estimate sheet
-     * Columns: A=Qty, B=Part Number, C=Finish
+     * Columns: A=Qty (in packs, decimals allowed), B=Part Number, C=Finish
+     *
+     * Quantities are entered in packs (e.g., 0.86 = 86 eaches from a 100-pack)
+     * Availability is compared in eaches but displayed in both packs and eaches
      */
     private function processEzEstimateSheet($sheet, $startRow, $endRow, &$results, &$summary, $sheetName)
     {
@@ -380,7 +383,7 @@ class MaterialCheckController extends Controller
                 $partNumberCell = $sheet->getCell("B{$row}");
                 $finishCell = $sheet->getCell("C{$row}");
 
-                $qty = $qtyCell->getValue();
+                $qtyPacks = floatval($qtyCell->getValue()); // Qty is in packs (can be decimal like 0.86)
                 $partNumber = trim((string)$partNumberCell->getValue());
                 $finish = trim((string)$finishCell->getValue());
 
@@ -388,12 +391,12 @@ class MaterialCheckController extends Controller
                 if ($debugCounter < $debugSampleRows) {
                     $cellType = $partNumberCell->getDataType();
                     $isFormula = ($cellType === DataType::TYPE_FORMULA);
-                    @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Sample Row {$row} in {$sheetName}: Qty='{$qty}', Part='{$partNumber}', Finish='{$finish}', IsFormula={$isFormula}\n", FILE_APPEND);
+                    @file_put_contents($debugLog, "[" . date('Y-m-d H:i:s') . "] Sample Row {$row} in {$sheetName}: QtyPacks='{$qtyPacks}', Part='{$partNumber}', Finish='{$finish}', IsFormula={$isFormula}\n", FILE_APPEND);
                     $debugCounter++;
                 }
 
                 // Skip rows where quantity is 0 or negative
-                if ($qty <= 0) {
+                if ($qtyPacks <= 0) {
                     continue;
                 }
 
@@ -426,9 +429,13 @@ class MaterialCheckController extends Controller
                         'finish' => $finish,
                         'sku' => $sku,
                         'description' => '',
-                        'required_quantity' => $qty,
-                        'available_quantity' => 0,
-                        'shortage' => $qty,
+                        'required_qty_packs' => $qtyPacks,
+                        'required_qty_eaches' => 0,
+                        'available_qty_packs' => 0,
+                        'available_qty_eaches' => 0,
+                        'shortage_packs' => $qtyPacks,
+                        'shortage_eaches' => 0,
+                        'pack_size' => 1,
                         'status' => 'not_found',
                         'location' => null,
                         'sheet' => $sheetName,
@@ -438,16 +445,36 @@ class MaterialCheckController extends Controller
                     continue;
                 }
 
-                // Calculate availability
-                $availableQty = $product->quantity_available ?? $product->quantity_on_hand ?? 0;
-                $shortage = max(0, $qty - $availableQty);
+                // Get pack size (default to 1 if not set)
+                $packSize = $product->pack_size ?? 1;
+                $hasPackSize = $packSize > 1;
 
-                // Determine status
+                // Convert required packs to eaches
+                // e.g., 0.86 packs * 100 pack_size = 86 eaches
+                $requiredEaches = $hasPackSize
+                    ? (int) ceil($qtyPacks * $packSize)
+                    : (int) ceil($qtyPacks);
+
+                // Calculate availability in eaches (from fulfillment system)
+                $availableEaches = $product->quantity_available ?? $product->quantity_on_hand ?? 0;
+
+                // Convert available to packs (full packs only)
+                $availablePacks = $hasPackSize
+                    ? floor($availableEaches / $packSize)
+                    : $availableEaches;
+
+                // Calculate shortage
+                $shortageEaches = max(0, $requiredEaches - $availableEaches);
+                $shortagePacks = $hasPackSize
+                    ? ceil($shortageEaches / $packSize)
+                    : $shortageEaches;
+
+                // Determine status based on eaches comparison
                 $status = 'available';
-                if ($availableQty <= 0) {
+                if ($availableEaches <= 0) {
                     $status = 'unavailable';
                     $summary['unavailable']++;
-                } elseif ($availableQty < $qty) {
+                } elseif ($availableEaches < $requiredEaches) {
                     $status = 'partial';
                     $summary['partial']++;
                 } else {
@@ -459,9 +486,14 @@ class MaterialCheckController extends Controller
                     'finish' => $finish,
                     'sku' => $sku,
                     'description' => $product->description,
-                    'required_quantity' => $qty,
-                    'available_quantity' => $availableQty,
-                    'shortage' => $shortage,
+                    'required_qty_packs' => $qtyPacks,
+                    'required_qty_eaches' => $requiredEaches,
+                    'available_qty_packs' => $availablePacks,
+                    'available_qty_eaches' => $availableEaches,
+                    'shortage_packs' => $shortagePacks,
+                    'shortage_eaches' => $shortageEaches,
+                    'pack_size' => $packSize,
+                    'has_pack_size' => $hasPackSize,
                     'status' => $status,
                     'location' => $product->location,
                     'product_id' => $product->id,

@@ -123,23 +123,27 @@
             </div>
 
             <div id="lowStockContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="lowStockSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="lowStockTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Available</th>
-                      <th class="text-end">Minimum</th>
-                      <th>Status</th>
-                      <th class="text-end">Value</th>
+                      <th class="sortable-report" data-sort="sku" data-report="lowStock" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="lowStock" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="lowStock" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="lowStock" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="lowStock" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="minimum" data-report="lowStock" style="cursor: pointer;">Minimum <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="status" data-report="lowStock" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="total_value" data-report="lowStock" style="cursor: pointer;">Value <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="lowStockTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="lowStockPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -190,21 +194,25 @@
             </div>
 
             <div id="committedContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="committedSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="committedTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">Committed</th>
-                      <th class="text-end">Available</th>
+                      <th class="sortable-report" data-sort="sku" data-report="committed" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="committed" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="committed" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="committed" data-report="committed" style="cursor: pointer;">Committed <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="committed" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
                       <th>Reservations</th>
                     </tr>
                   </thead>
                   <tbody id="committedTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="committedPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -269,24 +277,28 @@
             </div>
 
             <div id="velocityContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="velocitySearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="velocityTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Receipts</th>
-                      <th class="text-end">Shipments</th>
-                      <th class="text-end">Turnover %</th>
-                      <th>Velocity</th>
-                      <th class="text-end">Days to Stockout</th>
+                      <th class="sortable-report" data-sort="sku" data-report="velocity" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="velocity" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="velocity" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="velocity" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="receipts" data-report="velocity" style="cursor: pointer;">Receipts <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="shipments" data-report="velocity" style="cursor: pointer;">Shipments <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="turnover_rate" data-report="velocity" style="cursor: pointer;">Turnover % <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="velocity" data-report="velocity" style="cursor: pointer;">Velocity <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="days_until_stockout" data-report="velocity" style="cursor: pointer;">Days to Stockout <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="velocityTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="velocityPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -337,24 +349,28 @@
             </div>
 
             <div id="reorderContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="reorderSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="reorderTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Supplier</th>
-                      <th class="text-end">Available</th>
-                      <th class="text-end">Reorder Point</th>
-                      <th class="text-end">Shortage</th>
-                      <th class="text-end">Recommended Qty</th>
-                      <th class="text-end">Est. Cost</th>
-                      <th>Status</th>
+                      <th class="sortable-report" data-sort="sku" data-report="reorder" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="reorder" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="supplier" data-report="reorder" style="cursor: pointer;">Supplier <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="available" data-report="reorder" style="cursor: pointer;">Available <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="reorder_point" data-report="reorder" style="cursor: pointer;">Reorder Point <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="shortage" data-report="reorder" style="cursor: pointer;">Shortage <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="recommended_order_qty" data-report="reorder" style="cursor: pointer;">Recommended Qty <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="recommended_order_value" data-report="reorder" style="cursor: pointer;">Est. Cost <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="status" data-report="reorder" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="reorderTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="reorderPagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -410,24 +426,28 @@
             </div>
 
             <div id="obsoleteContent" style="display: none;">
+              <div class="mb-3">
+                <input type="text" class="form-control form-control-sm" id="obsoleteSearch" placeholder="Search SKU or description..." style="max-width: 300px;">
+              </div>
               <div class="table-responsive">
-                <table class="table table-vcenter">
+                <table class="table table-vcenter" id="obsoleteTable">
                   <thead>
                     <tr>
-                      <th>SKU</th>
-                      <th>Description</th>
-                      <th>Category</th>
-                      <th class="text-end">On Hand</th>
-                      <th class="text-end">Unit Cost</th>
-                      <th class="text-end">Total Value</th>
-                      <th>Last Used</th>
-                      <th class="text-end">Days Inactive</th>
-                      <th>In BOM</th>
+                      <th class="sortable-report" data-sort="sku" data-report="obsolete" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="description" data-report="obsolete" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="category" data-report="obsolete" style="cursor: pointer;">Category <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="on_hand" data-report="obsolete" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="unit_cost" data-report="obsolete" style="cursor: pointer;">Unit Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="total_value" data-report="obsolete" style="cursor: pointer;">Total Value <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="last_shipment_date" data-report="obsolete" style="cursor: pointer;">Last Used <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-sort="days_since_last_use" data-report="obsolete" style="cursor: pointer;">Days Inactive <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-sort="is_used_in_bom" data-report="obsolete" style="cursor: pointer;">In BOM <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="obsoleteTableBody"></tbody>
                 </table>
               </div>
+              <div class="card-footer d-flex align-items-center" id="obsoletePagination" style="display: none;"></div>
             </div>
           </div>
         </div>
@@ -579,7 +599,7 @@ function showReport(reportType) {
 }
 
 // Low Stock Report
-async function loadLowStockReport() {
+async function loadLowStockReport(page = 1) {
   try {
     document.getElementById('lowStockLoading').style.display = 'block';
     document.getElementById('lowStockContent').style.display = 'none';
@@ -592,26 +612,12 @@ async function loadLowStockReport() {
     document.getElementById('totalAffected').textContent = response.summary.total_affected;
     document.getElementById('valueAtRisk').textContent = formatCurrency(response.summary.estimated_value_at_risk);
 
-    // Render table
-    const tbody = document.getElementById('lowStockTableBody');
+    // Store full data for pagination
     const allItems = [...response.low_stock, ...response.critical];
+    reportPaginationState.lowStock = allItems;
 
-    if (allItems.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No low stock items</td></tr>';
-    } else {
-      tbody.innerHTML = allItems.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.on_hand}</td>
-          <td class="text-end">${item.available}</td>
-          <td class="text-end">${item.minimum}</td>
-          <td>${getStatusBadge(item.status)}</td>
-          <td class="text-end">${formatCurrency(item.total_value)}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderLowStockTable(page);
 
     document.getElementById('lowStockLoading').style.display = 'none';
     document.getElementById('lowStockContent').style.display = 'block';
@@ -621,8 +627,36 @@ async function loadLowStockReport() {
   }
 }
 
+function renderLowStockTable(page = 1) {
+  const processedData = getProcessedReportData('lowStock');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('lowStockTableBody');
+
+  updateReportSortIcons('lowStock');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No low stock items</td></tr>';
+    document.getElementById('lowStockPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${item.on_hand}</td>
+        <td class="text-end">${item.available}</td>
+        <td class="text-end">${item.minimum}</td>
+        <td>${getStatusBadge(item.status)}</td>
+        <td class="text-end">${formatCurrency(item.total_value)}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('lowStockPagination', pagination, renderLowStockTable);
+  }
+}
+
 // Committed Parts Report
-async function loadCommittedReport() {
+async function loadCommittedReport(page = 1) {
   try {
     document.getElementById('committedLoading').style.display = 'block';
     document.getElementById('committedContent').style.display = 'none';
@@ -634,27 +668,11 @@ async function loadCommittedReport() {
     document.getElementById('totalQtyCommitted').textContent = response.summary.total_quantity_committed;
     document.getElementById('valueCommitted').textContent = formatCurrency(response.summary.total_value_committed);
 
-    // Render table
-    const tbody = document.getElementById('committedTableBody');
+    // Store full data for pagination
+    reportPaginationState.committed = response.committed_products;
 
-    if (response.committed_products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
-    } else {
-      tbody.innerHTML = response.committed_products.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.committed}</td>
-          <td class="text-end">${item.available}</td>
-          <td>
-            ${item.reservations.map(r =>
-              `<span class="badge text-bg-info me-1">${r.job_number}: ${r.quantity}</span>`
-            ).join('')}
-          </td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderCommittedTable(page);
 
     document.getElementById('committedLoading').style.display = 'none';
     document.getElementById('committedContent').style.display = 'block';
@@ -664,8 +682,48 @@ async function loadCommittedReport() {
   }
 }
 
+function renderCommittedTable(page = 1) {
+  const processedData = getProcessedReportData('committed');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('committedTableBody');
+
+  updateReportSortIcons('committed');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No committed parts</td></tr>';
+    document.getElementById('committedPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => {
+      const packSize = item.pack_size || 1;
+      const hasPackSize = packSize > 1;
+      return `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}${hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : ''}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${formatPackCommitted(item)}</td>
+        <td class="text-end">${formatPackAvailable(item)}</td>
+        <td>
+          ${item.reservations.map(r => {
+            const statusBadge = {
+              'active': 'text-bg-info',
+              'in_progress': 'text-bg-primary',
+              'on_hold': 'text-bg-warning'
+            }[r.status] || 'text-bg-secondary';
+            const qtyDisplay = hasPackSize ? `${r.quantity_packs || Math.ceil(r.quantity / packSize)} pk` : r.quantity;
+            const qtyTitle = hasPackSize ? `${r.quantity} eaches` : '';
+            return `<span class="badge ${statusBadge} me-1" title="${r.job_name || ''} ${qtyTitle}">${r.job_number}-${r.release_number || 1}: ${qtyDisplay}</span>`;
+          }).join('')}
+        </td>
+      </tr>
+    `;}).join('');
+
+    renderReportPagination('committedPagination', pagination, renderCommittedTable);
+  }
+}
+
 // Velocity Analysis Report
-async function loadVelocityReport() {
+async function loadVelocityReport(page = 1) {
   try {
     const days = document.getElementById('velocityDays').value;
     document.getElementById('velocityLoading').style.display = 'block';
@@ -679,34 +737,11 @@ async function loadVelocityReport() {
     document.getElementById('slowMovers').textContent = response.summary.slow_movers;
     document.getElementById('totalAnalyzed').textContent = response.summary.total_analyzed;
 
-    // Render table
-    const tbody = document.getElementById('velocityTableBody');
+    // Store full data for pagination
+    reportPaginationState.velocity = response.products;
 
-    if (response.products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data</td></tr>';
-    } else {
-      tbody.innerHTML = response.products.map(item => {
-        const velocityBadge = {
-          'fast': '<span class="badge text-bg-success">Fast</span>',
-          'medium': '<span class="badge text-bg-info">Medium</span>',
-          'slow': '<span class="badge text-bg-warning">Slow</span>'
-        }[item.velocity];
-
-        return `
-          <tr>
-            <td><strong>${escapeHtml(item.sku)}</strong></td>
-            <td>${escapeHtml(item.description)}</td>
-            <td>${item.category || '-'}</td>
-            <td class="text-end">${item.on_hand}</td>
-            <td class="text-end">${item.receipts}</td>
-            <td class="text-end">${item.shipments}</td>
-            <td class="text-end">${item.turnover_rate}%</td>
-            <td>${velocityBadge}</td>
-            <td class="text-end">${item.days_until_stockout || '-'}</td>
-          </tr>
-        `;
-      }).join('');
-    }
+    // Render paginated table
+    renderVelocityTable(page);
 
     document.getElementById('velocityLoading').style.display = 'none';
     document.getElementById('velocityContent').style.display = 'block';
@@ -716,8 +751,45 @@ async function loadVelocityReport() {
   }
 }
 
+function renderVelocityTable(page = 1) {
+  const processedData = getProcessedReportData('velocity');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('velocityTableBody');
+
+  updateReportSortIcons('velocity');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No data</td></tr>';
+    document.getElementById('velocityPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => {
+      const velocityBadge = {
+        'fast': '<span class="badge text-bg-success">Fast</span>',
+        'medium': '<span class="badge text-bg-info">Medium</span>',
+        'slow': '<span class="badge text-bg-warning">Slow</span>'
+      }[item.velocity];
+
+      return `
+        <tr>
+          <td><strong>${escapeHtml(item.sku)}</strong></td>
+          <td>${escapeHtml(item.description)}</td>
+          <td>${item.category || '-'}</td>
+          <td class="text-end">${item.on_hand}</td>
+          <td class="text-end">${item.receipts}</td>
+          <td class="text-end">${item.shipments}</td>
+          <td class="text-end">${item.turnover_rate}%</td>
+          <td>${velocityBadge}</td>
+          <td class="text-end">${item.days_until_stockout || '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    renderReportPagination('velocityPagination', pagination, renderVelocityTable);
+  }
+}
+
 // Reorder Recommendations Report
-async function loadReorderReport() {
+async function loadReorderReport(page = 1) {
   try {
     document.getElementById('reorderLoading').style.display = 'block';
     document.getElementById('reorderContent').style.display = 'none';
@@ -729,26 +801,11 @@ async function loadReorderReport() {
     document.getElementById('criticalReorderItems').textContent = response.summary.critical_items;
     document.getElementById('totalOrderValue').textContent = formatCurrency(response.summary.total_order_value);
 
-    // Render table
-    const tbody = document.getElementById('reorderTableBody');
+    // Store full data for pagination
+    reportPaginationState.reorder = response.recommendations;
 
-    if (response.recommendations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No reorder recommendations</td></tr>';
-    } else {
-      tbody.innerHTML = response.recommendations.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.supplier || '-'}</td>
-          <td class="text-end">${item.available}</td>
-          <td class="text-end">${item.reorder_point}</td>
-          <td class="text-end text-danger">${item.shortage}</td>
-          <td class="text-end"><strong>${item.recommended_order_qty}</strong></td>
-          <td class="text-end">${formatCurrency(item.recommended_order_value)}</td>
-          <td>${getStatusBadge(item.status)}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderReorderTable(page);
 
     document.getElementById('reorderLoading').style.display = 'none';
     document.getElementById('reorderContent').style.display = 'block';
@@ -758,8 +815,37 @@ async function loadReorderReport() {
   }
 }
 
+function renderReorderTable(page = 1) {
+  const processedData = getProcessedReportData('reorder');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('reorderTableBody');
+
+  updateReportSortIcons('reorder');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No reorder recommendations</td></tr>';
+    document.getElementById('reorderPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.supplier || '-'}</td>
+        <td class="text-end">${item.available}</td>
+        <td class="text-end">${item.reorder_point}</td>
+        <td class="text-end text-danger">${item.shortage}</td>
+        <td class="text-end"><strong>${item.recommended_order_qty}</strong></td>
+        <td class="text-end">${formatCurrency(item.recommended_order_value)}</td>
+        <td>${getStatusBadge(item.status)}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('reorderPagination', pagination, renderReorderTable);
+  }
+}
+
 // Obsolete Inventory Report
-async function loadObsoleteReport() {
+async function loadObsoleteReport(page = 1) {
   try {
     const days = document.getElementById('obsoleteDays').value;
     document.getElementById('obsoleteLoading').style.display = 'block';
@@ -772,32 +858,46 @@ async function loadObsoleteReport() {
     document.getElementById('usedInBom').textContent = response.summary.used_in_bom;
     document.getElementById('obsoleteValue').textContent = formatCurrency(response.summary.total_value_at_risk);
 
-    // Render table
-    const tbody = document.getElementById('obsoleteTableBody');
+    // Store full data for pagination
+    reportPaginationState.obsolete = response.obsolete_candidates;
 
-    if (response.obsolete_candidates.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No obsolete items found</td></tr>';
-    } else {
-      tbody.innerHTML = response.obsolete_candidates.map(item => `
-        <tr>
-          <td><strong>${escapeHtml(item.sku)}</strong></td>
-          <td>${escapeHtml(item.description)}</td>
-          <td>${item.category || '-'}</td>
-          <td class="text-end">${item.on_hand}</td>
-          <td class="text-end">${formatCurrency(item.unit_cost)}</td>
-          <td class="text-end">${formatCurrency(item.total_value)}</td>
-          <td>${item.last_shipment_date || 'Never'}</td>
-          <td class="text-end">${item.days_since_last_use}</td>
-          <td>${item.is_used_in_bom ? '<span class="badge text-bg-info">Yes</span>' : '-'}</td>
-        </tr>
-      `).join('');
-    }
+    // Render paginated table
+    renderObsoleteTable(page);
 
     document.getElementById('obsoleteLoading').style.display = 'none';
     document.getElementById('obsoleteContent').style.display = 'block';
   } catch (error) {
     console.error('Error loading obsolete report:', error);
     showNotification('Error loading obsolete report', 'danger');
+  }
+}
+
+function renderObsoleteTable(page = 1) {
+  const processedData = getProcessedReportData('obsolete');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('obsoleteTableBody');
+
+  updateReportSortIcons('obsolete');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No obsolete items found</td></tr>';
+    document.getElementById('obsoletePagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.sku)}</strong></td>
+        <td>${escapeHtml(item.description)}</td>
+        <td>${item.category || '-'}</td>
+        <td class="text-end">${item.on_hand}</td>
+        <td class="text-end">${formatCurrency(item.unit_cost)}</td>
+        <td class="text-end">${formatCurrency(item.total_value)}</td>
+        <td>${item.last_shipment_date || 'Never'}</td>
+        <td class="text-end">${item.days_since_last_use}</td>
+        <td>${item.is_used_in_bom ? '<span class="badge text-bg-info">Yes</span>' : '-'}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('obsoletePagination', pagination, renderObsoleteTable);
   }
 }
 
@@ -896,7 +996,240 @@ function refreshAllReports() {
   }
 }
 
+// ============================================
+// Client-Side Pagination, Sorting & Search
+// ============================================
+const ITEMS_PER_PAGE = 50;
+const reportPaginationState = {};
+const reportSortState = {
+  lowStock: { sortBy: 'sku', sortDir: 'asc' },
+  committed: { sortBy: 'sku', sortDir: 'asc' },
+  velocity: { sortBy: 'sku', sortDir: 'asc' },
+  reorder: { sortBy: 'sku', sortDir: 'asc' },
+  obsolete: { sortBy: 'sku', sortDir: 'asc' }
+};
+const reportSearchState = {
+  lowStock: '',
+  committed: '',
+  velocity: '',
+  reorder: '',
+  obsolete: ''
+};
+
+// Debounce timer for search
+let reportSearchDebounceTimer = null;
+
+// Sort data by column
+function sortReportData(data, sortBy, sortDir) {
+  return [...data].sort((a, b) => {
+    let aVal = a[sortBy];
+    let bVal = b[sortBy];
+
+    // Handle null/undefined values
+    if (aVal === null || aVal === undefined) aVal = '';
+    if (bVal === null || bVal === undefined) bVal = '';
+
+    // Handle numeric sorting
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+    }
+
+    // Handle string sorting
+    const aStr = String(aVal).toLowerCase();
+    const bStr = String(bVal).toLowerCase();
+    if (sortDir === 'asc') {
+      return aStr.localeCompare(bStr);
+    } else {
+      return bStr.localeCompare(aStr);
+    }
+  });
+}
+
+// Filter data by search term
+function filterReportData(data, searchTerm) {
+  if (!searchTerm) return data;
+  const term = searchTerm.toLowerCase();
+  return data.filter(item => {
+    const sku = (item.sku || '').toLowerCase();
+    const description = (item.description || '').toLowerCase();
+    return sku.includes(term) || description.includes(term);
+  });
+}
+
+// Handle report column sort click
+function handleReportSort(reportName, column) {
+  const state = reportSortState[reportName];
+  if (state.sortBy === column) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortBy = column;
+    state.sortDir = 'asc';
+  }
+  updateReportSortIcons(reportName);
+  renderReportByName(reportName, 1);
+}
+
+// Update sort icons for a report
+function updateReportSortIcons(reportName) {
+  const state = reportSortState[reportName];
+  document.querySelectorAll(`.sortable-report[data-report="${reportName}"]`).forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    const column = th.dataset.sort;
+    if (column === state.sortBy) {
+      icon.innerHTML = state.sortDir === 'asc'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+    } else {
+      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+    }
+  });
+}
+
+// Handle report search
+function handleReportSearch(reportName, searchTerm) {
+  clearTimeout(reportSearchDebounceTimer);
+  reportSearchDebounceTimer = setTimeout(() => {
+    reportSearchState[reportName] = searchTerm;
+    renderReportByName(reportName, 1);
+  }, 300);
+}
+
+// Render report by name
+function renderReportByName(reportName, page) {
+  switch(reportName) {
+    case 'lowStock': renderLowStockTable(page); break;
+    case 'committed': renderCommittedTable(page); break;
+    case 'velocity': renderVelocityTable(page); break;
+    case 'reorder': renderReorderTable(page); break;
+    case 'obsolete': renderObsoleteTable(page); break;
+  }
+}
+
+// Get filtered and sorted data for a report
+function getProcessedReportData(reportName) {
+  let data = reportPaginationState[reportName] || [];
+  const searchTerm = reportSearchState[reportName];
+  const { sortBy, sortDir } = reportSortState[reportName];
+
+  // Filter by search
+  data = filterReportData(data, searchTerm);
+
+  // Sort
+  data = sortReportData(data, sortBy, sortDir);
+
+  return data;
+}
+
+function paginateData(data, page, perPage = ITEMS_PER_PAGE) {
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  return {
+    data: data.slice(startIndex, endIndex),
+    currentPage: page,
+    lastPage: Math.ceil(data.length / perPage),
+    total: data.length,
+    from: data.length > 0 ? startIndex + 1 : 0,
+    to: Math.min(endIndex, data.length)
+  };
+}
+
+function renderReportPagination(containerId, pagination, onPageChange) {
+  const container = document.getElementById(containerId);
+  if (!container || !pagination || pagination.total === 0) {
+    if (container) container.style.display = 'none';
+    return;
+  }
+
+  const { currentPage, lastPage, total, from, to } = pagination;
+
+  if (lastPage <= 1) {
+    container.style.display = 'none';
+    return;
+  }
+
+  // Build page numbers - show max 7 pages
+  const pageNumbers = getReportPageNumbers(currentPage, lastPage, 7);
+
+  let html = `
+    <p class="m-0 text-muted">Showing ${from} to ${to} of ${total.toLocaleString()} items</p>
+    <ul class="pagination m-0 ms-auto">
+      <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${currentPage - 1}" tabindex="-1" ${currentPage === 1 ? 'aria-disabled="true"' : ''}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+            <path d="M15 6l-6 6l6 6"></path>
+          </svg>
+        </a>
+      </li>
+  `;
+
+  pageNumbers.forEach(pageNum => {
+    if (pageNum === '...') {
+      html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+    } else {
+      html += `
+        <li class="page-item ${pageNum === currentPage ? 'active' : ''}">
+          <a class="page-link" href="#" data-page="${pageNum}">${pageNum}</a>
+        </li>
+      `;
+    }
+  });
+
+  html += `
+      <li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${currentPage + 1}" ${currentPage === lastPage ? 'aria-disabled="true"' : ''}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-1">
+            <path d="M9 6l6 6l-6 6"></path>
+          </svg>
+        </a>
+      </li>
+    </ul>
+  `;
+
+  container.innerHTML = html;
+  container.style.display = 'flex';
+
+  // Add click handlers
+  container.querySelectorAll('.page-link[data-page]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = parseInt(link.dataset.page);
+      if (page >= 1 && page <= lastPage && page !== currentPage) {
+        onPageChange(page);
+      }
+    });
+  });
+}
+
+function getReportPageNumbers(current, last, maxVisible) {
+  if (last <= maxVisible) {
+    return Array.from({length: last}, (_, i) => i + 1);
+  }
+
+  const pages = [];
+  const half = Math.floor(maxVisible / 2);
+
+  if (current <= half + 1) {
+    for (let i = 1; i <= maxVisible - 2; i++) pages.push(i);
+    pages.push('...');
+    pages.push(last);
+  } else if (current >= last - half) {
+    pages.push(1);
+    pages.push('...');
+    for (let i = last - maxVisible + 3; i <= last; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    pages.push('...');
+    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+    pages.push('...');
+    pages.push(last);
+  }
+
+  return pages;
+}
+
+// ============================================
 // Helper functions
+// ============================================
 function getStatusBadge(status) {
   const badges = {
     'in_stock': '<span class="badge text-bg-success">In Stock</span>',
@@ -917,9 +1250,94 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+/**
+ * Format committed quantity showing packs if applicable
+ * Shows "X packs" with eaches in tooltip when pack_size > 1
+ */
+function formatPackCommitted(item) {
+  const committed = item.committed || 0;
+  const committedPacks = item.committed_packs || committed;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (committed === 0) {
+    return hasPackSize ? '0 packs' : '0';
+  }
+
+  if (hasPackSize) {
+    const packLabel = committedPacks === 1 ? 'pack' : 'packs';
+    return `<span title="${committed} eaches (${packSize}/pack)">${committedPacks} ${packLabel}</span>`;
+  }
+
+  return committed.toLocaleString();
+}
+
+/**
+ * Format on-hand quantity showing packs if applicable
+ */
+function formatPackOnHand(item) {
+  const onHand = item.on_hand || 0;
+  const onHandPacks = item.on_hand_packs || onHand;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (hasPackSize) {
+    const packLabel = onHandPacks === 1 ? 'pack' : 'packs';
+    return `<span title="${onHand} eaches (${packSize}/pack)">${onHandPacks} ${packLabel}</span>`;
+  }
+
+  return onHand.toLocaleString();
+}
+
+/**
+ * Format available quantity showing packs if applicable
+ */
+function formatPackAvailable(item) {
+  const available = item.available || 0;
+  const availablePacks = item.available_packs || available;
+  const packSize = item.pack_size || 1;
+  const hasPackSize = packSize > 1;
+
+  if (hasPackSize) {
+    const packLabel = availablePacks === 1 ? 'pack' : 'packs';
+    return `<span title="${available} eaches">${availablePacks} ${packLabel}</span>`;
+  }
+
+  return available.toLocaleString();
+}
+
 // Load first report on page load
 document.addEventListener('DOMContentLoaded', () => {
   showReport('lowStock');
+
+  // Add event listeners for sortable headers
+  document.querySelectorAll('.sortable-report').forEach(th => {
+    th.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      const report = this.dataset.report;
+      if (column && report) {
+        handleReportSort(report, column);
+      }
+    });
+  });
+
+  // Add event listeners for search inputs
+  const searchInputs = {
+    'lowStockSearch': 'lowStock',
+    'committedSearch': 'committed',
+    'velocitySearch': 'velocity',
+    'reorderSearch': 'reorder',
+    'obsoleteSearch': 'obsolete'
+  };
+
+  Object.entries(searchInputs).forEach(([inputId, reportName]) => {
+    const input = document.getElementById(inputId);
+    if (input) {
+      input.addEventListener('input', (e) => {
+        handleReportSearch(reportName, e.target.value.trim());
+      });
+    }
+  });
 });
 </script>
 @endsection
