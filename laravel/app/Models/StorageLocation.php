@@ -15,6 +15,9 @@ class StorageLocation extends Model
         'code',
         'type',
         'description',
+        'parent_id',
+        'path',
+        'depth',
         'aisle',
         'bay',
         'level',
@@ -30,7 +33,52 @@ class StorageLocation extends Model
         'is_active' => 'boolean',
         'capacity' => 'decimal:2',
         'sort_order' => 'integer',
+        'depth' => 'integer',
     ];
+
+    protected $appends = ['has_children', 'full_path'];
+
+    // Hierarchical relationships
+
+    /**
+     * Get the parent location
+     */
+    public function parent()
+    {
+        return $this->belongsTo(StorageLocation::class, 'parent_id');
+    }
+
+    /**
+     * Get child locations
+     */
+    public function children()
+    {
+        return $this->hasMany(StorageLocation::class, 'parent_id')->ordered();
+    }
+
+    /**
+     * Get all descendants (recursive)
+     */
+    public function descendants()
+    {
+        return $this->children()->with('descendants');
+    }
+
+    /**
+     * Get all ancestors
+     */
+    public function ancestors()
+    {
+        $ancestors = collect([]);
+        $parent = $this->parent;
+
+        while ($parent) {
+            $ancestors->prepend($parent);
+            $parent = $parent->parent;
+        }
+
+        return $ancestors;
+    }
 
     /**
      * Get inventory locations that use this storage location
@@ -38,6 +86,23 @@ class StorageLocation extends Model
     public function inventoryLocations()
     {
         return $this->hasMany(InventoryLocation::class, 'location', 'name');
+    }
+
+    /**
+     * Check if location has children
+     */
+    public function getHasChildrenAttribute()
+    {
+        return $this->children()->count() > 0;
+    }
+
+    /**
+     * Get full path as string (e.g., "Aisle A > Rack 1 > Shelf 2")
+     */
+    public function getFullPathAttribute()
+    {
+        $pathNames = $this->ancestors()->pluck('name')->push($this->name);
+        return $pathNames->implode(' > ');
     }
 
     /**
@@ -86,4 +151,51 @@ class StorageLocation extends Model
     {
         return $query->orderBy('sort_order')->orderBy('name');
     }
+
+    /**
+     * Scope: only root level locations (no parent)
+     */
+    public function scopeRoots($query)
+    {
+        return $query->whereNull('parent_id');
+    }
+
+    /**
+     * Scope: by depth level
+     */
+    public function scopeAtDepth($query, $depth)
+    {
+        return $query->where('depth', $depth);
+    }
+
+    /**
+     * Update path and depth when model is saved
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($location) {
+            if ($location->parent_id) {
+                $parent = StorageLocation::find($location->parent_id);
+                if ($parent) {
+                    $location->depth = $parent->depth + 1;
+                    $location->path = $parent->path ? $parent->path . '/' . $parent->id : $parent->id;
+                }
+            } else {
+                $location->depth = 0;
+                $location->path = null;
+            }
+        });
+
+        // Update children's paths when parent changes
+        static::saved(function ($location) {
+            if ($location->wasChanged('parent_id') || $location->wasChanged('path')) {
+                foreach ($location->children as $child) {
+                    $child->save(); // This triggers the saving event, updating the path recursively
+                }
+            }
+        });
+    }
 }
+
