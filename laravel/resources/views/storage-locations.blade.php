@@ -77,6 +77,12 @@
                 <div class="card-header">
                   <h3 class="card-title">Storage Locations</h3>
                   <div class="ms-auto d-flex gap-2">
+                    <div class="btn-group" role="group">
+                      <input type="radio" class="btn-check" name="view-mode" id="view-tree" autocomplete="off" checked>
+                      <label class="btn btn-sm" for="view-tree">Tree View</label>
+                      <input type="radio" class="btn-check" name="view-mode" id="view-list" autocomplete="off">
+                      <label class="btn btn-sm" for="view-list">List View</label>
+                    </div>
                     <input type="text" class="form-control form-control-sm" placeholder="Search locations..." id="searchInput" style="min-width: 200px;">
                   </div>
                 </div>
@@ -86,11 +92,18 @@
                     <div>Loading locations...</div>
                   </div>
 
+                  <!-- Tree View -->
+                  <div id="treeViewContainer" style="display: none;">
+                    <div id="locationsTree"></div>
+                  </div>
+
+                  <!-- List View -->
                   <div class="table-responsive" id="locationsTableContainer" style="display: none;">
                     <table class="table table-vcenter card-table table-striped">
                       <thead>
                         <tr>
-                          <th>Location Name</th>
+                          <th>Location Path</th>
+                          <th>Type</th>
                           <th class="text-end">Products Stored</th>
                           <th class="text-end">Total Quantity</th>
                           <th class="text-end">Total Value</th>
@@ -122,23 +135,32 @@
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label required">Location Name</label>
-              <input type="text" class="form-control" id="locationName" name="name" placeholder="e.g., Warehouse A - Bin 23" required>
+              <input type="text" class="form-control" id="locationName" name="name" placeholder="e.g., Aisle A, Rack 1, Shelf 2, Bin 5" required>
               <small class="form-hint">Enter a unique name for this storage location</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Parent Location</label>
+              <select class="form-select" id="locationParent" name="parent_id">
+                <option value="">None (Root Level)</option>
+              </select>
+              <small class="form-hint">Select a parent location to nest this location under</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Location Type</label>
+              <select class="form-select" id="locationType" name="type" required>
+                <option value="aisle">Aisle</option>
+                <option value="rack">Rack</option>
+                <option value="shelf">Shelf</option>
+                <option value="bin" selected>Bin</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="zone">Zone</option>
+                <option value="other">Other</option>
+              </select>
+              <small class="form-hint">Hierarchy: Aisle → Rack → Shelf → Bin</small>
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
               <textarea class="form-control" id="locationDescription" name="description" rows="2" placeholder="Optional description or notes about this location"></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Location Type</label>
-              <select class="form-select" id="locationType" name="type">
-                <option value="warehouse">Warehouse</option>
-                <option value="shelf">Shelf</option>
-                <option value="bin">Bin</option>
-                <option value="rack">Rack</option>
-                <option value="zone">Zone</option>
-                <option value="other">Other</option>
-              </select>
             </div>
             <div class="row">
               <div class="col-md-6">
