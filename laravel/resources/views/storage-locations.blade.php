@@ -246,40 +246,43 @@
 @push('scripts')
   <style>
     .tree-node {
-      padding: 4px 0;
+      padding: 0;
     }
     .tree-node-content {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
+      padding: 4px 8px;
       border-radius: 4px;
       transition: background 0.2s;
+      min-height: 36px;
     }
     .tree-node-content:hover {
       background: #f8f9fa;
     }
     .tree-node-toggle {
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-right: 8px;
+      margin-right: 6px;
       cursor: pointer;
       user-select: none;
       font-weight: bold;
+      font-size: 12px;
     }
     .tree-node-toggle.empty {
       visibility: hidden;
     }
     .tree-node-icon {
-      margin-right: 8px;
+      margin-right: 6px;
       color: #6c757d;
+      font-size: 16px;
     }
     .tree-children {
-      margin-left: 24px;
+      margin-left: 20px;
       border-left: 1px dashed #dee2e6;
-      padding-left: 8px;
+      padding-left: 6px;
     }
     .tree-children.collapsed {
       display: none;
@@ -287,18 +290,37 @@
     .tree-node-actions {
       margin-left: auto;
       display: flex;
-      gap: 4px;
+      gap: 2px;
       opacity: 0;
       transition: opacity 0.2s;
     }
     .tree-node-content:hover .tree-node-actions {
       opacity: 1;
     }
+    .tree-node-actions .btn {
+      padding: 2px 4px;
+      font-size: 14px;
+    }
     .type-badge {
-      font-size: 0.75rem;
-      padding: 2px 6px;
+      font-size: 0.7rem;
+      padding: 1px 4px;
       border-radius: 3px;
-      margin-left: 8px;
+      margin-left: 6px;
+    }
+    .tree-node-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+    .tree-node-info strong {
+      font-size: 0.9rem;
+      line-height: 1.3;
+    }
+    .tree-node-info .small {
+      font-size: 0.75rem;
+      line-height: 1.2;
+      margin-top: 1px;
     }
   </style>
 
@@ -406,8 +428,8 @@
       const icon = typeIcons[node.type] || 'ti-map-pin';
 
       const statusBadge = stats.products_count > 0
-        ? '<span class="badge bg-success-lt">In Use</span>'
-        : '<span class="badge bg-secondary-lt">Empty</span>';
+        ? '<span class="badge badge-sm bg-success-lt">In Use</span>'
+        : '<span class="badge badge-sm bg-secondary-lt">Empty</span>';
 
       return `
         <div class="tree-node" data-id="${node.id}">
@@ -416,10 +438,12 @@
               ${toggleIcon}
             </span>
             <i class="ti ${icon} tree-node-icon"></i>
-            <div class="flex-fill">
-              <strong>${escapeHtml(node.name)}</strong>
-              <span class="type-badge badge bg-azure-lt">${node.type}</span>
-              ${node.code ? `<span class="text-muted ms-2">${escapeHtml(node.code)}</span>` : ''}
+            <div class="tree-node-info">
+              <div>
+                <strong>${escapeHtml(node.name)}</strong>
+                <span class="type-badge badge bg-azure-lt">${node.type}</span>
+                ${node.code ? `<span class="text-muted ms-1 small">${escapeHtml(node.code)}</span>` : ''}
+              </div>
               <div class="small text-muted">
                 ${stats.products_count} products | ${stats.total_quantity} units | $${stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2})}
               </div>
