@@ -86,6 +86,8 @@ class CycleCountController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'location' => 'nullable|string',
+            'storage_location_ids' => 'nullable|array',
+            'storage_location_ids.*' => 'exists:storage_locations,id',
             'category_id' => 'nullable|exists:categories,id',
             'scheduled_date' => 'required|date',
             'assigned_to' => 'nullable|exists:users,id',
@@ -106,10 +108,19 @@ class CycleCountController extends Controller
             // Generate session number
             $sessionNumber = CycleCountSession::generateSessionNumber();
 
+            // Get storage location names if IDs provided
+            $storageLocationNames = [];
+            if ($request->has('storage_location_ids') && is_array($request->storage_location_ids)) {
+                $storageLocationNames = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)
+                    ->pluck('name')
+                    ->toArray();
+            }
+
             // Create session
             $session = CycleCountSession::create([
                 'session_number' => $sessionNumber,
                 'location' => $request->location,
+                'storage_location_ids' => $request->has('storage_location_ids') ? $request->storage_location_ids : null,
                 'category_id' => $request->category_id,
                 'status' => 'planned',
                 'scheduled_date' => $request->scheduled_date,
@@ -127,6 +138,13 @@ class CycleCountController extends Controller
 
                 if ($request->category_id) {
                     $query->where('category_id', $request->category_id);
+                }
+
+                // Filter by storage locations if selected
+                if (count($storageLocationNames) > 0) {
+                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationNames) {
+                        $q->whereIn('location', $storageLocationNames);
+                    });
                 }
 
                 $products = $query->get();
@@ -147,32 +165,68 @@ class CycleCountController extends Controller
                 $location = null;
 
                 // Get system quantity (in eaches from database)
-                if ($request->location) {
-                    // Location-specific count
+                if (count($storageLocationNames) > 0) {
+                    // Count products in each selected storage location
+                    $inventoryLocations = $product->inventoryLocations()
+                        ->whereIn('location', $storageLocationNames)
+                        ->get();
+
+                    foreach ($inventoryLocations as $invLoc) {
+                        $systemQtyEaches = $invLoc->quantity ?? 0;
+
+                        // Convert to packs if product has pack_size > 1
+                        $systemQtyForCount = $product->hasPackSize()
+                            ? $product->eachesToFullPacks($systemQtyEaches)
+                            : $systemQtyEaches;
+
+                        $session->items()->create([
+                            'product_id' => $product->id,
+                            'location_id' => $invLoc->id,
+                            'system_quantity' => $systemQtyForCount,
+                            'counted_quantity' => null,
+                            'variance' => 0,
+                            'variance_status' => 'pending',
+                        ]);
+                    }
+                } elseif ($request->location) {
+                    // Legacy location-specific count
                     $location = $product->inventoryLocations()
                         ->where('location', $request->location)
                         ->first();
 
                     $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
+
+                    // Convert to packs if product has pack_size > 1
+                    $systemQtyForCount = $product->hasPackSize()
+                        ? $product->eachesToFullPacks($systemQtyEaches)
+                        : $systemQtyEaches;
+
+                    $session->items()->create([
+                        'product_id' => $product->id,
+                        'location_id' => $location ? $location->id : null,
+                        'system_quantity' => $systemQtyForCount,
+                        'counted_quantity' => null,
+                        'variance' => 0,
+                        'variance_status' => 'pending',
+                    ]);
                 } else {
-                    // Product-level count
+                    // Product-level count (no location filter)
                     $systemQtyEaches = $product->quantity_on_hand ?? 0;
+
+                    // Convert to packs if product has pack_size > 1
+                    $systemQtyForCount = $product->hasPackSize()
+                        ? $product->eachesToFullPacks($systemQtyEaches)
+                        : $systemQtyEaches;
+
+                    $session->items()->create([
+                        'product_id' => $product->id,
+                        'location_id' => null,
+                        'system_quantity' => $systemQtyForCount,
+                        'counted_quantity' => null,
+                        'variance' => 0,
+                        'variance_status' => 'pending',
+                    ]);
                 }
-
-                // Convert to packs if product has pack_size > 1
-                // We count in full packs, so use floor for system quantity
-                $systemQtyForCount = $product->hasPackSize()
-                    ? $product->eachesToFullPacks($systemQtyEaches)
-                    : $systemQtyEaches;
-
-                $session->items()->create([
-                    'product_id' => $product->id,
-                    'location_id' => ($request->location && $location) ? $location->id : null,
-                    'system_quantity' => $systemQtyForCount,
-                    'counted_quantity' => null,
-                    'variance' => 0,
-                    'variance_status' => 'pending',
-                ]);
             }
 
             DB::commit();

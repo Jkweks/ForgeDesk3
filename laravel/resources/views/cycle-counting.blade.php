@@ -150,9 +150,11 @@
         <form id="sessionForm">
           <div class="row mb-3">
             <div class="col-md-6">
-              <label class="form-label">Location (Optional)</label>
-              <input type="text" class="form-control" id="sessionLocation" placeholder="e.g., Warehouse A, Aisle 4-B">
-              <small class="form-hint">Leave blank to count all locations</small>
+              <label class="form-label">Storage Locations (Optional)</label>
+              <select class="form-select" id="sessionStorageLocations" multiple size="8" style="font-family: monospace; font-size: 0.875rem;">
+                <option value="">Loading...</option>
+              </select>
+              <small class="form-hint">Hold Ctrl/Cmd to select multiple. Leave empty to count all locations</small>
             </div>
             <div class="col-md-6">
               <label class="form-label">Category (Optional)</label>
@@ -639,17 +641,51 @@ async function loadStatistics() {
 }
 
 // Show create session modal
-function showCreateSessionModal() {
+async function showCreateSessionModal() {
   document.getElementById('sessionForm').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
 
+  // Load storage locations
+  await loadStorageLocationsForSession();
+
   safeShowModal('createSessionModal');
+}
+
+// Load storage locations for the session modal
+async function loadStorageLocationsForSession() {
+  try {
+    const locations = await authenticatedFetch('/storage-locations-tree');
+    const select = document.getElementById('sessionStorageLocations');
+    select.innerHTML = '';
+
+    // Recursive function to render tree
+    function renderLocationOptions(locations, level = 0) {
+      locations.forEach(location => {
+        const indent = '\u00A0'.repeat(level * 4); // Non-breaking spaces for indentation
+        const option = document.createElement('option');
+        option.value = location.id;
+        option.textContent = indent + location.name;
+        select.appendChild(option);
+
+        if (location.children && location.children.length > 0) {
+          renderLocationOptions(location.children, level + 1);
+        }
+      });
+    }
+
+    renderLocationOptions(locations);
+  } catch (error) {
+    console.error('Error loading storage locations:', error);
+    const select = document.getElementById('sessionStorageLocations');
+    select.innerHTML = '<option value="">Error loading locations</option>';
+  }
 }
 
 // Create cycle count session
 async function createCycleCountSession() {
   try {
-    const location = document.getElementById('sessionLocation').value;
+    const storageLocationSelect = document.getElementById('sessionStorageLocations');
+    const storageLocationIds = Array.from(storageLocationSelect.selectedOptions).map(opt => parseInt(opt.value));
     const categoryId = document.getElementById('sessionCategory').value;
     const scheduledDate = document.getElementById('sessionDate').value;
     const assignedTo = document.getElementById('sessionAssignedTo').value;
@@ -658,7 +694,7 @@ async function createCycleCountSession() {
     const productIds = Array.from(productSelect.selectedOptions).map(opt => parseInt(opt.value));
 
     const data = {
-      location: location || null,
+      storage_location_ids: storageLocationIds.length > 0 ? storageLocationIds : null,
       category_id: categoryId ? parseInt(categoryId) : null,
       scheduled_date: scheduledDate,
       assigned_to: assignedTo ? parseInt(assignedTo) : null,
