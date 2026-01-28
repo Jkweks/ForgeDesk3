@@ -24,24 +24,51 @@ class ImportExportController extends Controller
 
         $products = $query->get();
 
+        // Get committed quantities from fulfillment system
+        $committedByProduct = DB::table('job_reservation_items as ri')
+            ->join('job_reservations as r', 'ri.reservation_id', '=', 'r.id')
+            ->whereIn('r.status', ['active', 'in_progress', 'on_hold'])
+            ->whereNull('r.deleted_at')
+            ->select('ri.product_id', DB::raw('SUM(ri.committed_qty) as committed_qty'))
+            ->groupBy('ri.product_id')
+            ->pluck('committed_qty', 'product_id')
+            ->toArray();
+
         $filename = 'products_export_' . date('Y-m-d_His') . '.csv';
         $headers = [
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($products) {
+        $callback = function() use ($products, $committedByProduct) {
             $file = fopen('php://output', 'w');
-            
+
             fputcsv($file, [
                 'SKU', 'Description', 'Long Description', 'Category', 'Location',
-                'Unit Cost', 'Unit Price', 'Quantity On Hand', 'Quantity Committed',
-                'Quantity Available', 'Minimum Quantity', 'Maximum Quantity',
-                'Unit of Measure', 'Supplier', 'Supplier SKU', 'Lead Time Days',
-                'Status', 'Active',
+                'Unit Cost', 'Unit Price', 'Pack Size', 'Quantity On Hand (Packs/Eaches)',
+                'Quantity Committed (Packs/Eaches)', 'Quantity Available (Packs/Eaches)',
+                'Minimum Quantity', 'Maximum Quantity', 'Unit of Measure', 'Supplier',
+                'Supplier SKU', 'Lead Time Days', 'Status', 'Active',
             ]);
 
             foreach ($products as $product) {
+                $committedQty = $committedByProduct[$product->id] ?? 0;
+
+                // Calculate pack-based quantities
+                if ($product->pack_size && $product->pack_size > 1) {
+                    $onHandPacks = floor($product->quantity_on_hand / $product->pack_size);
+                    $committedPacks = ceil($committedQty / $product->pack_size);
+                    $availablePacks = max(0, $onHandPacks - $committedPacks);
+
+                    $onHandDisplay = "{$onHandPacks} packs";
+                    $committedDisplay = "{$committedPacks} packs";
+                    $availableDisplay = "{$availablePacks} packs";
+                } else {
+                    $onHandDisplay = $product->quantity_on_hand . ' ea';
+                    $committedDisplay = $committedQty . ' ea';
+                    $availableDisplay = max(0, $product->quantity_on_hand - $committedQty) . ' ea';
+                }
+
                 fputcsv($file, [
                     $product->sku,
                     $product->description,
@@ -50,9 +77,10 @@ class ImportExportController extends Controller
                     $product->location,
                     $product->unit_cost,
                     $product->unit_price,
-                    $product->quantity_on_hand,
-                    $product->quantity_committed,
-                    $product->quantity_available,
+                    $product->pack_size ?? 1,
+                    $onHandDisplay,
+                    $committedDisplay,
+                    $availableDisplay,
                     $product->minimum_quantity,
                     $product->maximum_quantity,
                     $product->unit_of_measure,
