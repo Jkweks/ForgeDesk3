@@ -144,16 +144,19 @@ class CycleCountController extends Controller
             // Create cycle count items
             foreach ($products as $product) {
                 // Get system quantity (in eaches from database)
+                // Initialize $location to null for each product
+                $location = null;
+
                 if ($request->location) {
                     // Location-specific count
                     $location = $product->inventoryLocations()
                         ->where('location', $request->location)
                         ->first();
 
-                    $systemQtyEaches = $location ? $location->quantity : 0;
+                    $systemQtyEaches = (int) ($location?->quantity ?? 0);
                 } else {
                     // Product-level count
-                    $systemQtyEaches = $product->quantity_on_hand;
+                    $systemQtyEaches = (int) ($product->quantity_on_hand ?? 0);
                 }
 
                 // Convert to packs if product has pack_size > 1
@@ -164,8 +167,8 @@ class CycleCountController extends Controller
 
                 $session->items()->create([
                     'product_id' => $product->id,
-                    'location_id' => $request->location && isset($location) ? ($location->id ?? null) : null,
-                    'system_quantity' => $systemQtyForCount,
+                    'location_id' => $location?->id,
+                    'system_quantity' => (int) $systemQtyForCount,
                     'counted_quantity' => null,
                     'variance' => 0,
                     'variance_status' => 'pending',
