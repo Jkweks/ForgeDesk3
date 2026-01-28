@@ -308,6 +308,19 @@
     let editingLocationId = null;
     let currentViewMode = 'tree';
 
+    // Utility function to escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.toString().replace(/[&<>"']/g, m => map[m]);
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       loadLocations();
 
