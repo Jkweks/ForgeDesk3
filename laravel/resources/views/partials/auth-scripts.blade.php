@@ -100,6 +100,18 @@
       }
 
       const error = await response.json().catch(() => ({ message: 'Request failed' }));
+
+      // Log full error details to console for debugging
+      console.error('API Error Details:', {
+        endpoint: endpoint,
+        status: response.status,
+        error: error.error,
+        message: error.message,
+        line: error.line,
+        file: error.file,
+        fullResponse: error
+      });
+
       throw new Error(error.message || `HTTP ${response.status}`);
     }
 

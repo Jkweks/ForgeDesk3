@@ -665,6 +665,8 @@ async function createCycleCountSession() {
       product_ids: productIds.length > 0 ? productIds : null,
     };
 
+    console.log('Creating cycle count session with data:', data);
+
     await authenticatedFetch('/cycle-counts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
