@@ -228,13 +228,13 @@
             <thead>
               <tr>
                 <th style="width: 80px;">Skip</th>
-                <th>SKU</th>
-                <th>Description</th>
-                <th>Location</th>
-                <th class="text-end">System Qty</th>
+                <th class="sortable-count" data-sort="sku" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="description" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="location" style="cursor: pointer;">Location <span class="sort-icon"></span></th>
+                <th class="text-end sortable-count" data-sort="system_quantity" style="cursor: pointer;">System Qty <span class="sort-icon"></span></th>
                 <th class="text-end">Counted Qty</th>
-                <th class="text-end">Variance</th>
-                <th>Status</th>
+                <th class="text-end sortable-count" data-sort="variance" style="cursor: pointer;">Variance <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="status" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -404,6 +404,8 @@
 
 <script>
 let currentSession = null;
+let countSortBy = null;
+let countSortDir = 'asc';
 let allCategories = [];
 let allProducts = [];
 let allUsers = [];
@@ -479,6 +481,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set today's date as default
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+
+  // Add event listeners for sortable count columns
+  document.querySelectorAll('.sortable-count').forEach(th => {
+    th.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      if (column) {
+        sortCountItems(column);
+      }
+    });
+  });
 });
 
 // Load cycle count sessions
@@ -784,61 +796,8 @@ async function enterCounts(sessionId) {
       cancelButton.style.display = 'none';
     }
 
-    tbody.innerHTML = session.items.map(item => {
-      const variance = item.counted_quantity !== null
-        ? item.counted_quantity - item.system_quantity
-        : 0;
-
-      let varianceClass = '';
-      if (variance > 0) varianceClass = 'text-success';
-      else if (variance < 0) varianceClass = 'text-danger';
-
-      // Determine counting unit (packs or eaches)
-      const packSize = item.pack_size || item.product?.pack_size || 1;
-      const hasPackSize = packSize > 1;
-      const countingUnit = item.counting_unit || (hasPackSize ? 'packs' : 'EA');
-      const unitLabel = hasPackSize ? 'packs' : '';
-      const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
-
-      return `
-        <tr id="row${item.id}">
-          <td>
-            <div class="form-check">
-              <input class="form-check-input" type="checkbox" id="skip${item.id}" onchange="toggleSkip(${item.id})">
-              <label class="form-check-label" for="skip${item.id}">
-                <small class="text-muted">Skip</small>
-              </label>
-            </div>
-          </td>
-          <td><strong>${escapeHtml(item.product.sku)}</strong></td>
-          <td>${escapeHtml(item.product.description)}${packInfo}</td>
-          <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
-          <td class="text-end">
-            ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
-          </td>
-          <td>
-            <div class="input-group input-group-sm" style="width: 140px;">
-              <input type="number" class="form-control form-control-sm" id="counted${item.id}"
-                     value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
-                     min="0" onchange="recordItemCount(${item.id})" data-unit="${unitLabel}">
-              ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
-            </div>
-          </td>
-          <td class="text-end ${varianceClass}">
-            <strong id="variance${item.id}">${item.counted_quantity !== null ? (variance > 0 ? '+' : '') + variance + (unitLabel ? ' ' + unitLabel : '') : '-'}</strong>
-          </td>
-          <td>
-            <span class="badge ${getVarianceStatusBadge(item.variance_status)}" id="status${item.id}">
-              ${formatVarianceStatus(item.variance_status)}
-            </span>
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" id="notes${item.id}"
-                   value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px;">
-          </td>
-        </tr>
-      `;
-    }).join('');
+    // Render the count items table
+    renderCountItems(session);
 
     safeShowModal('countEntryModal');
   } catch (error) {
@@ -852,6 +811,7 @@ function toggleSkip(itemId) {
   const skipCheckbox = document.getElementById(`skip${itemId}`);
   const countedInput = document.getElementById(`counted${itemId}`);
   const notesInput = document.getElementById(`notes${itemId}`);
+  const row = document.getElementById(`row${itemId}`);
 
   if (skipCheckbox.checked) {
     // Disable inputs when skipped
@@ -859,13 +819,168 @@ function toggleSkip(itemId) {
     notesInput.disabled = true;
     countedInput.style.backgroundColor = '#f8f9fa';
     notesInput.style.backgroundColor = '#f8f9fa';
+    row.classList.add('bg-light');
   } else {
     // Enable inputs when not skipped
     countedInput.disabled = false;
     notesInput.disabled = false;
     countedInput.style.backgroundColor = '';
     notesInput.style.backgroundColor = '';
+    row.classList.remove('bg-light');
   }
+}
+
+// Sort count items by column
+function sortCountItems(column) {
+  if (!currentSession || !currentSession.items) return;
+
+  if (countSortBy === column) {
+    // Toggle direction if same column
+    countSortDir = countSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    countSortBy = column;
+    countSortDir = 'asc';
+  }
+
+  // Sort the items
+  const sortedItems = [...currentSession.items].sort((a, b) => {
+    let aVal, bVal;
+
+    switch (column) {
+      case 'sku':
+        aVal = a.product?.sku || '';
+        bVal = b.product?.sku || '';
+        break;
+      case 'description':
+        aVal = a.product?.description || '';
+        bVal = b.product?.description || '';
+        break;
+      case 'location':
+        aVal = a.location?.location || '';
+        bVal = b.location?.location || '';
+        break;
+      case 'system_quantity':
+        aVal = a.system_quantity || 0;
+        bVal = b.system_quantity || 0;
+        break;
+      case 'variance':
+        aVal = a.counted_quantity !== null ? (a.counted_quantity - a.system_quantity) : -999999;
+        bVal = b.counted_quantity !== null ? (b.counted_quantity - b.system_quantity) : -999999;
+        break;
+      case 'status':
+        aVal = a.variance_status || '';
+        bVal = b.variance_status || '';
+        break;
+      default:
+        return 0;
+    }
+
+    // Compare values
+    let comparison = 0;
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(bVal);
+    } else {
+      comparison = aVal - bVal;
+    }
+
+    return countSortDir === 'asc' ? comparison : -comparison;
+  });
+
+  // Update session with sorted items
+  currentSession.items = sortedItems;
+
+  // Re-render the table
+  renderCountItems(currentSession);
+  updateCountSortIcons();
+}
+
+// Update sort icons in count table headers
+function updateCountSortIcons() {
+  document.querySelectorAll('.sortable-count').forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    const column = th.dataset.sort;
+    if (column === countSortBy) {
+      icon.innerHTML = countSortDir === 'asc'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+    } else {
+      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+    }
+  });
+}
+
+// Render count items into table
+function renderCountItems(session) {
+  const tbody = document.getElementById('countEntryTable');
+
+  if (!session.items || session.items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No items to count.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = session.items.map(item => {
+    const variance = item.counted_quantity !== null
+      ? item.counted_quantity - item.system_quantity
+      : 0;
+
+    let varianceClass = '';
+    if (variance > 0) varianceClass = 'text-success';
+    else if (variance < 0) varianceClass = 'text-danger';
+
+    // Determine counting unit (packs or eaches)
+    const packSize = item.pack_size || item.product?.pack_size || 1;
+    const hasPackSize = packSize > 1;
+    const countingUnit = item.counting_unit || (hasPackSize ? 'packs' : 'EA');
+    const unitLabel = hasPackSize ? 'packs' : '';
+    const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
+
+    // Check if item is skipped (either checked or not counted)
+    const isSkipped = item.counted_quantity === null;
+    const rowClass = isSkipped ? 'bg-light' : '';
+
+    return `
+      <tr id="row${item.id}" class="${rowClass}">
+        <td>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="skip${item.id}"
+                   ${isSkipped ? 'checked' : ''} onchange="toggleSkip(${item.id})">
+            <label class="form-check-label" for="skip${item.id}">
+              <small class="text-muted">Skip</small>
+            </label>
+          </div>
+        </td>
+        <td><strong>${escapeHtml(item.product.sku)}</strong></td>
+        <td>${escapeHtml(item.product.description)}${packInfo}</td>
+        <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
+        <td class="text-end">
+          ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
+        </td>
+        <td>
+          <div class="input-group input-group-sm" style="width: 140px;">
+            <input type="number" class="form-control form-control-sm" id="counted${item.id}"
+                   value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
+                   min="0" inputmode="numeric" pattern="[0-9]*" onchange="recordItemCount(${item.id})"
+                   data-unit="${unitLabel}" ${isSkipped ? 'disabled' : ''}
+                   style="${isSkipped ? 'background-color: #f8f9fa;' : ''}">
+            ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
+          </div>
+        </td>
+        <td class="text-end ${varianceClass}">
+          <strong id="variance${item.id}">${item.counted_quantity !== null ? (variance > 0 ? '+' : '') + variance + (unitLabel ? ' ' + unitLabel : '') : '-'}</strong>
+        </td>
+        <td>
+          <span class="badge ${getVarianceStatusBadge(item.variance_status)}" id="status${item.id}">
+            ${formatVarianceStatus(item.variance_status)}
+          </span>
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm" id="notes${item.id}"
+                 value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px; ${isSkipped ? 'background-color: #f8f9fa;' : ''}"
+                 ${isSkipped ? 'disabled' : ''}>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // Record item count
@@ -875,6 +990,21 @@ async function recordItemCount(itemId) {
     const notes = document.getElementById(`notes${itemId}`).value;
 
     if (!countedQty || countedQty === '') return;
+
+    // Uncheck skip checkbox and ensure inputs are enabled
+    const skipCheckbox = document.getElementById(`skip${itemId}`);
+    const countedInput = document.getElementById(`counted${itemId}`);
+    const notesInput = document.getElementById(`notes${itemId}`);
+    const row = document.getElementById(`row${itemId}`);
+
+    if (skipCheckbox) {
+      skipCheckbox.checked = false;
+      countedInput.disabled = false;
+      notesInput.disabled = false;
+      countedInput.style.backgroundColor = '';
+      notesInput.style.backgroundColor = '';
+      row.classList.remove('bg-light');
+    }
 
     const sessionId = document.getElementById('countSessionId').value;
 
