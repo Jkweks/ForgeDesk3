@@ -273,12 +273,16 @@
                   <div class="card-body">
                     <form id="locationForm">
                       <input type="hidden" id="locationId" name="location_id">
+                      <input type="hidden" id="storageLocationId" name="storage_location_id">
                       <div class="row mb-3">
                         <div class="col-md-6">
-                          <label class="form-label required">Location Name</label>
-                          <input type="text" class="form-control" id="locationName" name="location" placeholder="e.g., Warehouse A, Bin 23" required list="existingLocations">
-                          <datalist id="existingLocations"></datalist>
-                          <small class="form-hint">Choose from existing or enter new location</small>
+                          <label class="form-label required">Storage Location</label>
+                          <select class="form-select" id="storageLocationSelect" onchange="handleStorageLocationSelect()">
+                            <option value="">Select a storage location...</option>
+                            <option value="custom">Custom Location (enter manually)</option>
+                          </select>
+                          <input type="text" class="form-control mt-2" id="locationName" name="location" placeholder="e.g., Warehouse A, Bin 23" style="display: none;">
+                          <small class="form-hint">Select hierarchical location or enter custom</small>
                         </div>
                         <div class="col-md-3">
                           <label class="form-label required">Quantity</label>
@@ -2104,17 +2108,32 @@
 
     async function loadAllLocations() {
       try {
-        // Load from storage locations (master list)
-        const response = await apiCall('/storage-locations-names');
-        const locationNames = await response.json();
+        // Load hierarchical storage locations
+        const response = await apiCall('/storage-locations-tree');
+        const locations = await response.json();
 
-        const datalist = document.getElementById('existingLocations');
-        datalist.innerHTML = '';
-        locationNames.forEach(locationName => {
-          const option = document.createElement('option');
-          option.value = locationName;
-          datalist.appendChild(option);
-        });
+        const select = document.getElementById('storageLocationSelect');
+        // Keep the first two options (Select... and Custom)
+        while (select.options.length > 2) {
+          select.remove(2);
+        }
+
+        // Recursive function to add options with indentation
+        function addLocationOptions(locations, level = 0) {
+          locations.forEach(location => {
+            const option = document.createElement('option');
+            option.value = location.id;
+            const indent = '\u00A0'.repeat(level * 4); // Non-breaking spaces for indentation
+            option.textContent = indent + location.name;
+            select.appendChild(option);
+
+            if (location.children && location.children.length > 0) {
+              addLocationOptions(location.children, level + 1);
+            }
+          });
+        }
+
+        addLocationOptions(locations);
       } catch (error) {
         console.error('Error loading all locations:', error);
       }
@@ -2144,10 +2163,13 @@
 
         const availableClass = location.quantity_available <= 0 ? 'text-danger' : 'text-success';
 
+        // Display storage location name if available, otherwise fall back to location string
+        const locationDisplay = location.storage_location ? location.storage_location.name : location.location;
+
         const row = `
           <tr>
             <td>
-              <strong>${location.location}</strong>${primaryBadge}
+              <strong>${locationDisplay}</strong>${primaryBadge}
               ${location.notes ? `<br><small class="text-muted">${location.notes}</small>` : ''}
             </td>
             <td class="text-end">${location.quantity.toLocaleString()}</td>
@@ -2181,12 +2203,42 @@
       updateTransferDropdowns();
     }
 
+    function handleStorageLocationSelect() {
+      const select = document.getElementById('storageLocationSelect');
+      const locationName = document.getElementById('locationName');
+      const storageLocationId = document.getElementById('storageLocationId');
+
+      if (select.value === 'custom') {
+        // Show custom location input
+        locationName.style.display = 'block';
+        locationName.required = true;
+        locationName.value = '';
+        storageLocationId.value = '';
+        locationName.focus();
+      } else if (select.value) {
+        // Hide custom input and use selected storage location
+        locationName.style.display = 'none';
+        locationName.required = false;
+        locationName.value = select.options[select.selectedIndex].text.trim();
+        storageLocationId.value = select.value;
+      } else {
+        // Nothing selected
+        locationName.style.display = 'none';
+        locationName.required = false;
+        locationName.value = '';
+        storageLocationId.value = '';
+      }
+    }
+
     function showAddLocationForm() {
       document.getElementById('locationFormTitle').textContent = 'Add Location';
       document.getElementById('locationForm').reset();
       document.getElementById('locationId').value = '';
+      document.getElementById('storageLocationId').value = '';
+      document.getElementById('storageLocationSelect').value = '';
+      document.getElementById('locationName').style.display = 'none';
       document.getElementById('locationFormCard').style.display = 'block';
-      document.getElementById('locationName').focus();
+      document.getElementById('storageLocationSelect').focus();
     }
 
     function hideLocationForm() {
@@ -2200,13 +2252,27 @@
 
       document.getElementById('locationFormTitle').textContent = 'Edit Location';
       document.getElementById('locationId').value = location.id;
-      document.getElementById('locationName').value = location.location;
+      document.getElementById('storageLocationId').value = location.storage_location_id || '';
+
+      // If location has a storage_location_id, select it in dropdown
+      if (location.storage_location_id) {
+        document.getElementById('storageLocationSelect').value = location.storage_location_id;
+        document.getElementById('locationName').style.display = 'none';
+        document.getElementById('locationName').value = location.location;
+      } else {
+        // Custom location
+        document.getElementById('storageLocationSelect').value = 'custom';
+        document.getElementById('locationName').value = location.location;
+        document.getElementById('locationName').style.display = 'block';
+        document.getElementById('locationName').required = true;
+      }
+
       document.getElementById('locationQuantity').value = location.quantity;
       document.getElementById('locationCommitted').value = location.quantity_committed;
       document.getElementById('locationPrimary').checked = location.is_primary;
       document.getElementById('locationNotes').value = location.notes || '';
       document.getElementById('locationFormCard').style.display = 'block';
-      document.getElementById('locationName').focus();
+      document.getElementById('storageLocationSelect').focus();
     }
 
     async function deleteLocation(locationId) {
@@ -2245,7 +2311,9 @@
       e.preventDefault();
 
       const locationId = document.getElementById('locationId').value;
+      const storageLocationId = document.getElementById('storageLocationId').value;
       const formData = {
+        storage_location_id: storageLocationId || null,
         location: document.getElementById('locationName').value,
         quantity: parseInt(document.getElementById('locationQuantity').value),
         quantity_committed: parseInt(document.getElementById('locationCommitted').value),

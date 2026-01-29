@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query()->with(['inventoryLocations', 'supplier', 'category']);
+        $query = Product::query()->with(['inventoryLocations.storageLocation', 'supplier', 'category']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -147,7 +147,7 @@ class ProductController extends Controller
             'categories',
             'category',
             'supplier',
-            'inventoryLocations',
+            'inventoryLocations.storageLocation',
         ]);
 
         // Try to load optional relationships that may not exist in all databases
