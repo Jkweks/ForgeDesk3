@@ -1,5 +1,18 @@
 @extends('layouts.app')
 
+@section('styles')
+<style>
+  /* Make cycle count modal wider for iPad */
+  #countEntryModal .modal-dialog {
+    max-width: 90% !important;
+  }
+
+  #varianceModal .modal-dialog {
+    max-width: 90% !important;
+  }
+</style>
+@endsection
+
 @section('content')
 <div class="container-xl">
   <!-- Page header -->
