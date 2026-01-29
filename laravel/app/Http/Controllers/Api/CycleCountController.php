@@ -72,7 +72,7 @@ class CycleCountController extends Controller
             'assignedUser',
             'reviewer',
             'items.product',
-            'items.location',
+            'items.location.storageLocation',
             'items.counter'
         ]);
 
@@ -142,8 +142,12 @@ class CycleCountController extends Controller
 
                 // Filter by storage locations if selected
                 if (count($storageLocationNames) > 0) {
-                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationNames) {
-                        $q->whereIn('location', $storageLocationNames);
+                    $storageLocationIds = $request->storage_location_ids;
+                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds, $storageLocationNames) {
+                        $q->where(function($subQ) use ($storageLocationIds, $storageLocationNames) {
+                            $subQ->whereIn('storage_location_id', $storageLocationIds)
+                                 ->orWhereIn('location', $storageLocationNames);
+                        });
                     });
                 }
 
@@ -167,8 +171,12 @@ class CycleCountController extends Controller
                 // Get system quantity (in eaches from database)
                 if (count($storageLocationNames) > 0) {
                     // Count products in each selected storage location
+                    $storageLocationIds = $request->storage_location_ids;
                     $inventoryLocations = $product->inventoryLocations()
-                        ->whereIn('location', $storageLocationNames)
+                        ->where(function($q) use ($storageLocationIds, $storageLocationNames) {
+                            $q->whereIn('storage_location_id', $storageLocationIds)
+                              ->orWhereIn('location', $storageLocationNames);
+                        })
                         ->get();
 
                     foreach ($inventoryLocations as $invLoc) {

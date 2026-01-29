@@ -946,7 +946,7 @@ function renderCountItems(session) {
         </td>
         <td><strong>${escapeHtml(item.product.sku)}</strong></td>
         <td>${escapeHtml(item.product.description)}${packInfo}</td>
-        <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
+        <td>${item.location ? (item.location.storage_location ? escapeHtml(item.location.storage_location.name) : escapeHtml(item.location.location)) : '-'}</td>
         <td class="text-end">
           ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
         </td>

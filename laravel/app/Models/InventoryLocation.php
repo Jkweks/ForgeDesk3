@@ -12,6 +12,7 @@ class InventoryLocation extends Model
 
     protected $fillable = [
         'product_id',
+        'storage_location_id',
         'location',
         'quantity',
         'quantity_committed',
@@ -31,6 +32,14 @@ class InventoryLocation extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * Get the storage location this inventory is at
+     */
+    public function storageLocation()
+    {
+        return $this->belongsTo(StorageLocation::class, 'storage_location_id');
     }
 
     /**
