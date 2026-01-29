@@ -10,6 +10,7 @@ use App\Models\InventoryLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CycleCountController extends Controller
 {
@@ -544,5 +545,44 @@ class CycleCountController extends Controller
 
         $totalAccuracy = $completedSessions->sum('accuracy_percentage');
         return round($totalAccuracy / $completedSessions->count(), 1);
+    }
+
+    /**
+     * Generate PDF report for a cycle count session
+     */
+    public function generatePdf($id)
+    {
+        $session = CycleCountSession::with([
+            'category',
+            'assignedUser',
+            'reviewer',
+            'items.product',
+            'items.location.storageLocation',
+            'items.counter'
+        ])->findOrFail($id);
+
+        // Get committed quantities for comparison
+        $committedByProduct = DB::table('job_reservation_items as ri')
+            ->join('job_reservations as r', 'ri.reservation_id', '=', 'r.id')
+            ->whereIn('r.status', ['active', 'in_progress', 'on_hold'])
+            ->whereNull('r.deleted_at')
+            ->select('ri.product_id', DB::raw('SUM(ri.committed_qty) as committed_qty'))
+            ->groupBy('ri.product_id')
+            ->pluck('committed_qty', 'product_id')
+            ->toArray();
+
+        $data = [
+            'session' => $session,
+            'committedByProduct' => $committedByProduct,
+        ];
+
+        $pdf = Pdf::loadView('pdfs.cycle-count-report', $data);
+
+        // Set paper size and orientation
+        $pdf->setPaper('a4', 'landscape');
+
+        $filename = "cycle-count-{$session->session_number}.pdf";
+
+        return $pdf->download($filename);
     }
 }

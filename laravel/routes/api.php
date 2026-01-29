@@ -185,6 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/cycle-counts/{cycleCountSession}/complete', [CycleCountController::class, 'complete']);
         Route::post('/cycle-counts/{cycleCountSession}/cancel', [CycleCountController::class, 'cancel']);
         Route::get('/cycle-counts/{cycleCountSession}/variance-report', [CycleCountController::class, 'varianceReport']);
+        Route::get('/cycle-counts/{cycleCountSession}/pdf', [CycleCountController::class, 'generatePdf']);
         Route::get('/cycle-counts-active', [CycleCountController::class, 'active']);
         Route::get('/cycle-counts-statistics', [CycleCountController::class, 'statistics']);
 

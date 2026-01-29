@@ -257,6 +257,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-info" onclick="printCycleCountReport()">
+          <i class="ti ti-printer me-1"></i>Print Report
+        </button>
         <button type="button" class="btn btn-danger" id="cancelSessionBtn" onclick="cancelCurrentSession()" style="display: none;">
           <i class="ti ti-x me-1"></i>Cancel Session
         </button>
@@ -1193,6 +1196,51 @@ async function completeSession() {
   } catch (error) {
     showNotification(error.message || 'Error completing session', 'danger');
   }
+}
+
+// Print cycle count report
+function printCycleCountReport() {
+  const sessionId = document.getElementById('countSessionId').value;
+
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    showNotification('Error: Session ID is missing. Please close and reopen the count modal.', 'danger');
+    return;
+  }
+
+  // Open PDF in new window/tab
+  const apiUrl = window.location.origin + '/api/v1/cycle-counts/' + sessionId + '/pdf';
+  const authToken = localStorage.getItem('authToken');
+
+  // Create a temporary link to download the PDF
+  fetch(apiUrl, {
+    headers: {
+      'Authorization': 'Bearer ' + authToken,
+      'Accept': 'application/pdf',
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF report');
+    }
+    return response.blob();
+  })
+  .then(blob => {
+    // Create a blob URL and download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cycle-count-' + (currentSession?.session_number || sessionId) + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showNotification('Generating PDF report...', 'info');
+  })
+  .catch(error => {
+    console.error('Error generating PDF:', error);
+    showNotification('Error generating PDF report', 'danger');
+  });
 }
 
 // Cancel current session
