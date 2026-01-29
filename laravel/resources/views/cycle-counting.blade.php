@@ -934,16 +934,11 @@ function renderCountItems(session) {
     const unitLabel = hasPackSize ? 'packs' : '';
     const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
 
-    // Check if item is skipped (either checked or not counted)
-    const isSkipped = item.counted_quantity === null;
-    const rowClass = isSkipped ? 'bg-light' : '';
-
     return `
-      <tr id="row${item.id}" class="${rowClass}">
+      <tr id="row${item.id}">
         <td>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="skip${item.id}"
-                   ${isSkipped ? 'checked' : ''} onchange="toggleSkip(${item.id})">
+            <input class="form-check-input" type="checkbox" id="skip${item.id}" onchange="toggleSkip(${item.id})">
             <label class="form-check-label" for="skip${item.id}">
               <small class="text-muted">Skip</small>
             </label>
@@ -960,8 +955,7 @@ function renderCountItems(session) {
             <input type="number" class="form-control form-control-sm" id="counted${item.id}"
                    value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
                    min="0" inputmode="numeric" pattern="[0-9]*" onchange="recordItemCount(${item.id})"
-                   data-unit="${unitLabel}" ${isSkipped ? 'disabled' : ''}
-                   style="${isSkipped ? 'background-color: #f8f9fa;' : ''}">
+                   data-unit="${unitLabel}">
             ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
           </div>
         </td>
@@ -975,8 +969,7 @@ function renderCountItems(session) {
         </td>
         <td>
           <input type="text" class="form-control form-control-sm" id="notes${item.id}"
-                 value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px; ${isSkipped ? 'background-color: #f8f9fa;' : ''}"
-                 ${isSkipped ? 'disabled' : ''}>
+                 value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px;">
         </td>
       </tr>
     `;
@@ -990,21 +983,6 @@ async function recordItemCount(itemId) {
     const notes = document.getElementById(`notes${itemId}`).value;
 
     if (!countedQty || countedQty === '') return;
-
-    // Uncheck skip checkbox and ensure inputs are enabled
-    const skipCheckbox = document.getElementById(`skip${itemId}`);
-    const countedInput = document.getElementById(`counted${itemId}`);
-    const notesInput = document.getElementById(`notes${itemId}`);
-    const row = document.getElementById(`row${itemId}`);
-
-    if (skipCheckbox) {
-      skipCheckbox.checked = false;
-      countedInput.disabled = false;
-      notesInput.disabled = false;
-      countedInput.style.backgroundColor = '';
-      notesInput.style.backgroundColor = '';
-      row.classList.remove('bg-light');
-    }
 
     const sessionId = document.getElementById('countSessionId').value;
 
