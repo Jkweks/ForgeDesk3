@@ -13,7 +13,7 @@ class ImportExportController extends Controller
 {
     public function exportProducts(Request $request)
     {
-        $query = Product::query();
+        $query = Product::query()->with('supplier');
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -84,7 +84,7 @@ class ImportExportController extends Controller
                     $product->minimum_quantity,
                     $product->maximum_quantity,
                     $product->unit_of_measure,
-                    $product->supplier,
+                    $product->supplier ? $product->supplier->name : '',
                     $product->supplier_sku,
                     $product->lead_time_days,
                     $product->status,
