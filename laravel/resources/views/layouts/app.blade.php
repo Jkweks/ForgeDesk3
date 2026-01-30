@@ -70,6 +70,46 @@
       flex-shrink: 0;
     }
 
+    /* iPad-specific modal widths - make modals wider on iPad devices */
+    @media only screen
+      and (min-width: 768px)
+      and (max-width: 1024px) {
+      /* Target all modal sizes on iPad */
+      .modal-dialog {
+        max-width: 90% !important;
+      }
+
+      .modal-dialog.modal-sm {
+        max-width: 70% !important;
+      }
+
+      .modal-dialog.modal-lg {
+        max-width: 90% !important;
+      }
+
+      .modal-dialog.modal-xl {
+        max-width: 95% !important;
+      }
+    }
+
+    /* iPad Pro specific adjustments */
+    @media only screen
+      and (min-width: 1024px)
+      and (max-width: 1366px)
+      and (-webkit-min-device-pixel-ratio: 1.5) {
+      .modal-dialog {
+        max-width: 85% !important;
+      }
+
+      .modal-dialog.modal-lg {
+        max-width: 85% !important;
+      }
+
+      .modal-dialog.modal-xl {
+        max-width: 90% !important;
+      }
+    }
+
     @yield('styles')
   </style>
 </head>
