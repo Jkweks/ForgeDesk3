@@ -10,6 +10,7 @@ use App\Models\InventoryLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CycleCountController extends Controller
 {
@@ -72,7 +73,7 @@ class CycleCountController extends Controller
             'assignedUser',
             'reviewer',
             'items.product',
-            'items.location',
+            'items.location.storageLocation',
             'items.counter'
         ]);
 
@@ -86,6 +87,8 @@ class CycleCountController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'location' => 'nullable|string',
+            'storage_location_ids' => 'nullable|array',
+            'storage_location_ids.*' => 'exists:storage_locations,id',
             'category_id' => 'nullable|exists:categories,id',
             'scheduled_date' => 'required|date',
             'assigned_to' => 'nullable|exists:users,id',
@@ -106,10 +109,19 @@ class CycleCountController extends Controller
             // Generate session number
             $sessionNumber = CycleCountSession::generateSessionNumber();
 
+            // Get storage location names if IDs provided
+            $storageLocationNames = [];
+            if ($request->has('storage_location_ids') && is_array($request->storage_location_ids)) {
+                $storageLocationNames = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)
+                    ->pluck('name')
+                    ->toArray();
+            }
+
             // Create session
             $session = CycleCountSession::create([
                 'session_number' => $sessionNumber,
                 'location' => $request->location,
+                'storage_location_ids' => $request->has('storage_location_ids') ? $request->storage_location_ids : null,
                 'category_id' => $request->category_id,
                 'status' => 'planned',
                 'scheduled_date' => $request->scheduled_date,
@@ -129,6 +141,17 @@ class CycleCountController extends Controller
                     $query->where('category_id', $request->category_id);
                 }
 
+                // Filter by storage locations if selected
+                if (count($storageLocationNames) > 0) {
+                    $storageLocationIds = $request->storage_location_ids;
+                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds, $storageLocationNames) {
+                        $q->where(function($subQ) use ($storageLocationIds, $storageLocationNames) {
+                            $subQ->whereIn('storage_location_id', $storageLocationIds)
+                                 ->orWhereIn('location', $storageLocationNames);
+                        });
+                    });
+                }
+
                 $products = $query->get();
             }
 
@@ -143,33 +166,76 @@ class CycleCountController extends Controller
 
             // Create cycle count items
             foreach ($products as $product) {
+                // Initialize location variable
+                $location = null;
+
                 // Get system quantity (in eaches from database)
-                if ($request->location) {
-                    // Location-specific count
+                if (count($storageLocationNames) > 0) {
+                    // Count products in each selected storage location
+                    $storageLocationIds = $request->storage_location_ids;
+                    $inventoryLocations = $product->inventoryLocations()
+                        ->where(function($q) use ($storageLocationIds, $storageLocationNames) {
+                            $q->whereIn('storage_location_id', $storageLocationIds)
+                              ->orWhereIn('location', $storageLocationNames);
+                        })
+                        ->get();
+
+                    foreach ($inventoryLocations as $invLoc) {
+                        $systemQtyEaches = $invLoc->quantity ?? 0;
+
+                        // Convert to packs if product has pack_size > 1
+                        $systemQtyForCount = $product->hasPackSize()
+                            ? $product->eachesToFullPacks($systemQtyEaches)
+                            : $systemQtyEaches;
+
+                        $session->items()->create([
+                            'product_id' => $product->id,
+                            'location_id' => $invLoc->id,
+                            'system_quantity' => $systemQtyForCount,
+                            'counted_quantity' => null,
+                            'variance' => 0,
+                            'variance_status' => 'pending',
+                        ]);
+                    }
+                } elseif ($request->location) {
+                    // Legacy location-specific count
                     $location = $product->inventoryLocations()
                         ->where('location', $request->location)
                         ->first();
 
-                    $systemQtyEaches = $location ? $location->quantity : 0;
+                    $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
+
+                    // Convert to packs if product has pack_size > 1
+                    $systemQtyForCount = $product->hasPackSize()
+                        ? $product->eachesToFullPacks($systemQtyEaches)
+                        : $systemQtyEaches;
+
+                    $session->items()->create([
+                        'product_id' => $product->id,
+                        'location_id' => $location ? $location->id : null,
+                        'system_quantity' => $systemQtyForCount,
+                        'counted_quantity' => null,
+                        'variance' => 0,
+                        'variance_status' => 'pending',
+                    ]);
                 } else {
-                    // Product-level count
-                    $systemQtyEaches = $product->quantity_on_hand;
+                    // Product-level count (no location filter)
+                    $systemQtyEaches = $product->quantity_on_hand ?? 0;
+
+                    // Convert to packs if product has pack_size > 1
+                    $systemQtyForCount = $product->hasPackSize()
+                        ? $product->eachesToFullPacks($systemQtyEaches)
+                        : $systemQtyEaches;
+
+                    $session->items()->create([
+                        'product_id' => $product->id,
+                        'location_id' => null,
+                        'system_quantity' => $systemQtyForCount,
+                        'counted_quantity' => null,
+                        'variance' => 0,
+                        'variance_status' => 'pending',
+                    ]);
                 }
-
-                // Convert to packs if product has pack_size > 1
-                // We count in full packs, so use floor for system quantity
-                $systemQtyForCount = $product->hasPackSize()
-                    ? $product->eachesToFullPacks($systemQtyEaches)
-                    : $systemQtyEaches;
-
-                $session->items()->create([
-                    'product_id' => $product->id,
-                    'location_id' => $request->location && isset($location) ? ($location->id ?? null) : null,
-                    'system_quantity' => $systemQtyForCount,
-                    'counted_quantity' => null,
-                    'variance' => 0,
-                    'variance_status' => 'pending',
-                ]);
             }
 
             DB::commit();
@@ -183,9 +249,20 @@ class CycleCountController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Log the full error for debugging
+            \Log::error('Cycle count creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
             return response()->json([
                 'message' => 'Error creating cycle count session',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile()),
             ], 500);
         }
     }
@@ -468,5 +545,44 @@ class CycleCountController extends Controller
 
         $totalAccuracy = $completedSessions->sum('accuracy_percentage');
         return round($totalAccuracy / $completedSessions->count(), 1);
+    }
+
+    /**
+     * Generate PDF report for a cycle count session
+     */
+    public function generatePdf($id)
+    {
+        $session = CycleCountSession::with([
+            'category',
+            'assignedUser',
+            'reviewer',
+            'items.product',
+            'items.location.storageLocation',
+            'items.counter'
+        ])->findOrFail($id);
+
+        // Get committed quantities for comparison
+        $committedByProduct = DB::table('job_reservation_items as ri')
+            ->join('job_reservations as r', 'ri.reservation_id', '=', 'r.id')
+            ->whereIn('r.status', ['active', 'in_progress', 'on_hold'])
+            ->whereNull('r.deleted_at')
+            ->select('ri.product_id', DB::raw('SUM(ri.committed_qty) as committed_qty'))
+            ->groupBy('ri.product_id')
+            ->pluck('committed_qty', 'product_id')
+            ->toArray();
+
+        $data = [
+            'session' => $session,
+            'committedByProduct' => $committedByProduct,
+        ];
+
+        $pdf = Pdf::loadView('pdfs.cycle-count-report', $data);
+
+        // Set paper size and orientation
+        $pdf->setPaper('a4', 'landscape');
+
+        $filename = "cycle-count-{$session->session_number}.pdf";
+
+        return $pdf->download($filename);
     }
 }

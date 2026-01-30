@@ -1,5 +1,18 @@
 @extends('layouts.app')
 
+@section('styles')
+<style>
+  /* Make cycle count modal wider for iPad */
+  #countEntryModal .modal-dialog {
+    max-width: 90% !important;
+  }
+
+  #varianceModal .modal-dialog {
+    max-width: 90% !important;
+  }
+</style>
+@endsection
+
 @section('content')
 <div class="container-xl">
   <!-- Page header -->
@@ -150,9 +163,11 @@
         <form id="sessionForm">
           <div class="row mb-3">
             <div class="col-md-6">
-              <label class="form-label">Location (Optional)</label>
-              <input type="text" class="form-control" id="sessionLocation" placeholder="e.g., Warehouse A, Aisle 4-B">
-              <small class="form-hint">Leave blank to count all locations</small>
+              <label class="form-label">Storage Locations (Optional)</label>
+              <select class="form-select" id="sessionStorageLocations" multiple size="8" style="font-family: monospace; font-size: 0.875rem;">
+                <option value="">Loading...</option>
+              </select>
+              <small class="form-hint">Hold Ctrl/Cmd to select multiple. Leave empty to count all locations</small>
             </div>
             <div class="col-md-6">
               <label class="form-label">Category (Optional)</label>
@@ -225,13 +240,14 @@
           <table class="table table-vcenter">
             <thead>
               <tr>
-                <th>SKU</th>
-                <th>Description</th>
-                <th>Location</th>
-                <th class="text-end">System Qty</th>
+                <th style="width: 80px;">Skip</th>
+                <th class="sortable-count" data-sort="sku" style="cursor: pointer;">SKU <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="description" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="location" style="cursor: pointer;">Location <span class="sort-icon"></span></th>
+                <th class="text-end sortable-count" data-sort="system_quantity" style="cursor: pointer;">System Qty <span class="sort-icon"></span></th>
                 <th class="text-end">Counted Qty</th>
-                <th class="text-end">Variance</th>
-                <th>Status</th>
+                <th class="text-end sortable-count" data-sort="variance" style="cursor: pointer;">Variance <span class="sort-icon"></span></th>
+                <th class="sortable-count" data-sort="status" style="cursor: pointer;">Status <span class="sort-icon"></span></th>
                 <th>Notes</th>
               </tr>
             </thead>
@@ -241,6 +257,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-info" onclick="printCycleCountReport()">
+          <i class="ti ti-printer me-1"></i>Print Report
+        </button>
         <button type="button" class="btn btn-danger" id="cancelSessionBtn" onclick="cancelCurrentSession()" style="display: none;">
           <i class="ti ti-x me-1"></i>Cancel Session
         </button>
@@ -401,6 +420,8 @@
 
 <script>
 let currentSession = null;
+let countSortBy = null;
+let countSortDir = 'asc';
 let allCategories = [];
 let allProducts = [];
 let allUsers = [];
@@ -476,6 +497,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Set today's date as default
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
+
+  // Add event listeners for sortable count columns
+  document.querySelectorAll('.sortable-count').forEach(th => {
+    th.addEventListener('click', function() {
+      const column = this.dataset.sort;
+      if (column) {
+        sortCountItems(column);
+      }
+    });
+  });
 });
 
 // Load cycle count sessions
@@ -638,17 +669,51 @@ async function loadStatistics() {
 }
 
 // Show create session modal
-function showCreateSessionModal() {
+async function showCreateSessionModal() {
   document.getElementById('sessionForm').reset();
   document.getElementById('sessionDate').value = new Date().toISOString().split('T')[0];
 
+  // Load storage locations
+  await loadStorageLocationsForSession();
+
   safeShowModal('createSessionModal');
+}
+
+// Load storage locations for the session modal
+async function loadStorageLocationsForSession() {
+  try {
+    const locations = await authenticatedFetch('/storage-locations-tree');
+    const select = document.getElementById('sessionStorageLocations');
+    select.innerHTML = '';
+
+    // Recursive function to render tree
+    function renderLocationOptions(locations, level = 0) {
+      locations.forEach(location => {
+        const indent = '\u00A0'.repeat(level * 4); // Non-breaking spaces for indentation
+        const option = document.createElement('option');
+        option.value = location.id;
+        option.textContent = indent + location.name;
+        select.appendChild(option);
+
+        if (location.children && location.children.length > 0) {
+          renderLocationOptions(location.children, level + 1);
+        }
+      });
+    }
+
+    renderLocationOptions(locations);
+  } catch (error) {
+    console.error('Error loading storage locations:', error);
+    const select = document.getElementById('sessionStorageLocations');
+    select.innerHTML = '<option value="">Error loading locations</option>';
+  }
 }
 
 // Create cycle count session
 async function createCycleCountSession() {
   try {
-    const location = document.getElementById('sessionLocation').value;
+    const storageLocationSelect = document.getElementById('sessionStorageLocations');
+    const storageLocationIds = Array.from(storageLocationSelect.selectedOptions).map(opt => parseInt(opt.value));
     const categoryId = document.getElementById('sessionCategory').value;
     const scheduledDate = document.getElementById('sessionDate').value;
     const assignedTo = document.getElementById('sessionAssignedTo').value;
@@ -657,13 +722,15 @@ async function createCycleCountSession() {
     const productIds = Array.from(productSelect.selectedOptions).map(opt => parseInt(opt.value));
 
     const data = {
-      location: location || null,
+      storage_location_ids: storageLocationIds.length > 0 ? storageLocationIds : null,
       category_id: categoryId ? parseInt(categoryId) : null,
       scheduled_date: scheduledDate,
       assigned_to: assignedTo ? parseInt(assignedTo) : null,
       notes: notes || null,
       product_ids: productIds.length > 0 ? productIds : null,
     };
+
+    console.log('Creating cycle count session with data:', data);
 
     await authenticatedFetch('/cycle-counts', {
       method: 'POST',
@@ -745,59 +812,184 @@ async function enterCounts(sessionId) {
       cancelButton.style.display = 'none';
     }
 
-    tbody.innerHTML = session.items.map(item => {
-      const variance = item.counted_quantity !== null
-        ? item.counted_quantity - item.system_quantity
-        : 0;
-
-      let varianceClass = '';
-      if (variance > 0) varianceClass = 'text-success';
-      else if (variance < 0) varianceClass = 'text-danger';
-
-      // Determine counting unit (packs or eaches)
-      const packSize = item.pack_size || item.product?.pack_size || 1;
-      const hasPackSize = packSize > 1;
-      const countingUnit = item.counting_unit || (hasPackSize ? 'packs' : 'EA');
-      const unitLabel = hasPackSize ? 'packs' : '';
-      const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
-
-      return `
-        <tr>
-          <td><strong>${escapeHtml(item.product.sku)}</strong></td>
-          <td>${escapeHtml(item.product.description)}${packInfo}</td>
-          <td>${item.location ? escapeHtml(item.location.location) : '-'}</td>
-          <td class="text-end">
-            ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
-          </td>
-          <td>
-            <div class="input-group input-group-sm" style="width: 140px;">
-              <input type="number" class="form-control form-control-sm" id="counted${item.id}"
-                     value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
-                     min="0" onchange="recordItemCount(${item.id})">
-              ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
-            </div>
-          </td>
-          <td class="text-end ${varianceClass}">
-            <strong id="variance${item.id}">${item.counted_quantity !== null ? (variance > 0 ? '+' : '') + variance + (unitLabel ? ' ' + unitLabel : '') : '-'}</strong>
-          </td>
-          <td>
-            <span class="badge ${getVarianceStatusBadge(item.variance_status)}" id="status${item.id}">
-              ${formatVarianceStatus(item.variance_status)}
-            </span>
-          </td>
-          <td>
-            <input type="text" class="form-control form-control-sm" id="notes${item.id}"
-                   value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px;">
-          </td>
-        </tr>
-      `;
-    }).join('');
+    // Render the count items table
+    renderCountItems(session);
 
     safeShowModal('countEntryModal');
   } catch (error) {
     console.error('Error loading count session:', error);
     showNotification('Error loading count session', 'danger');
   }
+}
+
+// Toggle skip checkbox
+function toggleSkip(itemId) {
+  const skipCheckbox = document.getElementById(`skip${itemId}`);
+  const countedInput = document.getElementById(`counted${itemId}`);
+  const notesInput = document.getElementById(`notes${itemId}`);
+  const row = document.getElementById(`row${itemId}`);
+
+  if (skipCheckbox.checked) {
+    // Disable inputs when skipped
+    countedInput.disabled = true;
+    notesInput.disabled = true;
+    countedInput.style.backgroundColor = '#f8f9fa';
+    notesInput.style.backgroundColor = '#f8f9fa';
+    row.classList.add('bg-light');
+  } else {
+    // Enable inputs when not skipped
+    countedInput.disabled = false;
+    notesInput.disabled = false;
+    countedInput.style.backgroundColor = '';
+    notesInput.style.backgroundColor = '';
+    row.classList.remove('bg-light');
+  }
+}
+
+// Sort count items by column
+function sortCountItems(column) {
+  if (!currentSession || !currentSession.items) return;
+
+  if (countSortBy === column) {
+    // Toggle direction if same column
+    countSortDir = countSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    countSortBy = column;
+    countSortDir = 'asc';
+  }
+
+  // Sort the items
+  const sortedItems = [...currentSession.items].sort((a, b) => {
+    let aVal, bVal;
+
+    switch (column) {
+      case 'sku':
+        aVal = a.product?.sku || '';
+        bVal = b.product?.sku || '';
+        break;
+      case 'description':
+        aVal = a.product?.description || '';
+        bVal = b.product?.description || '';
+        break;
+      case 'location':
+        aVal = a.location?.location || '';
+        bVal = b.location?.location || '';
+        break;
+      case 'system_quantity':
+        aVal = a.system_quantity || 0;
+        bVal = b.system_quantity || 0;
+        break;
+      case 'variance':
+        aVal = a.counted_quantity !== null ? (a.counted_quantity - a.system_quantity) : -999999;
+        bVal = b.counted_quantity !== null ? (b.counted_quantity - b.system_quantity) : -999999;
+        break;
+      case 'status':
+        aVal = a.variance_status || '';
+        bVal = b.variance_status || '';
+        break;
+      default:
+        return 0;
+    }
+
+    // Compare values
+    let comparison = 0;
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(bVal);
+    } else {
+      comparison = aVal - bVal;
+    }
+
+    return countSortDir === 'asc' ? comparison : -comparison;
+  });
+
+  // Update session with sorted items
+  currentSession.items = sortedItems;
+
+  // Re-render the table
+  renderCountItems(currentSession);
+  updateCountSortIcons();
+}
+
+// Update sort icons in count table headers
+function updateCountSortIcons() {
+  document.querySelectorAll('.sortable-count').forEach(th => {
+    const icon = th.querySelector('.sort-icon');
+    const column = th.dataset.sort;
+    if (column === countSortBy) {
+      icon.innerHTML = countSortDir === 'asc'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 11l-6 -6"/><path d="M6 11l6 -6"/></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1"><path d="M12 5l0 14"/><path d="M18 13l-6 6"/><path d="M6 13l6 6"/></svg>';
+    } else {
+      icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon ms-1 text-muted"><path d="M8 9l4 -4l4 4"/><path d="M16 15l-4 4l-4 -4"/></svg>';
+    }
+  });
+}
+
+// Render count items into table
+function renderCountItems(session) {
+  const tbody = document.getElementById('countEntryTable');
+
+  if (!session.items || session.items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No items to count.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = session.items.map(item => {
+    const variance = item.counted_quantity !== null
+      ? item.counted_quantity - item.system_quantity
+      : 0;
+
+    let varianceClass = '';
+    if (variance > 0) varianceClass = 'text-success';
+    else if (variance < 0) varianceClass = 'text-danger';
+
+    // Determine counting unit (packs or eaches)
+    const packSize = item.pack_size || item.product?.pack_size || 1;
+    const hasPackSize = packSize > 1;
+    const countingUnit = item.counting_unit || (hasPackSize ? 'packs' : 'EA');
+    const unitLabel = hasPackSize ? 'packs' : '';
+    const packInfo = hasPackSize ? ` <small class="text-muted">(${packSize}/pack)</small>` : '';
+
+    return `
+      <tr id="row${item.id}">
+        <td>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="skip${item.id}" onchange="toggleSkip(${item.id})">
+            <label class="form-check-label" for="skip${item.id}">
+              <small class="text-muted">Skip</small>
+            </label>
+          </div>
+        </td>
+        <td><strong>${escapeHtml(item.product.sku)}</strong></td>
+        <td>${escapeHtml(item.product.description)}${packInfo}</td>
+        <td>${item.location ? (item.location.storage_location ? escapeHtml(item.location.storage_location.name) : escapeHtml(item.location.location)) : '-'}</td>
+        <td class="text-end">
+          ${item.system_quantity}${unitLabel ? ` <small class="text-muted">${unitLabel}</small>` : ''}
+        </td>
+        <td>
+          <div class="input-group input-group-sm" style="width: 140px;">
+            <input type="number" class="form-control form-control-sm" id="counted${item.id}"
+                   value="${item.counted_quantity !== null ? item.counted_quantity : ''}"
+                   min="0" inputmode="numeric" pattern="[0-9]*" onchange="recordItemCount(${item.id})"
+                   data-unit="${unitLabel}">
+            ${unitLabel ? `<span class="input-group-text">${unitLabel}</span>` : ''}
+          </div>
+        </td>
+        <td class="text-end ${varianceClass}">
+          <strong id="variance${item.id}">${item.counted_quantity !== null ? (variance > 0 ? '+' : '') + variance + (unitLabel ? ' ' + unitLabel : '') : '-'}</strong>
+        </td>
+        <td>
+          <span class="badge ${getVarianceStatusBadge(item.variance_status)}" id="status${item.id}">
+            ${formatVarianceStatus(item.variance_status)}
+          </span>
+        </td>
+        <td>
+          <input type="text" class="form-control form-control-sm" id="notes${item.id}"
+                 value="${item.count_notes || ''}" placeholder="Notes..." style="width: 150px;">
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // Record item count
@@ -810,7 +1002,7 @@ async function recordItemCount(itemId) {
 
     const sessionId = document.getElementById('countSessionId').value;
 
-    await authenticatedFetch(`/cycle-counts/${sessionId}/record-count`, {
+    const response = await authenticatedFetch(`/cycle-counts/${sessionId}/record-count`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -820,8 +1012,32 @@ async function recordItemCount(itemId) {
       }),
     });
 
-    // Refresh the session data
-    enterCounts(sessionId);
+    // Update only this row's variance and status without refreshing the whole table
+    const item = response.item;
+    const variance = item.counted_quantity - item.system_quantity;
+    const unitLabel = document.getElementById(`counted${itemId}`).getAttribute('data-unit');
+
+    // Update variance display
+    let varianceClass = '';
+    if (variance > 0) varianceClass = 'text-success';
+    else if (variance < 0) varianceClass = 'text-danger';
+
+    const varianceCell = document.getElementById(`variance${itemId}`);
+    varianceCell.className = varianceClass;
+    varianceCell.innerHTML = `<strong>${variance > 0 ? '+' : ''}${variance}${unitLabel ? ' ' + unitLabel : ''}</strong>`;
+
+    // Update status badge
+    const statusCell = document.getElementById(`status${itemId}`);
+    statusCell.className = `badge ${getVarianceStatusBadge(item.variance_status)}`;
+    statusCell.textContent = formatVarianceStatus(item.variance_status);
+
+    // Update progress in header
+    const sessionIdValue = document.getElementById('countSessionId').value;
+    const sessionData = await authenticatedFetch(`/cycle-counts/${sessionIdValue}`);
+    document.getElementById('countProgress').textContent = `${sessionData.counted_items} / ${sessionData.total_items} items`;
+    document.getElementById('countVariances').textContent = `${sessionData.variance_items} items`;
+
+    showNotification('Count recorded successfully', 'success');
   } catch (error) {
     console.error('Error recording count:', error);
     showNotification(error.message || 'Error recording count', 'danger');
@@ -980,6 +1196,51 @@ async function completeSession() {
   } catch (error) {
     showNotification(error.message || 'Error completing session', 'danger');
   }
+}
+
+// Print cycle count report
+function printCycleCountReport() {
+  const sessionId = document.getElementById('countSessionId').value;
+
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    showNotification('Error: Session ID is missing. Please close and reopen the count modal.', 'danger');
+    return;
+  }
+
+  // Open PDF in new window/tab
+  const apiUrl = window.location.origin + '/api/v1/cycle-counts/' + sessionId + '/pdf';
+  const authToken = localStorage.getItem('authToken');
+
+  // Create a temporary link to download the PDF
+  fetch(apiUrl, {
+    headers: {
+      'Authorization': 'Bearer ' + authToken,
+      'Accept': 'application/pdf',
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF report');
+    }
+    return response.blob();
+  })
+  .then(blob => {
+    // Create a blob URL and download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cycle-count-' + (currentSession?.session_number || sessionId) + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showNotification('Generating PDF report...', 'info');
+  })
+  .catch(error => {
+    console.error('Error generating PDF:', error);
+    showNotification('Error generating PDF report', 'danger');
+  });
 }
 
 // Cancel current session

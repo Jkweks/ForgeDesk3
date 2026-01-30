@@ -77,6 +77,12 @@
                 <div class="card-header">
                   <h3 class="card-title">Storage Locations</h3>
                   <div class="ms-auto d-flex gap-2">
+                    <div class="btn-group" role="group">
+                      <input type="radio" class="btn-check" name="view-mode" id="view-tree" autocomplete="off" checked>
+                      <label class="btn btn-sm" for="view-tree">Tree View</label>
+                      <input type="radio" class="btn-check" name="view-mode" id="view-list" autocomplete="off">
+                      <label class="btn btn-sm" for="view-list">List View</label>
+                    </div>
                     <input type="text" class="form-control form-control-sm" placeholder="Search locations..." id="searchInput" style="min-width: 200px;">
                   </div>
                 </div>
@@ -86,11 +92,18 @@
                     <div>Loading locations...</div>
                   </div>
 
+                  <!-- Tree View -->
+                  <div id="treeViewContainer" style="display: none;">
+                    <div id="locationsTree"></div>
+                  </div>
+
+                  <!-- List View -->
                   <div class="table-responsive" id="locationsTableContainer" style="display: none;">
                     <table class="table table-vcenter card-table table-striped">
                       <thead>
                         <tr>
-                          <th>Location Name</th>
+                          <th>Location Path</th>
+                          <th>Type</th>
                           <th class="text-end">Products Stored</th>
                           <th class="text-end">Total Quantity</th>
                           <th class="text-end">Total Value</th>
@@ -122,23 +135,32 @@
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label required">Location Name</label>
-              <input type="text" class="form-control" id="locationName" name="name" placeholder="e.g., Warehouse A - Bin 23" required>
+              <input type="text" class="form-control" id="locationName" name="name" placeholder="e.g., Aisle A, Rack 1, Shelf 2, Bin 5" required>
               <small class="form-hint">Enter a unique name for this storage location</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Parent Location</label>
+              <select class="form-select" id="locationParent" name="parent_id">
+                <option value="">None (Root Level)</option>
+              </select>
+              <small class="form-hint">Select a parent location to nest this location under</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Location Type</label>
+              <select class="form-select" id="locationType" name="type" required>
+                <option value="aisle">Aisle</option>
+                <option value="rack">Rack</option>
+                <option value="shelf">Shelf</option>
+                <option value="bin" selected>Bin</option>
+                <option value="warehouse">Warehouse</option>
+                <option value="zone">Zone</option>
+                <option value="other">Other</option>
+              </select>
+              <small class="form-hint">Hierarchy: Aisle → Rack → Shelf → Bin</small>
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
               <textarea class="form-control" id="locationDescription" name="description" rows="2" placeholder="Optional description or notes about this location"></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Location Type</label>
-              <select class="form-select" id="locationType" name="type">
-                <option value="warehouse">Warehouse</option>
-                <option value="shelf">Shelf</option>
-                <option value="bin">Bin</option>
-                <option value="rack">Rack</option>
-                <option value="zone">Zone</option>
-                <option value="other">Other</option>
-              </select>
             </div>
             <div class="row">
               <div class="col-md-6">
@@ -222,12 +244,115 @@
 
 
 @push('scripts')
+  <style>
+    .tree-node {
+      padding: 0;
+    }
+    .tree-node-content {
+      display: flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background 0.2s;
+      min-height: 36px;
+    }
+    .tree-node-content:hover {
+      background: #f8f9fa;
+    }
+    .tree-node-toggle {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 6px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .tree-node-toggle.empty {
+      visibility: hidden;
+    }
+    .tree-node-icon {
+      margin-right: 6px;
+      color: #6c757d;
+      font-size: 16px;
+    }
+    .tree-children {
+      margin-left: 20px;
+      border-left: 1px dashed #dee2e6;
+      padding-left: 6px;
+    }
+    .tree-children.collapsed {
+      display: none;
+    }
+    .tree-node-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .tree-node-content:hover .tree-node-actions {
+      opacity: 1;
+    }
+    .tree-node-actions .btn {
+      padding: 2px 4px;
+      font-size: 14px;
+    }
+    .type-badge {
+      font-size: 0.7rem;
+      padding: 1px 4px;
+      border-radius: 3px;
+      margin-left: 6px;
+    }
+    .tree-node-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+    }
+    .tree-node-info strong {
+      font-size: 0.9rem;
+      line-height: 1.3;
+    }
+    .tree-node-info .small {
+      font-size: 0.75rem;
+      line-height: 1.2;
+      margin-top: 1px;
+    }
+  </style>
+
   <script>
     let currentLocations = [];
+    let locationTree = [];
     let editingLocationId = null;
+    let currentViewMode = 'tree';
+
+    // Utility function to escape HTML
+    function escapeHtml(text) {
+      if (!text) return '';
+      const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.toString().replace(/[&<>"']/g, m => map[m]);
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       loadLocations();
+
+      // View mode toggle
+      document.querySelectorAll('input[name="view-mode"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+          currentViewMode = e.target.id === 'view-tree' ? 'tree' : 'list';
+          renderCurrentView();
+        });
+      });
 
       // Search functionality
       document.getElementById('searchInput').addEventListener('input', debounce(filterLocations, 300));
@@ -239,11 +364,12 @@
     async function loadLocations() {
       try {
         currentLocations = await authenticatedFetch(`/storage-locations-stats`);
+        locationTree = await authenticatedFetch(`/storage-locations-tree`);
 
         // Calculate aggregated stats
         const totalLocations = currentLocations.length;
-        const inUse = currentLocations.filter(l => l.stats.products_count > 0).length;
-        const totalCapacity = currentLocations.reduce((sum, l) => sum + (l.stats.total_quantity || 0), 0);
+        const inUse = currentLocations.filter(l => l.stats && l.stats.products_count > 0).length;
+        const totalCapacity = currentLocations.reduce((sum, l) => sum + ((l.stats && l.stats.total_quantity) || 0), 0);
         const utilization = totalLocations > 0 ? ((inUse / totalLocations) * 100).toFixed(1) : 0;
 
         document.getElementById('statTotalLocations').textContent = totalLocations.toLocaleString();
@@ -251,13 +377,156 @@
         document.getElementById('statTotalCapacity').textContent = totalCapacity.toLocaleString();
         document.getElementById('statUtilization').textContent = `${utilization}%`;
 
-        renderLocationsTable(currentLocations);
+        renderCurrentView();
+        populateParentDropdown();
 
         document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('locationsTableContainer').style.display = 'block';
       } catch (error) {
         console.error('Error loading locations:', error);
         showNotification('Failed to load locations', 'danger');
+      }
+    }
+
+    function renderCurrentView() {
+      if (currentViewMode === 'tree') {
+        document.getElementById('treeViewContainer').style.display = 'block';
+        document.getElementById('locationsTableContainer').style.display = 'none';
+        renderTreeView(locationTree);
+      } else {
+        document.getElementById('treeViewContainer').style.display = 'none';
+        document.getElementById('locationsTableContainer').style.display = 'block';
+        renderLocationsTable(currentLocations);
+      }
+    }
+
+    function renderTreeView(nodes) {
+      const container = document.getElementById('locationsTree');
+
+      if (!nodes || nodes.length === 0) {
+        container.innerHTML = '<div class="text-center text-muted py-5">No locations found. Click "Add Location" to create one.</div>';
+        return;
+      }
+
+      container.innerHTML = nodes.map(node => renderTreeNode(node)).join('');
+    }
+
+    function renderTreeNode(node) {
+      const hasChildren = node.children && node.children.length > 0;
+      const location = currentLocations.find(l => l.id === node.id);
+      const stats = location?.stats || { products_count: 0, total_quantity: 0, total_value: 0 };
+
+      const toggleIcon = hasChildren ? '▼' : '';
+      const typeIcons = {
+        aisle: 'ti-road',
+        rack: 'ti-building-warehouse',
+        shelf: 'ti-layout-rows',
+        bin: 'ti-box',
+        warehouse: 'ti-building',
+        zone: 'ti-map-pin',
+        other: 'ti-dots'
+      };
+      const icon = typeIcons[node.type] || 'ti-map-pin';
+
+      const statusBadge = stats.products_count > 0
+        ? '<span class="badge badge-sm bg-success-lt">In Use</span>'
+        : '<span class="badge badge-sm bg-secondary-lt">Empty</span>';
+
+      return `
+        <div class="tree-node" data-id="${node.id}">
+          <div class="tree-node-content">
+            <span class="tree-node-toggle ${!hasChildren ? 'empty' : ''}" onclick="toggleTreeNode(event, ${node.id})">
+              ${toggleIcon}
+            </span>
+            <i class="ti ${icon} tree-node-icon"></i>
+            <div class="tree-node-info">
+              <div>
+                <strong>${escapeHtml(node.name)}</strong>
+                <span class="type-badge badge bg-azure-lt">${node.type}</span>
+                ${node.code ? `<span class="text-muted ms-1 small">${escapeHtml(node.code)}</span>` : ''}
+              </div>
+              <div class="small text-muted">
+                ${stats.products_count} products | ${stats.total_quantity} units | $${stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2})}
+              </div>
+            </div>
+            ${statusBadge}
+            <div class="tree-node-actions">
+              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="addChildLocation(${node.id}, '${escapeHtml(node.name).replace(/'/g, "\\'")}')" title="Add Child">
+                <i class="ti ti-plus"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editLocation(${node.id})" title="Edit">
+                <i class="ti ti-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-info" onclick="viewLocationDetails(${node.id})" title="View">
+                <i class="ti ti-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${node.id}, '${escapeHtml(node.name).replace(/'/g, "\\'")}')" title="Delete">
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </div>
+          ${hasChildren ? `
+            <div class="tree-children" id="children-${node.id}">
+              ${node.children.map(child => renderTreeNode(child)).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function toggleTreeNode(event, nodeId) {
+      event.stopPropagation();
+      const childrenEl = document.getElementById(`children-${nodeId}`);
+      const toggle = event.target;
+
+      if (childrenEl) {
+        childrenEl.classList.toggle('collapsed');
+        toggle.textContent = childrenEl.classList.contains('collapsed') ? '▶' : '▼';
+      }
+    }
+
+    function addChildLocation(parentId, parentName) {
+      editingLocationId = null;
+      document.getElementById('locationForm').reset();
+      document.getElementById('locationModalTitle').textContent = `Add Child Location under "${parentName}"`;
+      document.getElementById('locationName').value = '';
+      document.getElementById('locationParent').value = parentId;
+      document.getElementById('locationActive').checked = true;
+
+      // Suggest type based on parent
+      const parent = currentLocations.find(l => l.id === parentId);
+      if (parent) {
+        const typeHierarchy = { aisle: 'rack', rack: 'shelf', shelf: 'bin' };
+        const suggestedType = typeHierarchy[parent.type] || 'bin';
+        document.getElementById('locationType').value = suggestedType;
+      }
+
+      showModal(document.getElementById('addLocationModal'));
+    }
+
+    function populateParentDropdown() {
+      const select = document.getElementById('locationParent');
+      const currentValue = select.value;
+
+      select.innerHTML = '<option value="">None (Root Level)</option>';
+
+      // Flatten tree for dropdown
+      function addOptions(nodes, indent = '') {
+        nodes.forEach(node => {
+          const option = document.createElement('option');
+          option.value = node.id;
+          option.textContent = `${indent}${node.name} (${node.type})`;
+          select.appendChild(option);
+
+          if (node.children && node.children.length > 0) {
+            addOptions(node.children, indent + '  ');
+          }
+        });
+      }
+
+      addOptions(locationTree);
+
+      if (currentValue) {
+        select.value = currentValue;
       }
     }
 
@@ -266,7 +535,7 @@
       tbody.innerHTML = '';
 
       if (locations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-5">No locations found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">No locations found</td></tr>';
         return;
       }
 
@@ -287,12 +556,13 @@
               <div class="d-flex align-items-center">
                 <span class="avatar avatar-sm me-2"><i class="ti ti-map-pin"></i></span>
                 <div>
-                  <strong>${location.name}</strong>
+                  <strong>${location.full_path || location.name}</strong>
                   ${location.code ? `<br><small class="text-muted">${location.code}</small>` : ''}
                   ${location.full_address ? `<br><small class="text-muted">${location.full_address}</small>` : ''}
                 </div>
               </div>
             </td>
+            <td><span class="badge bg-azure-lt">${location.type}</span></td>
             <td class="text-end">${location.stats.products_count.toLocaleString()}</td>
             <td class="text-end">${location.stats.total_quantity.toLocaleString()}</td>
             <td class="text-end">$${location.stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -450,6 +720,7 @@
 
         // Populate form
         document.getElementById('locationName').value = location.name || '';
+        document.getElementById('locationParent').value = location.parent_id || '';
         document.getElementById('locationDescription').value = location.description || '';
         document.getElementById('locationType').value = location.type || 'bin';
         document.getElementById('locationAisle').value = location.aisle || '';
@@ -471,6 +742,7 @@
       const formData = new FormData(e.target);
       const data = {
         name: formData.get('name'),
+        parent_id: formData.get('parent_id') || null,
         type: formData.get('type'),
         description: formData.get('description'),
         aisle: formData.get('aisle'),

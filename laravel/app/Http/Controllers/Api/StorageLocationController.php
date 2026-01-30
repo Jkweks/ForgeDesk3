@@ -26,6 +26,20 @@ class StorageLocationController extends Controller
             $query->where('type', $request->type);
         }
 
+        // Filter by parent (including root locations)
+        if ($request->has('parent_id')) {
+            if ($request->parent_id === 'null' || $request->parent_id === '') {
+                $query->roots();
+            } else {
+                $query->where('parent_id', $request->parent_id);
+            }
+        }
+
+        // Filter by depth
+        if ($request->has('depth')) {
+            $query->atDepth($request->depth);
+        }
+
         // Search by name or code
         if ($request->has('search')) {
             $search = $request->search;
@@ -34,6 +48,15 @@ class StorageLocationController extends Controller
                   ->orWhere('code', 'LIKE', "%{$search}%")
                   ->orWhere('description', 'LIKE', "%{$search}%");
             });
+        }
+
+        // Load relationships
+        if ($request->has('with_children') && $request->with_children) {
+            $query->with('children');
+        }
+
+        if ($request->has('with_parent') && $request->with_parent) {
+            $query->with('parent');
         }
 
         // Order
@@ -47,6 +70,46 @@ class StorageLocationController extends Controller
         }
 
         return response()->json($query->paginate($perPage));
+    }
+
+    /**
+     * Get hierarchical tree structure
+     */
+    public function tree(Request $request)
+    {
+        $query = StorageLocation::roots();
+
+        if ($request->has('active_only') && $request->active_only) {
+            $query->active();
+        }
+
+        $locations = $query->with('descendants')->ordered()->get();
+
+        return response()->json($this->buildTree($locations));
+    }
+
+    /**
+     * Build nested tree structure
+     */
+    private function buildTree($locations)
+    {
+        return $locations->map(function ($location) {
+            return [
+                'id' => $location->id,
+                'name' => $location->name,
+                'code' => $location->code,
+                'type' => $location->type,
+                'depth' => $location->depth,
+                'parent_id' => $location->parent_id,
+                'is_active' => $location->is_active,
+                'has_children' => $location->has_children,
+                'full_path' => $location->full_path,
+                'description' => $location->description,
+                'capacity' => $location->capacity,
+                'capacity_unit' => $location->capacity_unit,
+                'children' => $location->children->count() > 0 ? $this->buildTree($location->children) : [],
+            ];
+        });
     }
 
     /**
@@ -109,8 +172,9 @@ class StorageLocationController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:storage_locations,name',
             'code' => 'nullable|string|max:50|unique:storage_locations,code',
-            'type' => 'required|in:warehouse,shelf,bin,rack,zone,other',
+            'type' => 'required|in:aisle,rack,shelf,bin,warehouse,zone,other',
             'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:storage_locations,id',
             'aisle' => 'nullable|string|max:50',
             'bay' => 'nullable|string|max:50',
             'level' => 'nullable|string|max:50',
@@ -167,8 +231,9 @@ class StorageLocationController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255|unique:storage_locations,name,' . $storageLocation->id,
             'code' => 'nullable|string|max:50|unique:storage_locations,code,' . $storageLocation->id,
-            'type' => 'sometimes|required|in:warehouse,shelf,bin,rack,zone,other',
+            'type' => 'sometimes|required|in:aisle,rack,shelf,bin,warehouse,zone,other',
             'description' => 'nullable|string',
+            'parent_id' => 'nullable|exists:storage_locations,id',
             'aisle' => 'nullable|string|max:50',
             'bay' => 'nullable|string|max:50',
             'level' => 'nullable|string|max:50',
@@ -179,6 +244,19 @@ class StorageLocationController extends Controller
             'sort_order' => 'nullable|integer',
             'notes' => 'nullable|string',
         ]);
+
+        // Prevent circular references
+        if ($request->has('parent_id') && $request->parent_id) {
+            if ($request->parent_id == $storageLocation->id) {
+                return response()->json(['errors' => ['parent_id' => ['A location cannot be its own parent.']]], 422);
+            }
+
+            // Check if the new parent is a descendant of this location
+            $parent = StorageLocation::find($request->parent_id);
+            if ($parent && $parent->path && str_contains($parent->path, (string)$storageLocation->id)) {
+                return response()->json(['errors' => ['parent_id' => ['Cannot move a location under one of its own descendants.']]], 422);
+            }
+        }
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);

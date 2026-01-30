@@ -52,6 +52,51 @@ class DashboardController extends Controller
             ->toArray();
     }
 
+    /**
+     * Calculate units in packs (for products with pack_size) or eaches (for products without)
+     */
+    private function calculateUnitsAsPacks($query)
+    {
+        $products = (clone $query)->get(['id', 'quantity_on_hand', 'pack_size']);
+        $total = 0;
+
+        foreach ($products as $product) {
+            if ($product->pack_size && $product->pack_size > 1) {
+                // Count in packs (floor to get full packs only)
+                $total += floor($product->quantity_on_hand / $product->pack_size);
+            } else {
+                // Count in eaches
+                $total += $product->quantity_on_hand ?? 0;
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Calculate committed units in packs
+     */
+    private function calculateCommittedAsPacks($query)
+    {
+        $committedByProduct = $this->getCommittedByProduct();
+        $products = (clone $query)->get(['id', 'pack_size']);
+        $total = 0;
+
+        foreach ($products as $product) {
+            $committedQty = $committedByProduct[$product->id] ?? 0;
+
+            if ($product->pack_size && $product->pack_size > 1) {
+                // Count in packs (ceil to get packs needed)
+                $total += ceil($committedQty / $product->pack_size);
+            } else {
+                // Count in eaches
+                $total += $committedQty;
+            }
+        }
+
+        return $total;
+    }
+
     public function index(Request $request)
     {
         $categoryId = $request->get('category_id');
@@ -86,15 +131,15 @@ class DashboardController extends Controller
             });
         }
 
-        // Calculate units_available using fulfillment system
-        $unitsOnHand = (clone $statsQuery)->sum('quantity_on_hand');
-        $unitsCommitted = $this->getCommittedFromFulfillment($categoryId);
+        // Calculate units in packs (or eaches for non-packed items)
+        $unitsOnHand = $this->calculateUnitsAsPacks($statsQuery);
+        $unitsCommitted = $this->calculateCommittedAsPacks($statsQuery);
 
         $stats = [
             'skus_tracked' => (clone $statsQuery)->count(),
             'units_on_hand' => $unitsOnHand,
             'units_committed' => $unitsCommitted,
-            'units_available' => $unitsOnHand - $unitsCommitted,
+            'units_available' => max(0, $unitsOnHand - $unitsCommitted),
             'low_stock_alerts' => (clone $statsQuery)->where(function($q) {
                 $q->where('status', 'low_stock')->orWhere('status', 'critical');
             })->count(),
@@ -319,15 +364,16 @@ class DashboardController extends Controller
 
     public function stats()
     {
-        // Calculate committed from fulfillment system
-        $unitsCommitted = $this->getCommittedFromFulfillment();
-        $unitsOnHand = Product::where('is_active', true)->sum('quantity_on_hand');
+        // Calculate in packs (or eaches for non-packed items)
+        $query = Product::where('is_active', true);
+        $unitsOnHand = $this->calculateUnitsAsPacks($query);
+        $unitsCommitted = $this->calculateCommittedAsPacks($query);
 
         return response()->json([
             'skus_tracked' => Product::where('is_active', true)->count(),
             'units_on_hand' => $unitsOnHand,
             'units_committed' => $unitsCommitted,
-            'units_available' => $unitsOnHand - $unitsCommitted,
+            'units_available' => max(0, $unitsOnHand - $unitsCommitted),
             'low_stock_alerts' => Product::whereIn('status', ['low_stock', 'critical'])->count(),
             'critical_count' => Product::where('status', 'critical')->count(),
             'pending_orders' => Order::whereIn('status', ['pending', 'processing'])->count(),

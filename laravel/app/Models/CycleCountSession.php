@@ -13,6 +13,7 @@ class CycleCountSession extends Model
     protected $fillable = [
         'session_number',
         'location',
+        'storage_location_ids',
         'category_id',
         'status',
         'scheduled_date',
@@ -27,6 +28,7 @@ class CycleCountSession extends Model
         'scheduled_date' => 'date',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'storage_location_ids' => 'array',
     ];
 
     protected $appends = [

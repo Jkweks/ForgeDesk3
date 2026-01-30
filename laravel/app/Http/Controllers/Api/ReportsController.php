@@ -71,12 +71,14 @@ class ReportsController extends Controller
                 $committedQty = $product->reservationItems->sum('committed_qty');
                 $data['committed'] = $committedQty;
                 $data['committed_packs'] = $product->eachesToPacksNeeded($committedQty);
+                $data['committed_display'] = $product->hasPackSize() ? $data['committed_packs'] : $committedQty;
                 $data['available'] = $product->quantity_on_hand - $committedQty;
+                $data['available_packs'] = $product->hasPackSize() ? $product->eachesToPacksNeeded($data['available']) : $data['available'];
+                $data['available_display'] = $product->hasPackSize() ? $data['available_packs'] : $data['available'];
                 $data['pack_size'] = $product->pack_size;
                 $data['has_pack_size'] = $product->hasPackSize();
                 $data['counting_unit'] = $product->counting_unit;
                 $data['on_hand_packs'] = $product->quantity_on_hand_packs;
-                $data['available_packs'] = $product->quantity_available_packs;
 
                 // Map reservation items to reservation details with pack calculations
                 $data['reservations'] = $product->reservationItems->map(function ($item) use ($product) {
@@ -102,7 +104,7 @@ class ReportsController extends Controller
                 'total_products' => $committedProducts->count(),
                 'total_quantity_committed' => $committedProducts->sum('committed'),
                 'total_value_committed' => $committedProducts->sum(function($p) {
-                    return $p['committed'] * $p['unit_cost'];
+                    return $p['committed_display'] * $p['display_cost'];
                 }),
             ],
         ]);
@@ -145,19 +147,27 @@ class ReportsController extends Controller
                 $daysUntilStockout = round($product->quantity_available / $product->average_daily_use);
             }
 
+            // Use pack-based quantities if applicable
+            $onHandDisplay = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
+            $availableDisplay = $product->hasPackSize() ? $product->quantity_available_packs : $product->quantity_available;
+
             return [
                 'id' => $product->id,
                 'sku' => $product->sku,
                 'description' => $product->description,
                 'category' => $product->category?->name,
                 'on_hand' => $product->quantity_on_hand,
+                'on_hand_display' => $onHandDisplay,
                 'available' => $product->quantity_available,
+                'available_display' => $availableDisplay,
                 'receipts' => $receipts,
                 'shipments' => $shipments,
                 'turnover_rate' => $turnoverRate,
                 'velocity' => $velocity,
                 'average_daily_use' => $product->average_daily_use,
                 'days_until_stockout' => $daysUntilStockout,
+                'pack_size' => $product->pack_size,
+                'counting_unit' => $product->counting_unit,
             ];
         });
 
@@ -240,17 +250,25 @@ class ReportsController extends Controller
                 ? Carbon::now()->diffInDays($lastShipment->transaction_date)
                 : 999;
 
+            // Use pack-based quantities and pricing if applicable
+            $displayQuantity = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
+            $displayCost = $product->hasPackSize() ? $product->pack_cost : $product->unit_cost;
+
             return [
                 'id' => $product->id,
                 'sku' => $product->sku,
                 'description' => $product->description,
                 'category' => $product->category?->name,
                 'on_hand' => $product->quantity_on_hand,
+                'on_hand_display' => $displayQuantity,
                 'unit_cost' => $product->unit_cost,
-                'total_value' => $product->quantity_on_hand * $product->unit_cost,
+                'display_cost' => $displayCost,
+                'total_value' => $displayQuantity * $displayCost,
                 'last_shipment_date' => $lastShipment?->transaction_date,
                 'days_since_last_use' => $daysSinceLastUse,
                 'is_used_in_bom' => $product->usedInProducts()->count() > 0,
+                'pack_size' => $product->pack_size,
+                'counting_unit' => $product->counting_unit,
             ];
         })->values();
 
@@ -340,6 +358,11 @@ class ReportsController extends Controller
     // Helper methods
     private function enrichProductData($product, $includeRecommendations = false)
     {
+        // Use pack-based pricing and quantities when available
+        $displayQuantity = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
+        $displayCost = $product->hasPackSize() ? $product->pack_cost : $product->unit_cost;
+        $displayPrice = $product->hasPackSize() ? $product->pack_price : $product->unit_price;
+
         $data = [
             'id' => $product->id,
             'sku' => $product->sku,
@@ -348,14 +371,22 @@ class ReportsController extends Controller
             'supplier' => $product->supplier?->name,
             'on_hand' => $product->quantity_on_hand,
             'on_hand_packs' => $product->quantity_on_hand_packs,
+            'on_hand_display' => $displayQuantity,
             'committed' => $product->quantity_committed,
             'committed_packs' => $product->quantity_committed_packs,
+            'committed_display' => $product->hasPackSize() ? $product->quantity_committed_packs : $product->quantity_committed,
             'available' => $product->quantity_available,
             'available_packs' => $product->quantity_available_packs,
+            'available_display' => $product->hasPackSize() ? $product->quantity_available_packs : $product->quantity_available,
             'minimum' => $product->minimum_quantity,
             'reorder_point' => $product->reorder_point,
             'unit_cost' => $product->unit_cost,
-            'total_value' => $product->quantity_on_hand * $product->unit_cost,
+            'unit_price' => $product->unit_price,
+            'pack_cost' => $product->pack_cost,
+            'pack_price' => $product->pack_price,
+            'display_cost' => $displayCost,
+            'display_price' => $displayPrice,
+            'total_value' => $displayQuantity * $displayCost,
             'status' => $product->status,
             'lead_time_days' => $product->lead_time_days,
             'pack_size' => $product->pack_size,
@@ -367,9 +398,15 @@ class ReportsController extends Controller
             $shortage = max(0, $product->reorder_point - $product->quantity_available);
             $recommendedQty = $shortage + ($product->safety_stock ?? 0);
 
+            // Convert shortage and recommended qty to packs if applicable
+            $shortageDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($shortage) : $shortage;
+            $recommendedQtyDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($recommendedQty) : $recommendedQty;
+
             $data['shortage'] = $shortage;
+            $data['shortage_display'] = $shortageDisplay;
             $data['recommended_order_qty'] = $recommendedQty;
-            $data['recommended_order_value'] = $recommendedQty * $product->unit_cost;
+            $data['recommended_order_qty_display'] = $recommendedQtyDisplay;
+            $data['recommended_order_value'] = $recommendedQtyDisplay * $displayCost;
             $data['days_until_stockout'] = $product->days_until_stockout;
 
             // Priority score (higher = more urgent)
@@ -392,7 +429,22 @@ class ReportsController extends Controller
         $data = $this->lowStockReport(request());
         $items = collect($data->original['low_stock'])->concat($data->original['critical']);
 
-        return $this->generateCSV($items, 'low_stock_report', [
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['supplier'] ?? '',
+                $item['on_hand_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['available_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['minimum'] ?? '',
+                $item['status'],
+                number_format($item['total_value'], 2),
+            ];
+        });
+
+        return $this->generateCSV($csvData, 'low_stock_report', [
             'SKU', 'Description', 'Category', 'Supplier', 'On Hand', 'Available',
             'Minimum', 'Status', 'Value'
         ]);
@@ -424,7 +476,22 @@ class ReportsController extends Controller
         $data = $this->committedPartsReport(request());
         $items = collect($data->original['committed_products']);
 
-        return $this->generateCSV($items, 'committed_parts_report', [
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['supplier'] ?? '',
+                $item['on_hand_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['committed_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['available_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                number_format($item['display_cost'], 2),
+                number_format($item['total_value'], 2),
+            ];
+        });
+
+        return $this->generateCSV($csvData, 'committed_parts_report', [
             'SKU', 'Description', 'Category', 'Supplier', 'On Hand', 'Committed',
             'Available', 'Unit Cost', 'Total Value'
         ]);
@@ -435,7 +502,23 @@ class ReportsController extends Controller
         $data = $this->stockVelocityAnalysis($request);
         $items = collect($data->original['products']);
 
-        return $this->generateCSV($items, 'velocity_analysis_report', [
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['on_hand_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['available_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['receipts'],
+                $item['shipments'],
+                $item['turnover_rate'] . '%',
+                ucfirst($item['velocity']),
+                $item['days_until_stockout'] ?? 'N/A',
+            ];
+        });
+
+        return $this->generateCSV($csvData, 'velocity_analysis_report', [
             'SKU', 'Description', 'Category', 'On Hand', 'Available', 'Receipts',
             'Shipments', 'Turnover Rate', 'Velocity', 'Days Until Stockout'
         ]);
@@ -446,7 +529,24 @@ class ReportsController extends Controller
         $data = $this->reorderRecommendations(request());
         $items = collect($data->original['recommendations']);
 
-        return $this->generateCSV($items, 'reorder_recommendations_report', [
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['supplier'] ?? '',
+                $item['available_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['reorder_point'] ?? '',
+                $item['shortage_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['recommended_order_qty_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                number_format($item['recommended_order_value'], 2),
+                ucfirst($item['status']),
+                $item['lead_time_days'] ?? '',
+            ];
+        });
+
+        return $this->generateCSV($csvData, 'reorder_recommendations_report', [
             'SKU', 'Description', 'Category', 'Supplier', 'Available', 'Reorder Point',
             'Shortage', 'Recommended Qty', 'Recommended Value', 'Status', 'Lead Time Days'
         ]);
@@ -457,7 +557,22 @@ class ReportsController extends Controller
         $data = $this->obsoleteInventory($request);
         $items = collect($data->original['obsolete_candidates']);
 
-        return $this->generateCSV($items, 'obsolete_inventory_report', [
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['on_hand_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                number_format($item['display_cost'], 2),
+                number_format($item['total_value'], 2),
+                $item['last_shipment_date'] ?? 'Never',
+                $item['days_since_last_use'] ?? 'N/A',
+                $item['is_used_in_bom'] ? 'Yes' : 'No',
+            ];
+        });
+
+        return $this->generateCSV($csvData, 'obsolete_inventory_report', [
             'SKU', 'Description', 'Category', 'On Hand', 'Unit Cost', 'Total Value',
             'Last Shipment Date', 'Days Since Last Use', 'Used in BOM'
         ]);

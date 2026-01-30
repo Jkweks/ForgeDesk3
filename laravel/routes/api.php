@@ -122,9 +122,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/locations', [InventoryLocationController::class, 'getAllLocations']);
 
         // Storage Locations (Master Location Management)
-        Route::apiResource('storage-locations', App\Http\Controllers\Api\StorageLocationController::class);
+        Route::get('/storage-locations-tree', [App\Http\Controllers\Api\StorageLocationController::class, 'tree']);
         Route::get('/storage-locations-stats', [App\Http\Controllers\Api\StorageLocationController::class, 'withStats']);
         Route::get('/storage-locations-names', [App\Http\Controllers\Api\StorageLocationController::class, 'locationNames']);
+        Route::apiResource('storage-locations', App\Http\Controllers\Api\StorageLocationController::class);
 
         // Job Reservations
         Route::get('/products/{product}/reservations', [JobReservationController::class, 'index']);
@@ -184,6 +185,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/cycle-counts/{cycleCountSession}/complete', [CycleCountController::class, 'complete']);
         Route::post('/cycle-counts/{cycleCountSession}/cancel', [CycleCountController::class, 'cancel']);
         Route::get('/cycle-counts/{cycleCountSession}/variance-report', [CycleCountController::class, 'varianceReport']);
+        Route::get('/cycle-counts/{cycleCountSession}/pdf', [CycleCountController::class, 'generatePdf']);
         Route::get('/cycle-counts-active', [CycleCountController::class, 'active']);
         Route::get('/cycle-counts-statistics', [CycleCountController::class, 'statistics']);
 

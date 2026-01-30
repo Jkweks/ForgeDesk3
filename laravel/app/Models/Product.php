@@ -47,6 +47,8 @@ class Product extends Model
         'quantity_on_hand_packs',
         'quantity_available_packs',
         'counting_unit',
+        'pack_cost',
+        'pack_price',
     ];
 
     // Finish codes configuration
@@ -465,6 +467,24 @@ class Product extends Model
             return $this->purchase_uom ?: 'packs';
         }
         return $this->stock_uom ?: 'EA';
+    }
+
+    /**
+     * Get cost per pack
+     * Note: unit_cost already represents pack cost for pack products
+     */
+    public function getPackCostAttribute()
+    {
+        return $this->unit_cost;
+    }
+
+    /**
+     * Get price per pack
+     * Note: unit_price already represents pack price for pack products
+     */
+    public function getPackPriceAttribute()
+    {
+        return $this->unit_price;
     }
 
     /**
