@@ -346,6 +346,9 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-info" onclick="downloadVariancePdfReport()">
+          <i class="ti ti-file-download me-1"></i>Download PDF Report
+        </button>
         <button type="button" class="btn btn-success" onclick="approveSelectedVariances()">
           <i class="ti ti-check me-1"></i>Approve Selected
         </button>
@@ -586,6 +589,9 @@ function renderCycleCounts(sessions) {
             ${session.status === 'completed' ? `
               <button class="btn btn-sm btn-ghost-info" onclick="viewVarianceReport(${session.id})" title="Variance Report">
                 <i class="ti ti-chart-bar"></i>
+              </button>
+              <button class="btn btn-sm btn-ghost-success" onclick="downloadPdfReport(${session.id})" title="Download PDF Report">
+                <i class="ti ti-file-download"></i>
               </button>
             ` : ''}
           </div>
@@ -1241,6 +1247,62 @@ function printCycleCountReport() {
     console.error('Error generating PDF:', error);
     showNotification('Error generating PDF report', 'danger');
   });
+}
+
+// Download PDF report for a completed session (from main table)
+function downloadPdfReport(sessionId) {
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    showNotification('Error: Invalid session ID', 'danger');
+    return;
+  }
+
+  // Open PDF in new window/tab
+  const apiUrl = window.location.origin + '/api/v1/cycle-counts/' + sessionId + '/pdf';
+  const authToken = localStorage.getItem('authToken');
+
+  // Create a temporary link to download the PDF
+  fetch(apiUrl, {
+    headers: {
+      'Authorization': 'Bearer ' + authToken,
+      'Accept': 'application/pdf',
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF report');
+    }
+    return response.blob();
+  })
+  .then(blob => {
+    // Create a blob URL and download
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cycle-count-report-' + sessionId + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    showNotification('PDF report downloaded successfully', 'success');
+  })
+  .catch(error => {
+    console.error('Error generating PDF:', error);
+    showNotification('Error generating PDF report', 'danger');
+  });
+}
+
+// Download PDF report from variance modal
+function downloadVariancePdfReport() {
+  const sessionId = document.getElementById('varianceSessionId').value;
+
+  // Validate session ID
+  if (!sessionId || sessionId === 'undefined' || sessionId === '') {
+    showNotification('Error: Session ID is missing', 'danger');
+    return;
+  }
+
+  downloadPdfReport(sessionId);
 }
 
 // Cancel current session
