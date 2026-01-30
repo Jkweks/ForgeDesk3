@@ -5,7 +5,7 @@
     <title>Cycle Count Report - {{ $session->session_number }}</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 9px;
             margin: 20px;
             color: #333;
@@ -26,32 +26,24 @@
             font-size: 14px;
             color: #666;
         }
-        .info-section {
-            display: table;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-        .info-row {
-            display: table-row;
-        }
-        .info-cell {
-            display: table-cell;
-            padding: 3px 10px;
-            vertical-align: top;
+        .info-line {
+            margin-bottom: 5px;
+            padding: 3px 0;
         }
         .info-label {
             font-weight: bold;
             color: #555;
         }
         .summary-stats {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
             padding: 10px;
             margin-bottom: 15px;
-            border-radius: 4px;
+            margin-top: 15px;
         }
         .summary-stats table {
             width: 100%;
+            border-collapse: collapse;
         }
         .summary-stats td {
             padding: 5px 10px;
@@ -101,7 +93,6 @@
         }
         .status-badge {
             padding: 2px 6px;
-            border-radius: 3px;
             font-size: 8px;
             font-weight: bold;
         }
@@ -141,50 +132,38 @@
     </div>
 
     <!-- Session Information -->
-    <div class="info-section">
-        <div class="info-row">
-            <div class="info-cell">
-                <span class="info-label">Status:</span>
-                <span class="status-badge status-{{ $session->status }}">
-                    {{ strtoupper(str_replace('_', ' ', $session->status)) }}
-                </span>
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Category:</span>
-                {{ $session->category ? $session->category->name : 'All Categories' }}
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Location:</span>
-                {{ $session->location ?: 'All Locations' }}
-            </div>
+    <div style="margin-bottom: 15px;">
+        <div class="info-line">
+            <span class="info-label">Status:</span>
+            <span class="status-badge status-{{ $session->status }}">
+                {{ strtoupper(str_replace('_', ' ', $session->status)) }}
+            </span>
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Category:</span>
+            {{ $session->category ? $session->category->name : 'All Categories' }}
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Location:</span>
+            {{ $session->location ?: 'All Locations' }}
         </div>
-        <div class="info-row">
-            <div class="info-cell">
-                <span class="info-label">Scheduled:</span>
-                {{ $session->scheduled_date ? $session->scheduled_date->format('M d, Y') : 'N/A' }}
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Started:</span>
-                {{ $session->started_at ? $session->started_at->format('M d, Y H:i') : 'Not started' }}
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Completed:</span>
-                {{ $session->completed_at ? $session->completed_at->format('M d, Y H:i') : 'Not completed' }}
-            </div>
+        <div class="info-line">
+            <span class="info-label">Scheduled:</span>
+            {{ $session->scheduled_date ? $session->scheduled_date->format('M d, Y') : 'N/A' }}
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Started:</span>
+            {{ $session->started_at ? $session->started_at->format('M d, Y H:i') : 'Not started' }}
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Completed:</span>
+            {{ $session->completed_at ? $session->completed_at->format('M d, Y H:i') : 'Not completed' }}
         </div>
-        <div class="info-row">
-            <div class="info-cell">
-                <span class="info-label">Assigned To:</span>
-                {{ $session->assignedUser ? $session->assignedUser->name : 'Unassigned' }}
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Reviewed By:</span>
-                {{ $session->reviewer ? $session->reviewer->name : 'Not reviewed' }}
-            </div>
-            <div class="info-cell">
-                <span class="info-label">Generated:</span>
-                {{ now()->format('M d, Y H:i') }}
-            </div>
+        <div class="info-line">
+            <span class="info-label">Assigned To:</span>
+            {{ $session->assignedUser ? $session->assignedUser->name : 'Unassigned' }}
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Reviewed By:</span>
+            {{ $session->reviewer ? $session->reviewer->name : 'Not reviewed' }}
+            &nbsp;&nbsp;&nbsp;
+            <span class="info-label">Generated:</span>
+            {{ now()->format('M d, Y H:i') }}
         </div>
     </div>
 
@@ -217,7 +196,7 @@
     </div>
 
     @if($session->notes)
-    <div style="margin-bottom: 15px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+    <div style="margin-bottom: 15px; padding: 8px; background: #fff3cd; border: 1px solid #ffc107;">
         <strong>Notes:</strong> {{ $session->notes }}
     </div>
     @endif
