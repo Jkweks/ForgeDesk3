@@ -470,25 +470,21 @@ class Product extends Model
     }
 
     /**
-     * Get cost per pack (unit_cost × pack_size)
+     * Get cost per pack
+     * Note: unit_cost already represents pack cost for pack products
      */
     public function getPackCostAttribute()
     {
-        if (!$this->hasPackSize()) {
-            return $this->unit_cost;
-        }
-        return round($this->unit_cost * $this->pack_size, 2);
+        return $this->unit_cost;
     }
 
     /**
-     * Get price per pack (unit_price × pack_size)
+     * Get price per pack
+     * Note: unit_price already represents pack price for pack products
      */
     public function getPackPriceAttribute()
     {
-        if (!$this->hasPackSize()) {
-            return $this->unit_price;
-        }
-        return round($this->unit_price * $this->pack_size, 2);
+        return $this->unit_price;
     }
 
     /**
