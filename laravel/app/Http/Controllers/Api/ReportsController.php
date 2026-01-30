@@ -129,7 +129,13 @@ class ReportsController extends Controller
                 ->get();
 
             $receipts = $transactions->where('type', 'receipt')->sum('quantity');
-            $shipments = abs($transactions->where('type', 'shipment')->sum('quantity'));
+
+            // Count all inventory removals as shipments (negative quantity transactions)
+            // This includes: shipment, issue, job_issue, and negative adjustments
+            $shipments = abs($transactions->filter(function($t) {
+                return $t->quantity < 0;
+            })->sum('quantity'));
+
             $adjustments = $transactions->where('type', 'adjustment')->sum('quantity');
 
             $turnoverRate = $product->quantity_on_hand > 0

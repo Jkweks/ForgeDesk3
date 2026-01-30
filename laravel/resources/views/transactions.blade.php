@@ -146,7 +146,7 @@
 
   <!-- Add Manual Transaction Modal -->
   <div class="modal modal-blur fade" id="addTransactionModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Add Manual Transaction</h5>
@@ -154,20 +154,9 @@
         </div>
         <form id="addTransactionForm">
           <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label required">Product</label>
-              <input type="text" class="form-control" id="manualTransactionProductSearch" placeholder="Search by SKU or description..." autocomplete="off">
-              <input type="hidden" id="manualTransactionProductId" name="product_id">
-              <div id="productSearchResults" class="list-group mt-1" style="display: none; max-height: 200px; overflow-y: auto;"></div>
-              <div id="selectedProductInfo" class="mt-2" style="display: none;">
-                <div class="alert alert-info mb-0">
-                  <strong id="selectedProductDisplay"></strong>
-                  <div class="small" id="selectedProductAvailable"></div>
-                </div>
-              </div>
-            </div>
-            <div class="row">
-              <div class="col-md-6 mb-3">
+            <!-- Transaction Details -->
+            <div class="row mb-3">
+              <div class="col-md-6">
                 <label class="form-label required">Transaction Type</label>
                 <select class="form-select" name="type" id="manualTransactionType" required>
                   <option value="issue">Issue (Remove from inventory)</option>
@@ -175,15 +164,10 @@
                   <option value="return">Return (Add to inventory)</option>
                 </select>
               </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label required">Quantity</label>
-                <input type="number" class="form-control" name="quantity" id="manualTransactionQuantity" placeholder="Enter quantity" min="1" required>
-                <small class="form-hint">Always use positive numbers</small>
+              <div class="col-md-6">
+                <label class="form-label required">Date & Time</label>
+                <input type="datetime-local" class="form-control" name="transaction_date" id="manualTransactionDate" required>
               </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label required">Date & Time</label>
-              <input type="datetime-local" class="form-control" name="transaction_date" id="manualTransactionDate" required>
             </div>
             <div class="mb-3">
               <label class="form-label required">Reference/Job Name</label>
@@ -193,6 +177,25 @@
             <div class="mb-3">
               <label class="form-label">Notes</label>
               <textarea class="form-control" name="notes" id="manualTransactionNotes" rows="2" placeholder="Additional details..."></textarea>
+            </div>
+
+            <hr class="my-3">
+
+            <!-- Parts/Products Section -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="mb-0">Parts/Products</h6>
+              <button type="button" class="btn btn-sm btn-primary" onclick="addProductLine()">
+                <i class="ti ti-plus me-1"></i>
+                Add Part
+              </button>
+            </div>
+
+            <div id="productLinesContainer">
+              <!-- Product lines will be added here -->
+            </div>
+
+            <div id="noProductsMessage" class="alert alert-info">
+              Click "Add Part" to add products to this transaction
             </div>
           </div>
           <div class="modal-footer">
@@ -587,15 +590,16 @@
     }
 
     // ========== MANUAL TRANSACTION ==========
-    let selectedProduct = null;
-    let productSearchTimeout = null;
+    let productLines = [];
+    let productLineCounter = 0;
 
     function showAddTransactionModal() {
       // Reset form
       document.getElementById('addTransactionForm').reset();
-      selectedProduct = null;
-      document.getElementById('selectedProductInfo').style.display = 'none';
-      document.getElementById('productSearchResults').style.display = 'none';
+      productLines = [];
+      productLineCounter = 0;
+      document.getElementById('productLinesContainer').innerHTML = '';
+      document.getElementById('noProductsMessage').style.display = 'block';
 
       // Set default date to now
       const now = new Date();
@@ -605,94 +609,203 @@
       showModal(document.getElementById('addTransactionModal'));
     }
 
-    // Product search
-    document.getElementById('manualTransactionProductSearch').addEventListener('input', function(e) {
-      const searchTerm = e.target.value.trim();
+    function addProductLine() {
+      const lineId = productLineCounter++;
+      document.getElementById('noProductsMessage').style.display = 'none';
 
-      if (productSearchTimeout) {
-        clearTimeout(productSearchTimeout);
-      }
-
-      if (searchTerm.length < 2) {
-        document.getElementById('productSearchResults').style.display = 'none';
-        return;
-      }
-
-      productSearchTimeout = setTimeout(async () => {
-        try {
-          const response = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
-
-          // Handle both paginated and plain array responses
-          const products = Array.isArray(response) ? response : (response.data || []);
-
-          const resultsContainer = document.getElementById('productSearchResults');
-
-          if (products.length === 0) {
-            resultsContainer.innerHTML = '<div class="list-group-item text-muted">No products found</div>';
-            resultsContainer.style.display = 'block';
-            return;
-          }
-
-          resultsContainer.innerHTML = products.map(product => `
-            <a href="#" class="list-group-item list-group-item-action product-search-result"
-               data-product-id="${product.id}"
-               data-product-sku="${escapeHtml(product.sku)}"
-               data-product-description="${escapeHtml(product.description)}"
-               data-product-available="${product.quantity_available || 0}">
-              <div>
-                <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}
-                <div class="small text-muted">Available: ${product.quantity_available || 0}</div>
+      const lineHtml = `
+        <div class="card mb-2" id="productLine${lineId}">
+          <div class="card-body">
+            <div class="row align-items-start">
+              <div class="col-md-6">
+                <label class="form-label required">Product</label>
+                <input type="text" class="form-control product-search-input"
+                       id="productSearch${lineId}"
+                       placeholder="Search by SKU or description..."
+                       autocomplete="off">
+                <div class="product-search-results list-group mt-1"
+                     id="productSearchResults${lineId}"
+                     style="display: none; max-height: 200px; overflow-y: auto; position: absolute; z-index: 1000; width: calc(100% - 30px);"></div>
+                <div class="selected-product-info mt-2"
+                     id="selectedProductInfo${lineId}"
+                     style="display: none;">
+                  <div class="alert alert-info mb-0 py-1 px-2 small">
+                    <strong class="selected-product-display"></strong>
+                    <div class="small selected-product-available"></div>
+                  </div>
+                </div>
               </div>
-            </a>
-          `).join('');
-          resultsContainer.style.display = 'block';
+              <div class="col-md-4">
+                <label class="form-label required">Quantity</label>
+                <input type="number" class="form-control"
+                       id="productQuantity${lineId}"
+                       placeholder="Enter quantity"
+                       min="1"
+                       required>
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-danger w-100" onclick="removeProductLine(${lineId})">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
 
-          // Add click handlers to all product results
-          document.querySelectorAll('.product-search-result').forEach(item => {
-            item.addEventListener('click', function(e) {
-              e.preventDefault();
-              selectProduct(
-                parseInt(this.dataset.productId),
-                this.dataset.productSku,
-                this.dataset.productDescription,
-                parseInt(this.dataset.productAvailable)
-              );
-            });
-          });
-        } catch (error) {
-          console.error('Error searching products:', error);
+      document.getElementById('productLinesContainer').insertAdjacentHTML('beforeend', lineHtml);
+
+      // Initialize product search for this line
+      initializeProductSearch(lineId);
+    }
+
+    function removeProductLine(lineId) {
+      const lineElement = document.getElementById(`productLine${lineId}`);
+      if (lineElement) {
+        lineElement.remove();
+      }
+
+      // Remove from productLines array
+      productLines = productLines.filter(line => line.lineId !== lineId);
+
+      // Show "no products" message if no lines left
+      if (document.getElementById('productLinesContainer').children.length === 0) {
+        document.getElementById('noProductsMessage').style.display = 'block';
+      }
+    }
+
+    function initializeProductSearch(lineId) {
+      const searchInput = document.getElementById(`productSearch${lineId}`);
+      let searchTimeout = null;
+
+      searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.trim();
+
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
         }
-      }, 300);
-    });
 
-    function selectProduct(id, sku, description, available) {
-      selectedProduct = { id, sku, description, available };
+        const resultsContainer = document.getElementById(`productSearchResults${lineId}`);
 
-      document.getElementById('manualTransactionProductId').value = id;
-      document.getElementById('manualTransactionProductSearch').value = `${sku} - ${description}`;
-      document.getElementById('selectedProductDisplay').textContent = `${sku} - ${description}`;
-      document.getElementById('selectedProductAvailable').textContent = `Current Available: ${available}`;
-      document.getElementById('selectedProductInfo').style.display = 'block';
-      document.getElementById('productSearchResults').style.display = 'none';
+        if (searchTerm.length < 2) {
+          resultsContainer.style.display = 'none';
+          return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+          try {
+            const response = await authenticatedFetch(`/products?search=${encodeURIComponent(searchTerm)}&per_page=10`);
+            const products = Array.isArray(response) ? response : (response.data || []);
+
+            if (products.length === 0) {
+              resultsContainer.innerHTML = '<div class="list-group-item text-muted">No products found</div>';
+              resultsContainer.style.display = 'block';
+              return;
+            }
+
+            resultsContainer.innerHTML = products.map(product => `
+              <a href="#" class="list-group-item list-group-item-action"
+                 data-line-id="${lineId}"
+                 data-product-id="${product.id}"
+                 data-product-sku="${escapeHtml(product.sku)}"
+                 data-product-description="${escapeHtml(product.description)}"
+                 data-product-available="${product.quantity_available || 0}">
+                <div>
+                  <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}
+                  <div class="small text-muted">Available: ${product.quantity_available || 0}</div>
+                </div>
+              </a>
+            `).join('');
+            resultsContainer.style.display = 'block';
+
+            // Add click handlers
+            resultsContainer.querySelectorAll('a').forEach(item => {
+              item.addEventListener('click', function(e) {
+                e.preventDefault();
+                selectProductForLine(
+                  parseInt(this.dataset.lineId),
+                  parseInt(this.dataset.productId),
+                  this.dataset.productSku,
+                  this.dataset.productDescription,
+                  parseInt(this.dataset.productAvailable)
+                );
+              });
+            });
+          } catch (error) {
+            console.error('Error searching products:', error);
+          }
+        }, 300);
+      });
+    }
+
+    function selectProductForLine(lineId, productId, sku, description, available) {
+      // Update or add to productLines array
+      const existingIndex = productLines.findIndex(line => line.lineId === lineId);
+      const lineData = {
+        lineId,
+        productId,
+        sku,
+        description,
+        available
+      };
+
+      if (existingIndex >= 0) {
+        productLines[existingIndex] = lineData;
+      } else {
+        productLines.push(lineData);
+      }
+
+      // Update UI
+      const searchInput = document.getElementById(`productSearch${lineId}`);
+      const selectedInfo = document.getElementById(`selectedProductInfo${lineId}`);
+      const resultsContainer = document.getElementById(`productSearchResults${lineId}`);
+
+      searchInput.value = `${sku} - ${description}`;
+      selectedInfo.querySelector('.selected-product-display').textContent = `${sku} - ${description}`;
+      selectedInfo.querySelector('.selected-product-available').textContent = `Available: ${available}`;
+      selectedInfo.style.display = 'block';
+      resultsContainer.style.display = 'none';
     }
 
     // Submit manual transaction
     document.getElementById('addTransactionForm').addEventListener('submit', async function(e) {
       e.preventDefault();
 
-      if (!selectedProduct) {
-        showNotification('Please select a product', 'danger');
+      // Validate at least one product
+      if (productLines.length === 0) {
+        showNotification('Please add at least one product', 'danger');
         return;
       }
 
+      // Build products array with quantities
+      const products = [];
+      let hasError = false;
+
+      for (const line of productLines) {
+        const quantityInput = document.getElementById(`productQuantity${line.lineId}`);
+        const quantity = parseInt(quantityInput.value);
+
+        if (!quantity || quantity < 1) {
+          showNotification(`Please enter a valid quantity for ${line.sku}`, 'danger');
+          hasError = true;
+          break;
+        }
+
+        products.push({
+          product_id: line.productId,
+          quantity: quantity
+        });
+      }
+
+      if (hasError) return;
+
       const formData = new FormData(e.target);
       const data = {
-        product_id: selectedProduct.id,
         type: formData.get('type'),
-        quantity: parseInt(formData.get('quantity')),
-        reference_number: formData.get('reference_number'),
         transaction_date: formData.get('transaction_date'),
+        reference_number: formData.get('reference_number'),
         notes: formData.get('notes') || null,
+        products: products
       };
 
       const btn = document.getElementById('saveManualTransactionBtn');
@@ -722,7 +835,6 @@
           hideModal(document.getElementById('addTransactionModal'));
 
           // Reload transactions and stats
-          // Reset current page to show the new transaction
           currentPage = 1;
           await Promise.all([
             loadTransactions(),
