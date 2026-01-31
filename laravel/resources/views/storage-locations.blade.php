@@ -369,7 +369,7 @@
         // Calculate aggregated stats
         const totalLocations = currentLocations.length;
         const inUse = currentLocations.filter(l => l.stats && l.stats.products_count > 0).length;
-        const totalCapacity = currentLocations.reduce((sum, l) => sum + ((l.stats && l.stats.total_quantity) || 0), 0);
+        const totalCapacity = currentLocations.reduce((sum, l) => sum + ((l.stats && l.stats.total_quantity_eaches) || 0), 0);
         const utilization = totalLocations > 0 ? ((inUse / totalLocations) * 100).toFixed(1) : 0;
 
         document.getElementById('statTotalLocations').textContent = totalLocations.toLocaleString();
@@ -413,7 +413,7 @@
     function renderTreeNode(node) {
       const hasChildren = node.children && node.children.length > 0;
       const location = currentLocations.find(l => l.id === node.id);
-      const stats = location?.stats || { products_count: 0, total_quantity: 0, total_value: 0 };
+      const stats = location?.stats || { products_count: 0, total_quantity_eaches: 0, total_value: 0 };
 
       const toggleIcon = hasChildren ? '▼' : '';
       const typeIcons = {
@@ -445,7 +445,7 @@
                 ${node.code ? `<span class="text-muted ms-1 small">${escapeHtml(node.code)}</span>` : ''}
               </div>
               <div class="small text-muted">
-                ${stats.products_count} products | ${stats.total_quantity} units | $${stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                ${stats.products_count} products | ${stats.total_quantity_eaches} units | $${stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2})}
               </div>
             </div>
             ${statusBadge}
@@ -564,7 +564,7 @@
             </td>
             <td><span class="badge bg-azure-lt">${location.type}</span></td>
             <td class="text-end">${location.stats.products_count.toLocaleString()}</td>
-            <td class="text-end">${location.stats.total_quantity.toLocaleString()}</td>
+            <td class="text-end">${location.stats.total_quantity_eaches.toLocaleString()}</td>
             <td class="text-end">$${location.stats.total_value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             <td>${statusBadge}</td>
             <td class="table-actions">
@@ -648,12 +648,12 @@
               <p>${location.stats.products_count.toLocaleString()}</p>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold">Total Quantity</label>
-              <p>${location.stats.total_quantity.toLocaleString()}</p>
+              <label class="form-label fw-bold">Total Quantity (Eaches)</label>
+              <p>${location.stats.total_quantity_eaches.toLocaleString()}</p>
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-bold">Available</label>
-              <p class="text-success">${location.stats.total_available.toLocaleString()}</p>
+              <label class="form-label fw-bold">Available (Eaches)</label>
+              <p class="text-success">${location.stats.total_available_eaches.toLocaleString()}</p>
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Value</label>
@@ -662,29 +662,41 @@
           </div>
         `;
 
-        // Render products table (would need to fetch inventory_locations for this location)
+        // Render products table - fetch full location details with inventory
         const tbody = document.getElementById('locationProductsTableBody');
         tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">Loading products...</td></tr>';
 
         // Fetch detailed inventory for this location
-        const inventoryLocs = await authenticatedFetch(`/locations?filter[location]=${encodeURIComponent(location.name)}`);
+        const locationDetails = await authenticatedFetch(`/storage-locations/${locationId}`);
+        const inventoryLocs = locationDetails?.inventory_locations || [];
 
-        if (!inventoryLocs || inventoryLocs.length === 0) {
+        if (inventoryLocs.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No products at this location</td></tr>';
         } else {
           tbody.innerHTML = '';
           inventoryLocs.forEach(item => {
             const product = item.product;
-            const available = parseFloat(item.quantity || 0) - parseFloat(item.quantity_committed || 0);
-            const value = parseFloat(item.quantity || 0) * parseFloat(product?.unit_cost || 0);
+            const qtyEaches = parseFloat(item.quantity || 0);
+            const committedEaches = parseFloat(item.quantity_committed || 0);
+            const available = qtyEaches - committedEaches;
+
+            // Pack-aware value calculation
+            let value;
+            if (product?.pack_size && product.pack_size > 1) {
+              const qtyPacks = qtyEaches / product.pack_size;
+              value = qtyPacks * parseFloat(product?.unit_cost || 0);
+            } else {
+              value = qtyEaches * parseFloat(product?.unit_cost || 0);
+            }
+
             const isPrimary = item.is_primary ? '<i class="ti ti-check text-success"></i>' : '';
 
             const row = `
               <tr>
                 <td><span class="text-muted">${product?.sku || '-'}</span></td>
                 <td>${product?.description || '-'}</td>
-                <td class="text-end">${parseFloat(item.quantity || 0).toLocaleString()}</td>
-                <td class="text-end">${parseFloat(item.quantity_committed || 0).toLocaleString()}</td>
+                <td class="text-end">${qtyEaches.toLocaleString()}</td>
+                <td class="text-end">${committedEaches.toLocaleString()}</td>
                 <td class="text-end text-success">${available.toLocaleString()}</td>
                 <td class="text-end">$${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td class="text-center">${isPrimary}</td>
