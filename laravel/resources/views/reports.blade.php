@@ -1008,29 +1008,70 @@ async function exportReport(type) {
 }
 
 // Export report as PDF
-function exportReportPdf(type) {
+async function exportReportPdf(type) {
   try {
-    let url = `${API_BASE}/reports/${type}/pdf?token=${authToken}`;
+    let url = `${API_BASE}/reports/${type}/pdf`;
 
     // Add parameters for reports that have time range selectors
+    const params = new URLSearchParams();
     if (type === 'velocity') {
       const days = document.getElementById('velocityDays')?.value || 90;
-      url += `&days=${days}`;
+      params.append('days', days);
     } else if (type === 'obsolete') {
       const days = document.getElementById('obsoleteDays')?.value || 180;
-      url += `&inactive_days=${days}`;
+      params.append('inactive_days', days);
     } else if (type === 'usage-analytics') {
       const days = document.getElementById('usageDays')?.value || 30;
-      url += `&days=${days}`;
+      params.append('days', days);
     }
 
-    // Open PDF in new window
-    window.open(url, '_blank');
+    if (params.toString()) {
+      url += '?' + params.toString();
+    }
 
-    showNotification('PDF report generated successfully', 'success');
+    showNotification('Generating PDF report...', 'info');
+
+    // Fetch PDF with authorization header
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+
+    // Get the blob from response
+    const blob = await response.blob();
+
+    // Create download link
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+
+    // Generate filename based on report type
+    const reportNames = {
+      'low-stock': 'low-stock-report',
+      'committed-parts': 'committed-parts-report',
+      'velocity': 'velocity-analysis-report',
+      'reorder-recommendations': 'reorder-recommendations-report',
+      'obsolete': 'obsolete-inventory-report',
+      'usage-analytics': 'usage-analytics-report'
+    };
+
+    a.download = `${reportNames[type] || type}-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('PDF report downloaded successfully', 'success');
   } catch (error) {
     console.error('Error exporting PDF report:', error);
-    showNotification('Error exporting PDF report', 'danger');
+    showNotification('Error generating PDF report', 'danger');
   }
 }
 
