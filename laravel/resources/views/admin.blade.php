@@ -268,7 +268,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label required">Password</label>
-              <input type="password" class="form-control" id="addUserPassword" placeholder="Password">
+              <input type="password" class="form-control" id="addUserPassword" placeholder="Password" autocomplete="new-password">
             </div>
             <div class="mb-3">
               <label class="form-label required">Role</label>
@@ -321,7 +321,7 @@
             </div>
             <div class="mb-3">
               <label class="form-label">New Password (leave blank to keep current)</label>
-              <input type="password" class="form-control" id="editUserPassword" placeholder="New password">
+              <input type="password" class="form-control" id="editUserPassword" placeholder="New password" autocomplete="new-password">
             </div>
             <div class="mb-3">
               <label class="form-label required">Role</label>
@@ -427,8 +427,6 @@
     </div>
 
     <script>
-      const API_BASE = '/api/v1';
-
       // Placeholder data for demonstration
       let users = [];
       let roles = [];
