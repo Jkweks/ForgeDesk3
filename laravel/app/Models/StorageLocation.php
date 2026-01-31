@@ -65,6 +65,21 @@ class StorageLocation extends Model
     }
 
     /**
+     * Get all descendant IDs (flat array including self)
+     */
+    public function getDescendantIds($includeSelf = true)
+    {
+        $ids = $includeSelf ? [$this->id] : [];
+
+        foreach ($this->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $child->getDescendantIds(false));
+        }
+
+        return $ids;
+    }
+
+    /**
      * Get all ancestors
      */
     public function ancestors()

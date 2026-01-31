@@ -109,12 +109,18 @@ class CycleCountController extends Controller
             // Generate session number
             $sessionNumber = CycleCountSession::generateSessionNumber();
 
-            // Get storage location names if IDs provided
-            $storageLocationNames = [];
+            // Expand storage location IDs to include all descendants
+            $allStorageLocationIds = [];
             if ($request->has('storage_location_ids') && is_array($request->storage_location_ids)) {
-                $storageLocationNames = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)
-                    ->pluck('name')
-                    ->toArray();
+                $selectedLocations = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)->get();
+
+                foreach ($selectedLocations as $location) {
+                    // Get this location and all its descendants
+                    $allStorageLocationIds = array_merge($allStorageLocationIds, $location->getDescendantIds(true));
+                }
+
+                // Remove duplicates
+                $allStorageLocationIds = array_unique($allStorageLocationIds);
             }
 
             // Create session
@@ -141,11 +147,10 @@ class CycleCountController extends Controller
                     $query->where('category_id', $request->category_id);
                 }
 
-                // Filter by storage locations if selected
-                if (count($storageLocationNames) > 0) {
-                    $storageLocationIds = $request->storage_location_ids;
-                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds) {
-                        $q->whereIn('storage_location_id', $storageLocationIds);
+                // Filter by storage locations if selected (includes descendants)
+                if (count($allStorageLocationIds) > 0) {
+                    $query->whereHas('inventoryLocations', function($q) use ($allStorageLocationIds) {
+                        $q->whereIn('storage_location_id', $allStorageLocationIds);
                     });
                 }
 
@@ -167,11 +172,10 @@ class CycleCountController extends Controller
                 $location = null;
 
                 // Get system quantity (in eaches from database)
-                if (count($storageLocationNames) > 0) {
-                    // Count products in each selected storage location
-                    $storageLocationIds = $request->storage_location_ids;
+                if (count($allStorageLocationIds) > 0) {
+                    // Count products in each selected storage location (including descendants)
                     $inventoryLocations = $product->inventoryLocations()
-                        ->whereIn('storage_location_id', $storageLocationIds)
+                        ->whereIn('storage_location_id', $allStorageLocationIds)
                         ->get();
 
                     foreach ($inventoryLocations as $invLoc) {

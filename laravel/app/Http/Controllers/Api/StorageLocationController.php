@@ -127,7 +127,13 @@ class StorageLocationController extends Controller
 
         // Add statistics to each location
         $locationsWithStats = $locations->map(function ($location) {
-            $inventoryLocs = $location->inventoryLocations;
+            // Get all descendant location IDs (including self)
+            $descendantIds = $location->getDescendantIds(true);
+
+            // Get inventory from this location and all descendants
+            $inventoryLocs = \App\Models\InventoryLocation::with('product')
+                ->whereIn('storage_location_id', $descendantIds)
+                ->get();
 
             // Calculate statistics with pack-aware pricing
             $totalQuantityEaches = 0;
@@ -225,14 +231,20 @@ class StorageLocationController extends Controller
      */
     public function show(StorageLocation $storageLocation)
     {
-        $storageLocation->load('inventoryLocations.product');
+        // Get all descendant location IDs (including self)
+        $descendantIds = $storageLocation->getDescendantIds(true);
+
+        // Get inventory from this location and all descendants
+        $inventoryLocs = \App\Models\InventoryLocation::with('product')
+            ->whereIn('storage_location_id', $descendantIds)
+            ->get();
 
         // Calculate statistics with pack-aware pricing
         $totalQuantityEaches = 0;
         $totalCommittedEaches = 0;
         $totalValue = 0;
 
-        foreach ($storageLocation->inventoryLocations as $il) {
+        foreach ($inventoryLocs as $il) {
             $product = $il->product;
             if (!$product) continue;
 
@@ -252,17 +264,21 @@ class StorageLocationController extends Controller
         }
 
         $stats = [
-            'products_count' => $storageLocation->inventoryLocations->count(),
+            'products_count' => $inventoryLocs->count(),
             'total_quantity_eaches' => $totalQuantityEaches,
             'total_committed_eaches' => $totalCommittedEaches,
             'total_available_eaches' => $totalQuantityEaches - $totalCommittedEaches,
             'total_value' => round($totalValue, 2),
         ];
 
+        // Load direct inventory locations (not aggregated) for detail view
+        $storageLocation->load('inventoryLocations.product');
+
         return response()->json([
             'location' => $storageLocation,
             'stats' => $stats,
             'inventory_locations' => $storageLocation->inventoryLocations,
+            'aggregated_stats_include_children' => true,
         ]);
     }
 
