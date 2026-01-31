@@ -323,66 +323,84 @@ class InventoryTransactionController extends Controller
     }
 
     /**
-     * Create a manual transaction
+     * Create a manual transaction (supports multi-part transactions)
      */
     public function createManual(Request $request)
     {
         $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
             'type' => 'required|in:issue,return,receipt',
-            'quantity' => 'required|integer|min:1',
             'transaction_date' => 'required|date',
             'reference_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
+            'products' => 'required|array|min:1',
+            'products.*.product_id' => 'required|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
         ]);
 
         DB::beginTransaction();
         try {
-            $product = Product::findOrFail($validated['product_id']);
+            $transactions = [];
+            $errors = [];
 
-            // Record quantity before
-            $quantityBefore = $product->quantity_on_hand;
+            // Process each product in the transaction
+            foreach ($validated['products'] as $productData) {
+                $product = Product::findOrFail($productData['product_id']);
 
-            // For 'issue' type, negate the quantity (removing from inventory)
-            $quantityChange = $validated['type'] === 'issue' ? -$validated['quantity'] : $validated['quantity'];
+                // Record quantity before
+                $quantityBefore = $product->quantity_on_hand;
 
-            // Update product quantity
-            $product->quantity_on_hand += $quantityChange;
+                // For 'issue' type, negate the quantity (removing from inventory)
+                $quantityChange = $validated['type'] === 'issue' ? -$productData['quantity'] : $productData['quantity'];
 
-            // Prevent negative inventory
-            if ($product->quantity_on_hand < 0) {
-                return response()->json([
-                    'message' => 'Transaction would result in negative inventory',
-                    'errors' => ['quantity' => ['Insufficient inventory']]
-                ], 422);
+                // Update product quantity
+                $product->quantity_on_hand += $quantityChange;
+
+                // Prevent negative inventory
+                if ($product->quantity_on_hand < 0) {
+                    $errors[] = "Insufficient inventory for {$product->sku}. Available: {$quantityBefore}, Requested: {$productData['quantity']}";
+                    continue;
+                }
+
+                $product->save();
+                $quantityAfter = $product->quantity_on_hand;
+
+                // Create transaction record for this product
+                $transaction = InventoryTransaction::create([
+                    'product_id' => $product->id,
+                    'type' => $validated['type'],
+                    'quantity' => $quantityChange,  // Store negative for issue, positive for receipt/return
+                    'quantity_before' => $quantityBefore,
+                    'quantity_after' => $quantityAfter,
+                    'reference_number' => $validated['reference_number'],
+                    'reference_type' => 'manual',
+                    'reference_id' => null,
+                    'notes' => $validated['notes'],
+                    'user_id' => Auth::id(),
+                    'transaction_date' => $validated['transaction_date'],
+                ]);
+
+                // Update product status
+                $product->updateStatus();
+
+                $transactions[] = $transaction;
             }
 
-            $product->save();
-            $quantityAfter = $product->quantity_on_hand;
-
-            // Create transaction record with the actual quantity change
-            $transaction = InventoryTransaction::create([
-                'product_id' => $product->id,
-                'type' => $validated['type'],
-                'quantity' => $quantityChange,  // Store negative for issue, positive for receipt/return
-                'quantity_before' => $quantityBefore,
-                'quantity_after' => $quantityAfter,
-                'reference_number' => $validated['reference_number'],
-                'reference_type' => 'manual',
-                'reference_id' => null,
-                'notes' => $validated['notes'],
-                'user_id' => Auth::id(),
-                'transaction_date' => $validated['transaction_date'],
-            ]);
-
-            // Update product status
-            $product->updateStatus();
+            // If any errors occurred, rollback
+            if (!empty($errors)) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Transaction failed',
+                    'errors' => $errors
+                ], 422);
+            }
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Transaction created successfully',
-                'transaction' => $transaction->load(['product', 'user'])
+                'message' => count($transactions) > 1
+                    ? count($transactions) . ' transactions created successfully'
+                    : 'Transaction created successfully',
+                'transactions' => collect($transactions)->load(['product', 'user'])
             ], 201);
 
         } catch (\Exception $e) {
