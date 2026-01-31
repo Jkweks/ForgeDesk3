@@ -44,7 +44,7 @@ class ImportExportController extends Controller
             $file = fopen('php://output', 'w');
 
             fputcsv($file, [
-                'SKU', 'Description', 'Long Description', 'Category', 'Location',
+                'SKU', 'Description', 'Long Description', 'Category',
                 'Unit Cost', 'Unit Price', 'Pack Size', 'Quantity On Hand (Packs/Eaches)',
                 'Quantity Committed (Packs/Eaches)', 'Quantity Available (Packs/Eaches)',
                 'Minimum Quantity', 'Maximum Quantity', 'Unit of Measure', 'Supplier',
@@ -74,7 +74,6 @@ class ImportExportController extends Controller
                     $product->description,
                     $product->long_description,
                     $product->category,
-                    $product->location,
                     $product->unit_cost,
                     $product->unit_price,
                     $product->pack_size ?? 1,
@@ -152,7 +151,6 @@ class ImportExportController extends Controller
                         'description' => $data['Description'],
                         'long_description' => $data['Long Description'] ?? null,
                         'category' => $data['Category'] ?? null,
-                        'location' => $data['Location'] ?? null,
                         'unit_cost' => $data['Unit Cost'],
                         'unit_price' => $data['Unit Price'],
                         'quantity_on_hand' => $data['Quantity On Hand'],
@@ -172,7 +170,6 @@ class ImportExportController extends Controller
                         'description' => $data['Description'],
                         'long_description' => $data['Long Description'] ?? null,
                         'category' => $data['Category'] ?? null,
-                        'location' => $data['Location'] ?? null,
                         'unit_cost' => $data['Unit Cost'],
                         'unit_price' => $data['Unit Price'],
                         'quantity_on_hand' => $data['Quantity On Hand'],
@@ -274,16 +271,16 @@ class ImportExportController extends Controller
             
             if ($type === 'products') {
                 fputcsv($file, [
-                    'SKU', 'Description', 'Long Description', 'Category', 'Location',
+                    'SKU', 'Description', 'Long Description', 'Category',
                     'Unit Cost', 'Unit Price', 'Quantity On Hand', 'Minimum Quantity',
                     'Maximum Quantity', 'Unit of Measure', 'Supplier', 'Supplier SKU',
                     'Lead Time Days', 'Active',
                 ]);
-                
+
                 // Sample row
                 fputcsv($file, [
                     'SAMPLE-001', 'Sample Product', 'Detailed description here',
-                    'Hardware', 'A-01-01', '10.00', '25.00', '100', '20',
+                    'Hardware', '10.00', '25.00', '100', '20',
                     '500', 'EA', 'Acme Supplies', 'ACME-123', '14', 'Yes',
                 ]);
             }

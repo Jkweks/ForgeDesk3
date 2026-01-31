@@ -12,7 +12,7 @@ class Product extends Model
 
     protected $fillable = [
         'sku', 'part_number', 'finish', 'description', 'long_description',
-        'category_id', 'location',
+        'category_id',
         'unit_cost', 'unit_price', 'quantity_on_hand', 'quantity_committed',
         'minimum_quantity', 'reorder_point', 'safety_stock', 'average_daily_use',
         'on_order_qty', 'maximum_quantity', 'unit_of_measure',
