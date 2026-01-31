@@ -85,7 +85,7 @@ class StorageLocation extends Model
      */
     public function inventoryLocations()
     {
-        return $this->hasMany(InventoryLocation::class, 'location', 'name');
+        return $this->hasMany(InventoryLocation::class, 'storage_location_id');
     }
 
     /**

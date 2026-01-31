@@ -144,11 +144,8 @@ class CycleCountController extends Controller
                 // Filter by storage locations if selected
                 if (count($storageLocationNames) > 0) {
                     $storageLocationIds = $request->storage_location_ids;
-                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds, $storageLocationNames) {
-                        $q->where(function($subQ) use ($storageLocationIds, $storageLocationNames) {
-                            $subQ->whereIn('storage_location_id', $storageLocationIds)
-                                 ->orWhereIn('location', $storageLocationNames);
-                        });
+                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds) {
+                        $q->whereIn('storage_location_id', $storageLocationIds);
                     });
                 }
 
@@ -174,10 +171,7 @@ class CycleCountController extends Controller
                     // Count products in each selected storage location
                     $storageLocationIds = $request->storage_location_ids;
                     $inventoryLocations = $product->inventoryLocations()
-                        ->where(function($q) use ($storageLocationIds, $storageLocationNames) {
-                            $q->whereIn('storage_location_id', $storageLocationIds)
-                              ->orWhereIn('location', $storageLocationNames);
-                        })
+                        ->whereIn('storage_location_id', $storageLocationIds)
                         ->get();
 
                     foreach ($inventoryLocations as $invLoc) {
@@ -197,27 +191,6 @@ class CycleCountController extends Controller
                             'variance_status' => 'pending',
                         ]);
                     }
-                } elseif ($request->location) {
-                    // Legacy location-specific count
-                    $location = $product->inventoryLocations()
-                        ->where('location', $request->location)
-                        ->first();
-
-                    $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
-
-                    // Convert to packs if product has pack_size > 1
-                    $systemQtyForCount = $product->hasPackSize()
-                        ? $product->eachesToFullPacks($systemQtyEaches)
-                        : $systemQtyEaches;
-
-                    $session->items()->create([
-                        'product_id' => $product->id,
-                        'location_id' => $location ? $location->id : null,
-                        'system_quantity' => $systemQtyForCount,
-                        'counted_quantity' => null,
-                        'variance' => 0,
-                        'variance_status' => 'pending',
-                    ]);
                 } else {
                     // Product-level count (no location filter)
                     $systemQtyEaches = $product->quantity_on_hand ?? 0;
