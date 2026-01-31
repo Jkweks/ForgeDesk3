@@ -135,14 +135,14 @@
         <tbody>
             @forelse($products as $product)
                 <tr>
-                    <td>{{ $product->sku }}</td>
-                    <td>{{ $product->description }}</td>
-                    <td>{{ $product->category?->name ?? '-' }}</td>
-                    <td class="text-right">{{ number_format($product->quantity_on_hand) }}</td>
-                    <td class="text-right">{{ number_format($product->quantity_committed) }}</td>
-                    <td class="text-right">{{ number_format($product->quantity_available) }}</td>
-                    <td class="text-right">${{ number_format($product->unit_cost, 2) }}</td>
-                    <td class="text-right">${{ number_format($product->committed_value, 2) }}</td>
+                    <td>{{ $product['sku'] }}</td>
+                    <td>{{ $product['description'] }}</td>
+                    <td>{{ $product['category'] ?? '-' }}</td>
+                    <td class="text-right">{{ number_format($product['on_hand']) }}</td>
+                    <td class="text-right">{{ number_format($product['committed']) }}</td>
+                    <td class="text-right">{{ number_format($product['available']) }}</td>
+                    <td class="text-right">${{ number_format($product['display_cost'], 2) }}</td>
+                    <td class="text-right">${{ number_format($product['committed_display'] * $product['display_cost'], 2) }}</td>
                 </tr>
             @empty
                 <tr>

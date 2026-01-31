@@ -617,9 +617,25 @@ class ReportsController extends Controller
         $data = $this->committedPartsReport($request);
         $reportData = $data->original;
 
+        // Get unique active job count
+        $activeJobs = collect($reportData['committed_products'])
+            ->flatMap(function($product) {
+                return $product['reservations'] ?? [];
+            })
+            ->pluck('id')
+            ->unique()
+            ->count();
+
+        $summary = [
+            'unique_parts' => $reportData['summary']['total_products'],
+            'total_committed_quantity' => $reportData['summary']['total_quantity_committed'],
+            'total_committed_value' => $reportData['summary']['total_value_committed'],
+            'active_jobs' => $activeJobs,
+        ];
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.committed-parts-report', [
             'products' => $reportData['committed_products'],
-            'summary' => $reportData['summary']
+            'summary' => $summary
         ]);
 
         $pdf->setPaper('letter', 'landscape');

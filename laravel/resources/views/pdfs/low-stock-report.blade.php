@@ -150,16 +150,16 @@
         <tbody>
             @forelse($products as $product)
                 <tr>
-                    <td>{{ $product->sku }}</td>
-                    <td>{{ $product->description }}</td>
-                    <td>{{ $product->category?->name ?? '-' }}</td>
-                    <td class="text-right">{{ number_format($product->quantity_on_hand) }}</td>
-                    <td class="text-right">{{ number_format($product->quantity_available) }}</td>
-                    <td class="text-right">{{ number_format($product->minimum_stock_level) }}</td>
-                    <td class="text-right">{{ number_format($product->reorder_point) }}</td>
-                    <td class="text-right">${{ number_format($product->unit_cost, 2) }}</td>
+                    <td>{{ $product['sku'] }}</td>
+                    <td>{{ $product['description'] }}</td>
+                    <td>{{ $product['category'] ?? '-' }}</td>
+                    <td class="text-right">{{ number_format($product['on_hand']) }}</td>
+                    <td class="text-right">{{ number_format($product['available']) }}</td>
+                    <td class="text-right">{{ number_format($product['minimum'] ?? 0) }}</td>
+                    <td class="text-right">{{ number_format($product['reorder_point'] ?? 0) }}</td>
+                    <td class="text-right">${{ number_format($product['unit_cost'], 2) }}</td>
                     <td class="text-center">
-                        @if($product->status === 'critical')
+                        @if(($product['status'] ?? '') === 'critical')
                             <span class="status-critical">CRITICAL</span>
                         @else
                             <span class="status-low">LOW</span>
