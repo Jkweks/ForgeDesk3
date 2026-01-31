@@ -168,6 +168,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/usage-analytics', [ReportsController::class, 'usageAnalytics']);
         Route::get('/reports/export', [ReportsController::class, 'exportReport']);
 
+        // PDF Reports
+        Route::get('/reports/low-stock/pdf', [ReportsController::class, 'lowStockPdf']);
+        Route::get('/reports/committed-parts/pdf', [ReportsController::class, 'committedPartsPdf']);
+        Route::get('/reports/velocity/pdf', [ReportsController::class, 'velocityAnalysisPdf']);
+        Route::get('/reports/reorder-recommendations/pdf', [ReportsController::class, 'reorderRecommendationsPdf']);
+        Route::get('/reports/obsolete/pdf', [ReportsController::class, 'obsoleteInventoryPdf']);
+        Route::get('/reports/usage-analytics/pdf', [ReportsController::class, 'usageAnalyticsPdf']);
+
         // Purchase Orders
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
         Route::post('/purchase-orders/{purchaseOrder}/submit', [PurchaseOrderController::class, 'submit']);

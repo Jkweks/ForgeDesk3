@@ -75,9 +75,12 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-alert-triangle me-2"></i>Low Stock & Critical Items</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('low-stock')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
               <button class="btn btn-sm btn-primary" onclick="exportReport('low_stock')">
-                <i class="ti ti-download me-1"></i>Export
+                <i class="ti ti-download me-1"></i>CSV
               </button>
             </div>
           </div>
@@ -154,9 +157,12 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-lock me-2"></i>Committed Parts</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('committed-parts')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
               <button class="btn btn-sm btn-primary" onclick="exportReport('committed')">
-                <i class="ti ti-download me-1"></i>Export
+                <i class="ti ti-download me-1"></i>CSV
               </button>
             </div>
           </div>
@@ -223,15 +229,18 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-trending-up me-2"></i>Stock Velocity Analysis</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
               <select class="form-select form-select-sm" id="velocityDays" onchange="loadVelocityReport()">
                 <option value="30">Last 30 Days</option>
                 <option value="60">Last 60 Days</option>
                 <option value="90" selected>Last 90 Days</option>
                 <option value="180">Last 180 Days</option>
               </select>
-              <button class="btn btn-sm btn-primary ms-2" onclick="exportReport('velocity')">
-                <i class="ti ti-download me-1"></i>Export
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('velocity')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="exportReport('velocity')">
+                <i class="ti ti-download me-1"></i>CSV
               </button>
             </div>
           </div>
@@ -309,9 +318,12 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-shopping-cart me-2"></i>Reorder Recommendations</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('reorder-recommendations')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
               <button class="btn btn-sm btn-primary" onclick="exportReport('reorder')">
-                <i class="ti ti-download me-1"></i>Export
+                <i class="ti ti-download me-1"></i>CSV
               </button>
             </div>
           </div>
@@ -381,14 +393,17 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-archive me-2"></i>Obsolete Inventory</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
               <select class="form-select form-select-sm" id="obsoleteDays" onchange="loadObsoleteReport()">
                 <option value="90">90 Days</option>
                 <option value="180" selected>180 Days</option>
                 <option value="365">365 Days</option>
               </select>
-              <button class="btn btn-sm btn-primary ms-2" onclick="exportReport('obsolete')">
-                <i class="ti ti-download me-1"></i>Export
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('obsolete')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="exportReport('obsolete')">
+                <i class="ti ti-download me-1"></i>CSV
               </button>
             </div>
           </div>
@@ -458,13 +473,16 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title"><i class="ti ti-activity me-2"></i>Usage Analytics</h3>
-            <div class="ms-auto">
+            <div class="ms-auto d-flex gap-2">
               <select class="form-select form-select-sm" id="usageDays" onchange="loadUsageReport()">
                 <option value="7">Last 7 Days</option>
                 <option value="30" selected>Last 30 Days</option>
                 <option value="60">Last 60 Days</option>
                 <option value="90">Last 90 Days</option>
               </select>
+              <button class="btn btn-sm btn-outline-primary" onclick="exportReportPdf('usage-analytics')">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
             </div>
           </div>
           <div class="card-body">
@@ -986,6 +1004,33 @@ async function exportReport(type) {
   } catch (error) {
     console.error('Error exporting report:', error);
     showNotification('Error exporting report', 'danger');
+  }
+}
+
+// Export report as PDF
+function exportReportPdf(type) {
+  try {
+    let url = `${API_BASE}/reports/${type}/pdf?token=${authToken}`;
+
+    // Add parameters for reports that have time range selectors
+    if (type === 'velocity') {
+      const days = document.getElementById('velocityDays')?.value || 90;
+      url += `&days=${days}`;
+    } else if (type === 'obsolete') {
+      const days = document.getElementById('obsoleteDays')?.value || 180;
+      url += `&inactive_days=${days}`;
+    } else if (type === 'usage-analytics') {
+      const days = document.getElementById('usageDays')?.value || 30;
+      url += `&days=${days}`;
+    }
+
+    // Open PDF in new window
+    window.open(url, '_blank');
+
+    showNotification('PDF report generated successfully', 'success');
+  } catch (error) {
+    console.error('Error exporting PDF report:', error);
+    showNotification('Error exporting PDF report', 'danger');
   }
 }
 

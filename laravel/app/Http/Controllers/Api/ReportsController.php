@@ -583,4 +583,121 @@ class ReportsController extends Controller
             'Last Shipment Date', 'Days Since Last Use', 'Used in BOM'
         ]);
     }
+
+    /**
+     * Generate PDF for Low Stock report
+     */
+    public function lowStockPdf(Request $request)
+    {
+        $data = $this->lowStockReport($request);
+        $reportData = $data->original;
+
+        $products = collect($reportData['low_stock'])->merge($reportData['critical']);
+        $summary = [
+            'critical_stock' => $reportData['summary']['critical_count'],
+            'low_stock' => $reportData['summary']['low_stock_count'],
+            'total_items' => $reportData['summary']['total_affected'],
+            'total_value' => $reportData['summary']['estimated_value_at_risk'],
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.low-stock-report', [
+            'products' => $products,
+            'summary' => $summary
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('low-stock-report-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Committed Parts report
+     */
+    public function committedPartsPdf(Request $request)
+    {
+        $data = $this->committedPartsReport($request);
+        $reportData = $data->original;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.committed-parts-report', [
+            'products' => $reportData['committed_products'],
+            'summary' => $reportData['summary']
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('committed-parts-report-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Velocity Analysis report
+     */
+    public function velocityAnalysisPdf(Request $request)
+    {
+        $data = $this->stockVelocityAnalysis($request);
+        $reportData = $data->original;
+        $days = $request->get('days', 90);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.velocity-analysis-report', [
+            'products' => $reportData['products'],
+            'summary' => $reportData['summary'],
+            'days' => $days
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('velocity-analysis-report-' . $days . 'd-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Reorder Recommendations report
+     */
+    public function reorderRecommendationsPdf(Request $request)
+    {
+        $data = $this->reorderRecommendations($request);
+        $reportData = $data->original;
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.reorder-recommendations-report', [
+            'recommendations' => $reportData['recommendations'],
+            'summary' => $reportData['summary']
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('reorder-recommendations-report-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Obsolete Inventory report
+     */
+    public function obsoleteInventoryPdf(Request $request)
+    {
+        $data = $this->obsoleteInventory($request);
+        $reportData = $data->original;
+        $inactive_days = $request->get('inactive_days', 90);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.obsolete-inventory-report', [
+            'candidates' => $reportData['obsolete_candidates'],
+            'summary' => $reportData['summary'],
+            'inactive_days' => $inactive_days
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('obsolete-inventory-report-' . $inactive_days . 'd-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Usage Analytics report
+     */
+    public function usageAnalyticsPdf(Request $request)
+    {
+        $data = $this->usageAnalytics($request);
+        $reportData = $data->original;
+        $days = $request->get('days', 30);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.usage-analytics-report', [
+            'by_date' => $reportData['by_date'],
+            'by_category' => $reportData['by_category'],
+            'summary' => $reportData['summary'],
+            'days' => $days
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('usage-analytics-report-' . $days . 'd-' . date('Y-m-d') . '.pdf');
+    }
 }
