@@ -90,6 +90,14 @@
                     <a class="dropdown-item" href="/maintenance#tab-assets">Assets</a>
                   </div>
                 </li>
+                <li class="nav-item {{ Request::is('admin*') ? 'active' : '' }}">
+                  <a class="nav-link" href="/admin" {{ Request::is('admin') ? 'aria-current=page' : '' }}>
+                    <span class="nav-link-icon d-md-none d-lg-inline-block">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12 7a5 5 0 1 1 -4.995 5.217l-.005 -.217l.005 -.217a5 5 0 0 1 4.995 -4.783z" /><path d="M12 19l-1 2" /><path d="M16 22l-4 -2" /><path d="M12 13l-2 1" /><path d="M12 5v-2" /><path d="M16 2l-4 2" /><path d="M12 11l2 -1" /></svg>
+                    </span>
+                    <span class="nav-link-title">Admin</span>
+                  </a>
+                </li>
               </ul>
             </nav>
           </div>
