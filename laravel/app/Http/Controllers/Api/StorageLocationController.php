@@ -129,6 +129,30 @@ class StorageLocationController extends Controller
         $locationsWithStats = $locations->map(function ($location) {
             $inventoryLocs = $location->inventoryLocations;
 
+            // Calculate statistics with pack-aware pricing
+            $totalQuantityEaches = 0;
+            $totalCommittedEaches = 0;
+            $totalValue = 0;
+
+            foreach ($inventoryLocs as $il) {
+                $product = $il->product;
+                if (!$product) continue;
+
+                $qtyEaches = $il->quantity ?? 0;
+                $committedEaches = $il->quantity_committed ?? 0;
+
+                $totalQuantityEaches += $qtyEaches;
+                $totalCommittedEaches += $committedEaches;
+
+                // Calculate value: convert eaches to packs for pack products
+                if ($product->pack_size && $product->pack_size > 1) {
+                    $qtyPacks = $qtyEaches / $product->pack_size;
+                    $totalValue += $qtyPacks * ($product->unit_cost ?? 0);
+                } else {
+                    $totalValue += $qtyEaches * ($product->unit_cost ?? 0);
+                }
+            }
+
             return [
                 'id' => $location->id,
                 'name' => $location->name,
@@ -149,14 +173,10 @@ class StorageLocationController extends Controller
                 'updated_at' => $location->updated_at,
                 'stats' => [
                     'products_count' => $inventoryLocs->count(),
-                    'total_quantity' => $inventoryLocs->sum('quantity'),
-                    'total_committed' => $inventoryLocs->sum('quantity_committed'),
-                    'total_available' => $inventoryLocs->sum(function ($il) {
-                        return $il->quantity - $il->quantity_committed;
-                    }),
-                    'total_value' => $inventoryLocs->sum(function ($il) {
-                        return $il->quantity * ($il->product->unit_cost ?? 0);
-                    }),
+                    'total_quantity_eaches' => $totalQuantityEaches,
+                    'total_committed_eaches' => $totalCommittedEaches,
+                    'total_available_eaches' => $totalQuantityEaches - $totalCommittedEaches,
+                    'total_value' => round($totalValue, 2),
                 ],
             ];
         });
@@ -207,13 +227,36 @@ class StorageLocationController extends Controller
     {
         $storageLocation->load('inventoryLocations.product');
 
+        // Calculate statistics with pack-aware pricing
+        $totalQuantityEaches = 0;
+        $totalCommittedEaches = 0;
+        $totalValue = 0;
+
+        foreach ($storageLocation->inventoryLocations as $il) {
+            $product = $il->product;
+            if (!$product) continue;
+
+            $qtyEaches = $il->quantity ?? 0;
+            $committedEaches = $il->quantity_committed ?? 0;
+
+            $totalQuantityEaches += $qtyEaches;
+            $totalCommittedEaches += $committedEaches;
+
+            // Calculate value: convert eaches to packs for pack products
+            if ($product->pack_size && $product->pack_size > 1) {
+                $qtyPacks = $qtyEaches / $product->pack_size;
+                $totalValue += $qtyPacks * ($product->unit_cost ?? 0);
+            } else {
+                $totalValue += $qtyEaches * ($product->unit_cost ?? 0);
+            }
+        }
+
         $stats = [
             'products_count' => $storageLocation->inventoryLocations->count(),
-            'total_quantity' => $storageLocation->inventoryLocations->sum('quantity'),
-            'total_committed' => $storageLocation->inventoryLocations->sum('quantity_committed'),
-            'total_available' => $storageLocation->inventoryLocations->sum(function ($il) {
-                return $il->quantity - $il->quantity_committed;
-            }),
+            'total_quantity_eaches' => $totalQuantityEaches,
+            'total_committed_eaches' => $totalCommittedEaches,
+            'total_available_eaches' => $totalQuantityEaches - $totalCommittedEaches,
+            'total_value' => round($totalValue, 2),
         ];
 
         return response()->json([
