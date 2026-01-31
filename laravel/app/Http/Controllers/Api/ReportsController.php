@@ -669,9 +669,27 @@ class ReportsController extends Controller
         $data = $this->reorderRecommendations($request);
         $reportData = $data->original;
 
+        $recommendations = collect($reportData['recommendations']);
+
+        // Calculate priority counts for summary
+        $highPriority = $recommendations->filter(function($rec) {
+            return $rec['priority_score'] >= 100;
+        })->count();
+
+        $mediumPriority = $recommendations->filter(function($rec) {
+            return $rec['priority_score'] >= 50 && $rec['priority_score'] < 100;
+        })->count();
+
+        $summary = [
+            'total_items' => $reportData['summary']['items_to_reorder'],
+            'high_priority' => $highPriority,
+            'medium_priority' => $mediumPriority,
+            'total_estimated_value' => $reportData['summary']['total_order_value'],
+        ];
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.reorder-recommendations-report', [
-            'recommendations' => $reportData['recommendations'],
-            'summary' => $reportData['summary']
+            'recommendations' => $recommendations,
+            'summary' => $summary
         ]);
 
         $pdf->setPaper('letter', 'landscape');
@@ -687,9 +705,28 @@ class ReportsController extends Controller
         $reportData = $data->original;
         $inactive_days = $request->get('inactive_days', 90);
 
+        $candidates = collect($reportData['obsolete_candidates'])->map(function($candidate) {
+            return array_merge($candidate, [
+                'last_activity_date' => $candidate['last_shipment_date'],
+                'days_since_activity' => $candidate['days_since_last_use'],
+            ]);
+        });
+
+        $totalQuantity = $candidates->sum('on_hand');
+        $avgDaysInactive = $candidates->count() > 0
+            ? round($candidates->avg('days_since_last_use'))
+            : 0;
+
+        $summary = [
+            'obsolete_count' => $reportData['summary']['total_items'],
+            'total_quantity' => $totalQuantity,
+            'total_value' => $reportData['summary']['total_value_at_risk'],
+            'average_days_inactive' => $avgDaysInactive,
+        ];
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.obsolete-inventory-report', [
-            'candidates' => $reportData['obsolete_candidates'],
-            'summary' => $reportData['summary'],
+            'candidates' => $candidates,
+            'summary' => $summary,
             'inactive_days' => $inactive_days
         ]);
 
@@ -705,11 +742,58 @@ class ReportsController extends Controller
         $data = $this->usageAnalytics($request);
         $reportData = $data->original;
         $days = $request->get('days', 30);
+        $since = Carbon::now()->subDays($days);
+
+        // Get all transactions for more detailed breakdown
+        $allTransactions = InventoryTransaction::where('transaction_date', '>=', $since)
+            ->with('product.category')
+            ->get();
+
+        // Transform by_date to include issues (negative quantity transactions)
+        $byDate = collect($reportData['by_date'])->mapWithKeys(function($dayData) use ($allTransactions) {
+            $date = $dayData['date'];
+            $dayTrans = $allTransactions->filter(function($t) use ($date) {
+                return Carbon::parse($t->transaction_date)->format('Y-m-d') === $date;
+            });
+
+            return [$date => [
+                'total' => $dayTrans->count(),
+                'receipts' => $dayTrans->where('type', 'receipt')->sum('quantity'),
+                'shipments' => abs($dayTrans->where('type', 'shipment')->sum('quantity')),
+                'issues' => abs($dayTrans->whereIn('type', ['issue', 'job_issue'])->sum('quantity')),
+                'adjustments' => $dayTrans->where('type', 'adjustment')->count(),
+            ]];
+        });
+
+        // Transform by_category to include product_count and percentage
+        $totalTransactions = $allTransactions->count();
+        $byCategory = $allTransactions->groupBy(function($t) {
+            return $t->product->category?->name ?? 'Uncategorized';
+        })->map(function($catTrans, $category) use ($totalTransactions) {
+            return [
+                'transaction_count' => $catTrans->count(),
+                'product_count' => $catTrans->pluck('product_id')->unique()->count(),
+                'percentage' => $totalTransactions > 0
+                    ? round(($catTrans->count() / $totalTransactions) * 100, 1)
+                    : 0,
+            ];
+        });
+
+        // Build summary
+        $uniqueProducts = $allTransactions->pluck('product_id')->unique()->count();
+        $activeCategories = $allTransactions->pluck('product.category.id')->filter()->unique()->count();
+
+        $summary = [
+            'total_transactions' => $totalTransactions,
+            'unique_products' => $uniqueProducts,
+            'daily_average' => $days > 0 ? round($totalTransactions / $days, 1) : 0,
+            'active_categories' => $activeCategories,
+        ];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.usage-analytics-report', [
-            'by_date' => $reportData['by_date'],
-            'by_category' => $reportData['by_category'],
-            'summary' => $reportData['summary'],
+            'by_date' => $byDate,
+            'by_category' => $byCategory,
+            'summary' => $summary,
             'days' => $days
         ]);
 

@@ -157,23 +157,36 @@
         </thead>
         <tbody>
             @forelse($recommendations as $rec)
+                @php
+                    // Determine priority based on priority_score
+                    if ($rec['priority_score'] >= 100) {
+                        $priority = 'high';
+                        $priorityLabel = 'HIGH';
+                    } elseif ($rec['priority_score'] >= 50) {
+                        $priority = 'medium';
+                        $priorityLabel = 'MEDIUM';
+                    } else {
+                        $priority = 'low';
+                        $priorityLabel = 'LOW';
+                    }
+                @endphp
                 <tr>
                     <td>{{ $rec['sku'] }}</td>
                     <td>{{ $rec['description'] }}</td>
                     <td>{{ $rec['supplier'] ?? '-' }}</td>
                     <td class="text-right">{{ number_format($rec['available']) }}</td>
                     <td class="text-right">{{ number_format($rec['reorder_point']) }}</td>
-                    <td class="text-right">{{ number_format($rec['target_level']) }}</td>
-                    <td class="text-right">{{ number_format($rec['suggested_order_quantity']) }}</td>
-                    <td class="text-right">${{ number_format($rec['unit_cost'], 2) }}</td>
-                    <td class="text-right">${{ number_format($rec['estimated_value'], 2) }}</td>
+                    <td class="text-right">{{ number_format($rec['reorder_point'] + ($rec['shortage'] ?? 0)) }}</td>
+                    <td class="text-right">{{ number_format($rec['recommended_order_qty']) }}</td>
+                    <td class="text-right">${{ number_format($rec['display_cost'], 2) }}</td>
+                    <td class="text-right">${{ number_format($rec['recommended_order_value'], 2) }}</td>
                     <td class="text-center">
-                        @if($rec['priority'] === 'high')
-                            <span class="priority-high">HIGH</span>
-                        @elseif($rec['priority'] === 'medium')
-                            <span class="priority-medium">MEDIUM</span>
+                        @if($priority === 'high')
+                            <span class="priority-high">{{ $priorityLabel }}</span>
+                        @elseif($priority === 'medium')
+                            <span class="priority-medium">{{ $priorityLabel }}</span>
                         @else
-                            <span class="priority-low">LOW</span>
+                            <span class="priority-low">{{ $priorityLabel }}</span>
                         @endif
                     </td>
                 </tr>
