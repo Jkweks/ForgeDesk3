@@ -62,3 +62,8 @@ Route::get('/reports', function () {
 Route::get('/maintenance', function () {
     return view('maintenance');
 });
+
+// Administration
+Route::get('/admin', function () {
+    return view('admin');
+});

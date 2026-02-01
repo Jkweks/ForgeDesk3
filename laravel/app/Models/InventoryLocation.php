@@ -13,7 +13,6 @@ class InventoryLocation extends Model
     protected $fillable = [
         'product_id',
         'storage_location_id',
-        'location',
         'quantity',
         'quantity_committed',
         'is_primary',

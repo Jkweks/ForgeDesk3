@@ -369,6 +369,10 @@ class ReportsController extends Controller
         $displayCost = $product->hasPackSize() ? $product->pack_cost : $product->unit_cost;
         $displayPrice = $product->hasPackSize() ? $product->pack_price : $product->unit_price;
 
+        // Convert reorder_point and minimum to packs if applicable
+        $reorderPointDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($product->reorder_point) : $product->reorder_point;
+        $minimumDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($product->minimum_quantity) : $product->minimum_quantity;
+
         $data = [
             'id' => $product->id,
             'sku' => $product->sku,
@@ -385,7 +389,9 @@ class ReportsController extends Controller
             'available_packs' => $product->quantity_available_packs,
             'available_display' => $product->hasPackSize() ? $product->quantity_available_packs : $product->quantity_available,
             'minimum' => $product->minimum_quantity,
+            'minimum_display' => $minimumDisplay,
             'reorder_point' => $product->reorder_point,
+            'reorder_point_display' => $reorderPointDisplay,
             'unit_cost' => $product->unit_cost,
             'unit_price' => $product->unit_price,
             'pack_cost' => $product->pack_cost,
@@ -403,13 +409,17 @@ class ReportsController extends Controller
         if ($includeRecommendations) {
             $shortage = max(0, $product->reorder_point - $product->quantity_available);
             $recommendedQty = $shortage + ($product->safety_stock ?? 0);
+            $target = $product->reorder_point + $shortage;
 
-            // Convert shortage and recommended qty to packs if applicable
+            // Convert shortage, recommended qty, and target to packs if applicable
             $shortageDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($shortage) : $shortage;
             $recommendedQtyDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($recommendedQty) : $recommendedQty;
+            $targetDisplay = $product->hasPackSize() ? $product->eachesToPacksNeeded($target) : $target;
 
             $data['shortage'] = $shortage;
             $data['shortage_display'] = $shortageDisplay;
+            $data['target'] = $target;
+            $data['target_display'] = $targetDisplay;
             $data['recommended_order_qty'] = $recommendedQty;
             $data['recommended_order_qty_display'] = $recommendedQtyDisplay;
             $data['recommended_order_value'] = $recommendedQtyDisplay * $displayCost;
@@ -543,7 +553,7 @@ class ReportsController extends Controller
                 $item['category'] ?? '',
                 $item['supplier'] ?? '',
                 $item['available_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
-                $item['reorder_point'] ?? '',
+                $item['reorder_point_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
                 $item['shortage_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
                 $item['recommended_order_qty_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
                 number_format($item['recommended_order_value'], 2),

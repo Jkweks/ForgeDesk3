@@ -64,7 +64,7 @@ class CategoryController extends Controller
         // Get hierarchical tree structure
         if ($request->boolean('tree')) {
             $categories = $query->whereNull('parent_id')
-                               ->with('children.children')
+                               ->with('descendants')
                                ->orderBy('sort_order')
                                ->orderBy('name')
                                ->get();
@@ -206,18 +206,68 @@ class CategoryController extends Controller
     /**
      * Get category tree structure
      */
-    public function tree()
+    public function tree(Request $request)
     {
-        $categories = Category::whereNull('parent_id')
-            ->with(['children' => function ($query) {
+        $query = Category::whereNull('parent_id');
+
+        // Filter by system classification
+        if ($request->has('system') && $request->system !== '') {
+            $query->where('system', $request->system);
+        }
+
+        // Search by name or code
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('code', 'like', "%{$search}%");
+            });
+        }
+
+        $categories = $query
+            ->with(['descendants' => function ($query) use ($request) {
                 $query->withCount('products');
+
+                // Apply same filters to descendants
+                if ($request->has('system') && $request->system !== '') {
+                    $query->where('system', $request->system);
+                }
+                if ($request->has('search') && $request->search !== '') {
+                    $search = $request->search;
+                    $query->where(function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%")
+                          ->orWhere('code', 'like', "%{$search}%");
+                    });
+                }
             }])
             ->withCount('products')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return response()->json($categories);
+        return response()->json($this->buildTree($categories));
+    }
+
+    /**
+     * Build nested tree structure with all descendants
+     */
+    private function buildTree($categories)
+    {
+        return $categories->map(function ($category) {
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'code' => $category->code,
+                'parent_id' => $category->parent_id,
+                'system' => $category->system,
+                'description' => $category->description,
+                'sort_order' => $category->sort_order,
+                'is_active' => $category->is_active,
+                'products_count' => $category->products_count ?? 0,
+                'children_count' => $category->children->count(),
+                'children' => $category->children->count() > 0 ? $this->buildTree($category->children()->withCount('products')->orderBy('sort_order')->orderBy('name')->get()) : [],
+            ];
+        });
     }
 
     /**

@@ -109,12 +109,18 @@ class CycleCountController extends Controller
             // Generate session number
             $sessionNumber = CycleCountSession::generateSessionNumber();
 
-            // Get storage location names if IDs provided
-            $storageLocationNames = [];
+            // Expand storage location IDs to include all descendants
+            $allStorageLocationIds = [];
             if ($request->has('storage_location_ids') && is_array($request->storage_location_ids)) {
-                $storageLocationNames = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)
-                    ->pluck('name')
-                    ->toArray();
+                $selectedLocations = \App\Models\StorageLocation::whereIn('id', $request->storage_location_ids)->get();
+
+                foreach ($selectedLocations as $location) {
+                    // Get this location and all its descendants
+                    $allStorageLocationIds = array_merge($allStorageLocationIds, $location->getDescendantIds(true));
+                }
+
+                // Remove duplicates
+                $allStorageLocationIds = array_unique($allStorageLocationIds);
             }
 
             // Create session
@@ -141,14 +147,10 @@ class CycleCountController extends Controller
                     $query->where('category_id', $request->category_id);
                 }
 
-                // Filter by storage locations if selected
-                if (count($storageLocationNames) > 0) {
-                    $storageLocationIds = $request->storage_location_ids;
-                    $query->whereHas('inventoryLocations', function($q) use ($storageLocationIds, $storageLocationNames) {
-                        $q->where(function($subQ) use ($storageLocationIds, $storageLocationNames) {
-                            $subQ->whereIn('storage_location_id', $storageLocationIds)
-                                 ->orWhereIn('location', $storageLocationNames);
-                        });
+                // Filter by storage locations if selected (includes descendants)
+                if (count($allStorageLocationIds) > 0) {
+                    $query->whereHas('inventoryLocations', function($q) use ($allStorageLocationIds) {
+                        $q->whereIn('storage_location_id', $allStorageLocationIds);
                     });
                 }
 
@@ -170,14 +172,10 @@ class CycleCountController extends Controller
                 $location = null;
 
                 // Get system quantity (in eaches from database)
-                if (count($storageLocationNames) > 0) {
-                    // Count products in each selected storage location
-                    $storageLocationIds = $request->storage_location_ids;
+                if (count($allStorageLocationIds) > 0) {
+                    // Count products in each selected storage location (including descendants)
                     $inventoryLocations = $product->inventoryLocations()
-                        ->where(function($q) use ($storageLocationIds, $storageLocationNames) {
-                            $q->whereIn('storage_location_id', $storageLocationIds)
-                              ->orWhereIn('location', $storageLocationNames);
-                        })
+                        ->whereIn('storage_location_id', $allStorageLocationIds)
                         ->get();
 
                     foreach ($inventoryLocations as $invLoc) {
@@ -197,27 +195,6 @@ class CycleCountController extends Controller
                             'variance_status' => 'pending',
                         ]);
                     }
-                } elseif ($request->location) {
-                    // Legacy location-specific count
-                    $location = $product->inventoryLocations()
-                        ->where('location', $request->location)
-                        ->first();
-
-                    $systemQtyEaches = $location ? ($location->quantity ?? 0) : 0;
-
-                    // Convert to packs if product has pack_size > 1
-                    $systemQtyForCount = $product->hasPackSize()
-                        ? $product->eachesToFullPacks($systemQtyEaches)
-                        : $systemQtyEaches;
-
-                    $session->items()->create([
-                        'product_id' => $product->id,
-                        'location_id' => $location ? $location->id : null,
-                        'system_quantity' => $systemQtyForCount,
-                        'counted_quantity' => null,
-                        'variance' => 0,
-                        'variance_status' => 'pending',
-                    ]);
                 } else {
                     // Product-level count (no location filter)
                     $systemQtyEaches = $product->quantity_on_hand ?? 0;

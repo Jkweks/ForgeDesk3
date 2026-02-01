@@ -17,8 +17,8 @@ class InventoryLocationController extends Controller
     public function index(Product $product)
     {
         $locations = $product->inventoryLocations()
+            ->with('storageLocation')
             ->orderBy('is_primary', 'desc')
-            ->orderBy('location')
             ->get();
 
         return response()->json($locations);
@@ -30,7 +30,7 @@ class InventoryLocationController extends Controller
     public function store(Request $request, Product $product)
     {
         $validated = $request->validate([
-            'location' => 'required|string|max:255',
+            'storage_location_id' => 'required|exists:storage_locations,id',
             'quantity' => 'required|integer|min:0',
             'quantity_committed' => 'nullable|integer|min:0',
             'is_primary' => 'nullable|boolean',
@@ -39,13 +39,13 @@ class InventoryLocationController extends Controller
 
         // Check if location already exists for this product
         $exists = $product->inventoryLocations()
-            ->where('location', $validated['location'])
+            ->where('storage_location_id', $validated['storage_location_id'])
             ->exists();
 
         if ($exists) {
             return response()->json([
-                'message' => 'This location already exists for this product',
-                'errors' => ['location' => ['Location already exists']]
+                'message' => 'This storage location already exists for this product',
+                'errors' => ['storage_location_id' => ['Storage location already exists']]
             ], 422);
         }
 
@@ -55,7 +55,7 @@ class InventoryLocationController extends Controller
         }
 
         $location = $product->inventoryLocations()->create([
-            'location' => $validated['location'],
+            'storage_location_id' => $validated['storage_location_id'],
             'quantity' => $validated['quantity'],
             'quantity_committed' => $validated['quantity_committed'] ?? 0,
             'is_primary' => $validated['is_primary'] ?? false,
@@ -64,6 +64,9 @@ class InventoryLocationController extends Controller
 
         // Recalculate product total quantities
         $this->updateProductTotals($product);
+
+        // Load storage location for response
+        $location->load('storageLocation');
 
         return response()->json($location, 201);
     }
@@ -79,24 +82,24 @@ class InventoryLocationController extends Controller
         }
 
         $validated = $request->validate([
-            'location' => 'required|string|max:255',
+            'storage_location_id' => 'required|exists:storage_locations,id',
             'quantity' => 'required|integer|min:0',
             'quantity_committed' => 'nullable|integer|min:0',
             'is_primary' => 'nullable|boolean',
             'notes' => 'nullable|string',
         ]);
 
-        // Check if new location name conflicts with another location
-        if ($validated['location'] !== $location->location) {
+        // Check if new storage location conflicts with another location
+        if ($validated['storage_location_id'] !== $location->storage_location_id) {
             $exists = $product->inventoryLocations()
-                ->where('location', $validated['location'])
+                ->where('storage_location_id', $validated['storage_location_id'])
                 ->where('id', '!=', $location->id)
                 ->exists();
 
             if ($exists) {
                 return response()->json([
-                    'message' => 'This location already exists for this product',
-                    'errors' => ['location' => ['Location already exists']]
+                    'message' => 'This storage location already exists for this product',
+                    'errors' => ['storage_location_id' => ['Storage location already exists']]
                 ], 422);
             }
         }
@@ -112,6 +115,9 @@ class InventoryLocationController extends Controller
 
         // Recalculate product total quantities
         $this->updateProductTotals($product);
+
+        // Load storage location for response
+        $location->load('storageLocation');
 
         return response()->json($location);
     }
@@ -186,6 +192,13 @@ class InventoryLocationController extends Controller
             // Product total quantity doesn't change in transfer, but we log it for audit trail
             $quantityAfter = $product->quantity_on_hand;
 
+            // Load storage locations for transaction notes
+            $fromLocation->load('storageLocation');
+            $toLocation->load('storageLocation');
+
+            $fromLocationName = $fromLocation->storageLocation->name ?? 'Unknown';
+            $toLocationName = $toLocation->storageLocation->name ?? 'Unknown';
+
             // Create inventory transaction
             InventoryTransaction::create([
                 'product_id' => $product->id,
@@ -193,10 +206,10 @@ class InventoryLocationController extends Controller
                 'quantity' => $validated['quantity'],
                 'quantity_before' => $quantityBefore,
                 'quantity_after' => $quantityAfter,
-                'reference_number' => "Transfer: {$fromLocation->location} → {$toLocation->location}",
+                'reference_number' => "Transfer: {$fromLocationName} → {$toLocationName}",
                 'reference_type' => 'location_transfer',
                 'reference_id' => $toLocation->id,
-                'notes' => "Transferred {$validated['quantity']} from {$fromLocation->location} to {$toLocation->location}" .
+                'notes' => "Transferred {$validated['quantity']} from {$fromLocationName} to {$toLocationName}" .
                            ($validated['notes'] ? "\n" . $validated['notes'] : ''),
                 'user_id' => auth()->id(),
                 'transaction_date' => now(),
@@ -253,6 +266,10 @@ class InventoryLocationController extends Controller
         $product->refresh();
         $productQuantityAfter = $product->quantity_on_hand;
 
+        // Load storage location for transaction notes
+        $location->load('storageLocation');
+        $locationName = $location->storageLocation->name ?? 'Unknown';
+
         // Create inventory transaction
         InventoryTransaction::create([
             'product_id' => $product->id,
@@ -260,10 +277,10 @@ class InventoryLocationController extends Controller
             'quantity' => $validated['quantity'],
             'quantity_before' => $productQuantityBefore,
             'quantity_after' => $productQuantityAfter,
-            'reference_number' => "Location: {$location->location}",
+            'reference_number' => "Location: {$locationName}",
             'reference_type' => 'location_adjustment',
             'reference_id' => $location->id,
-            'notes' => "Adjusted quantity at {$location->location} by {$validated['quantity']} (Location: {$locationQuantityBefore} → {$location->quantity})" .
+            'notes' => "Adjusted quantity at {$locationName} by {$validated['quantity']} (Location: {$locationQuantityBefore} → {$location->quantity})" .
                        ($validated['notes'] ? "\n" . $validated['notes'] : ''),
             'user_id' => auth()->id(),
             'transaction_date' => now(),
@@ -282,7 +299,7 @@ class InventoryLocationController extends Controller
      */
     public function statistics(Product $product)
     {
-        $locations = $product->inventoryLocations;
+        $locations = $product->inventoryLocations()->with('storageLocation')->get();
 
         $stats = [
             'total_locations' => $locations->count(),
@@ -294,7 +311,8 @@ class InventoryLocationController extends Controller
             'locations' => $locations->map(function($loc) {
                 return [
                     'id' => $loc->id,
-                    'location' => $loc->location,
+                    'storage_location_id' => $loc->storage_location_id,
+                    'storage_location' => $loc->storageLocation,
                     'quantity' => $loc->quantity,
                     'quantity_committed' => $loc->quantity_committed,
                     'quantity_available' => $loc->quantity_available,
@@ -316,14 +334,18 @@ class InventoryLocationController extends Controller
     }
 
     /**
-     * Get all unique locations across all products
+     * Get all storage locations being used in inventory
+     * This returns the hierarchical storage locations that have inventory
      */
     public function getAllLocations()
     {
-        $locations = InventoryLocation::select('location')
+        $storageLocationIds = InventoryLocation::select('storage_location_id')
             ->distinct()
-            ->orderBy('location')
-            ->pluck('location');
+            ->pluck('storage_location_id');
+
+        $locations = \App\Models\StorageLocation::whereIn('id', $storageLocationIds)
+            ->orderBy('name')
+            ->get();
 
         return response()->json($locations);
     }

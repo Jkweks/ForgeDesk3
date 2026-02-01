@@ -127,7 +127,37 @@ class StorageLocationController extends Controller
 
         // Add statistics to each location
         $locationsWithStats = $locations->map(function ($location) {
-            $inventoryLocs = $location->inventoryLocations;
+            // Get all descendant location IDs (including self)
+            $descendantIds = $location->getDescendantIds(true);
+
+            // Get inventory from this location and all descendants
+            $inventoryLocs = \App\Models\InventoryLocation::with('product')
+                ->whereIn('storage_location_id', $descendantIds)
+                ->get();
+
+            // Calculate statistics with pack-aware pricing
+            $totalQuantityEaches = 0;
+            $totalCommittedEaches = 0;
+            $totalValue = 0;
+
+            foreach ($inventoryLocs as $il) {
+                $product = $il->product;
+                if (!$product) continue;
+
+                $qtyEaches = $il->quantity ?? 0;
+                $committedEaches = $il->quantity_committed ?? 0;
+
+                $totalQuantityEaches += $qtyEaches;
+                $totalCommittedEaches += $committedEaches;
+
+                // Calculate value: convert eaches to packs for pack products
+                if ($product->pack_size && $product->pack_size > 1) {
+                    $qtyPacks = $qtyEaches / $product->pack_size;
+                    $totalValue += $qtyPacks * ($product->unit_cost ?? 0);
+                } else {
+                    $totalValue += $qtyEaches * ($product->unit_cost ?? 0);
+                }
+            }
 
             return [
                 'id' => $location->id,
@@ -149,14 +179,10 @@ class StorageLocationController extends Controller
                 'updated_at' => $location->updated_at,
                 'stats' => [
                     'products_count' => $inventoryLocs->count(),
-                    'total_quantity' => $inventoryLocs->sum('quantity'),
-                    'total_committed' => $inventoryLocs->sum('quantity_committed'),
-                    'total_available' => $inventoryLocs->sum(function ($il) {
-                        return $il->quantity - $il->quantity_committed;
-                    }),
-                    'total_value' => $inventoryLocs->sum(function ($il) {
-                        return $il->quantity * ($il->product->unit_cost ?? 0);
-                    }),
+                    'total_quantity_eaches' => $totalQuantityEaches,
+                    'total_committed_eaches' => $totalCommittedEaches,
+                    'total_available_eaches' => $totalQuantityEaches - $totalCommittedEaches,
+                    'total_value' => round($totalValue, 2),
                 ],
             ];
         });
@@ -205,21 +231,54 @@ class StorageLocationController extends Controller
      */
     public function show(StorageLocation $storageLocation)
     {
-        $storageLocation->load('inventoryLocations.product');
+        // Get all descendant location IDs (including self)
+        $descendantIds = $storageLocation->getDescendantIds(true);
+
+        // Get inventory from this location and all descendants
+        $inventoryLocs = \App\Models\InventoryLocation::with('product')
+            ->whereIn('storage_location_id', $descendantIds)
+            ->get();
+
+        // Calculate statistics with pack-aware pricing
+        $totalQuantityEaches = 0;
+        $totalCommittedEaches = 0;
+        $totalValue = 0;
+
+        foreach ($inventoryLocs as $il) {
+            $product = $il->product;
+            if (!$product) continue;
+
+            $qtyEaches = $il->quantity ?? 0;
+            $committedEaches = $il->quantity_committed ?? 0;
+
+            $totalQuantityEaches += $qtyEaches;
+            $totalCommittedEaches += $committedEaches;
+
+            // Calculate value: convert eaches to packs for pack products
+            if ($product->pack_size && $product->pack_size > 1) {
+                $qtyPacks = $qtyEaches / $product->pack_size;
+                $totalValue += $qtyPacks * ($product->unit_cost ?? 0);
+            } else {
+                $totalValue += $qtyEaches * ($product->unit_cost ?? 0);
+            }
+        }
 
         $stats = [
-            'products_count' => $storageLocation->inventoryLocations->count(),
-            'total_quantity' => $storageLocation->inventoryLocations->sum('quantity'),
-            'total_committed' => $storageLocation->inventoryLocations->sum('quantity_committed'),
-            'total_available' => $storageLocation->inventoryLocations->sum(function ($il) {
-                return $il->quantity - $il->quantity_committed;
-            }),
+            'products_count' => $inventoryLocs->count(),
+            'total_quantity_eaches' => $totalQuantityEaches,
+            'total_committed_eaches' => $totalCommittedEaches,
+            'total_available_eaches' => $totalQuantityEaches - $totalCommittedEaches,
+            'total_value' => round($totalValue, 2),
         ];
+
+        // Load direct inventory locations (not aggregated) for detail view
+        $storageLocation->load('inventoryLocations.product');
 
         return response()->json([
             'location' => $storageLocation,
             'stats' => $stats,
             'inventory_locations' => $storageLocation->inventoryLocations,
+            'aggregated_stats_include_children' => true,
         ]);
     }
 

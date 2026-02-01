@@ -191,39 +191,74 @@ class CycleCountItem extends Model
             ? "Cycle count adjustment: Expected {$this->system_quantity} packs ({$systemEaches} ea), Counted {$this->counted_quantity} packs ({$countedEaches} ea). " . ($this->count_notes ?? '')
             : "Cycle count adjustment: Expected {$this->system_quantity}, Counted {$this->counted_quantity}. " . ($this->count_notes ?? '');
 
-        // Create inventory adjustment transaction (in eaches)
-        $transaction = InventoryTransaction::create([
-            'product_id' => $this->product_id,
-            'type' => 'cycle_count',
-            'quantity' => $varianceEaches,
-            'quantity_before' => $systemEaches,
-            'quantity_after' => $countedEaches,
-            'reference_number' => $this->session->session_number,
-            'reference_type' => 'cycle_count',
-            'reference_id' => $this->session_id,
-            'notes' => $notes,
-            'user_id' => $userId,
-            'transaction_date' => now(),
-        ]);
-
-        // Update product quantity (in eaches)
-        $product = $this->product;
-        $product->quantity_on_hand = $countedEaches;
-        $product->save();
-
-        // Update location quantity if location-specific (in eaches)
+        // Cycle counts are now location-based
+        // Update the specific inventory location quantity (in eaches)
         if ($this->location_id) {
             $location = $this->location;
             $location->quantity = $countedEaches;
             $location->save();
+
+            // Recalculate product quantity_on_hand as sum of all locations
+            $product = $this->product;
+            $previousQtyOnHand = $product->quantity_on_hand;
+            $product->recalculateQuantitiesFromLocations();
+
+            // Calculate the total variance for the transaction record
+            $totalVarianceEaches = $product->quantity_on_hand - $previousQtyOnHand;
+
+            // Create inventory adjustment transaction (in eaches)
+            $transaction = InventoryTransaction::create([
+                'product_id' => $this->product_id,
+                'type' => 'cycle_count',
+                'quantity' => $totalVarianceEaches,
+                'quantity_before' => $previousQtyOnHand,
+                'quantity_after' => $product->quantity_on_hand,
+                'reference_number' => $this->session->session_number,
+                'reference_type' => 'cycle_count',
+                'reference_id' => $this->session_id,
+                'notes' => $notes . " [Location-based count: {$location->storageLocation->name}]",
+                'user_id' => $userId,
+                'transaction_date' => now(),
+            ]);
+
+            $this->update([
+                'variance_status' => 'approved',
+                'adjustment_created' => true,
+                'transaction_id' => $transaction->id,
+            ]);
+
+            return $transaction;
+        } else {
+            // Legacy: product-level count without location (should not happen going forward)
+            // Still supported for backward compatibility
+            $product = $this->product;
+
+            // Create inventory adjustment transaction (in eaches)
+            $transaction = InventoryTransaction::create([
+                'product_id' => $this->product_id,
+                'type' => 'cycle_count',
+                'quantity' => $varianceEaches,
+                'quantity_before' => $systemEaches,
+                'quantity_after' => $countedEaches,
+                'reference_number' => $this->session->session_number,
+                'reference_type' => 'cycle_count',
+                'reference_id' => $this->session_id,
+                'notes' => $notes . " [Legacy product-level count]",
+                'user_id' => $userId,
+                'transaction_date' => now(),
+            ]);
+
+            // Update product quantity (in eaches)
+            $product->quantity_on_hand = $countedEaches;
+            $product->save();
+
+            $this->update([
+                'variance_status' => 'approved',
+                'adjustment_created' => true,
+                'transaction_id' => $transaction->id,
+            ]);
+
+            return $transaction;
         }
-
-        $this->update([
-            'variance_status' => 'approved',
-            'adjustment_created' => true,
-            'transaction_id' => $transaction->id,
-        ]);
-
-        return $transaction;
     }
 }

@@ -261,7 +261,7 @@ class PurchaseOrderController extends Controller
             'items' => 'required|array|min:1',
             'items.*.item_id' => 'required|exists:purchase_order_items,id',
             'items.*.quantity' => 'required|integer|min:1',
-            'items.*.location' => 'nullable|string',
+            'items.*.storage_location_id' => 'nullable|exists:storage_locations,id',
             'items.*.notes' => 'nullable|string',
             'received_date' => 'nullable|date',
         ]);
@@ -294,9 +294,7 @@ class PurchaseOrderController extends Controller
 
                 // Update PO item
                 $poItem->quantity_received += $quantityToReceive;
-                if (isset($itemData['location'])) {
-                    $poItem->destination_location = $itemData['location'];
-                }
+                // Note: destination_location is a text field for reference, not updated here
                 $poItem->save();
 
                 // Update product inventory
@@ -321,10 +319,10 @@ class PurchaseOrderController extends Controller
                     'transaction_date' => $receivedDate,
                 ]);
 
-                // Update location quantity if specified
-                if (isset($itemData['location'])) {
+                // Update storage location quantity if specified
+                if (isset($itemData['storage_location_id'])) {
                     $location = $product->inventoryLocations()
-                        ->where('location', $itemData['location'])
+                        ->where('storage_location_id', $itemData['storage_location_id'])
                         ->first();
 
                     if ($location) {
@@ -332,7 +330,7 @@ class PurchaseOrderController extends Controller
                         $location->save();
                     } else {
                         $product->inventoryLocations()->create([
-                            'location' => $itemData['location'],
+                            'storage_location_id' => $itemData['storage_location_id'],
                             'quantity' => $quantityToReceive,
                             'is_primary' => false,
                         ]);
