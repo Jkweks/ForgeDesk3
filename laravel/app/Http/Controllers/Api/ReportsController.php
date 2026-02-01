@@ -339,6 +339,170 @@ class ReportsController extends Controller
     }
 
     /**
+     * Monthly inventory statement report
+     * Shows beginning inventory, additions, deductions, and ending inventory for a month
+     */
+    public function monthlyInventoryStatement(Request $request)
+    {
+        // Get month and year from request or default to current month
+        $month = $request->get('month', Carbon::now()->month);
+        $year = $request->get('year', Carbon::now()->year);
+
+        // Calculate date range for the month
+        $startDate = Carbon::create($year, $month, 1)->startOfDay();
+        $endDate = $startDate->copy()->endOfMonth()->endOfDay();
+
+        // Get all products with active inventory
+        $products = Product::where('is_active', true)
+            ->with(['category', 'supplier'])
+            ->get();
+
+        $statementData = $products->map(function ($product) use ($startDate, $endDate) {
+            // Get all transactions for this product in the date range
+            $transactions = InventoryTransaction::where('product_id', $product->id)
+                ->whereBetween('transaction_date', [$startDate, $endDate])
+                ->orderBy('transaction_date', 'asc')
+                ->get();
+
+            // Calculate beginning inventory (quantity_before of first transaction, or current if no transactions)
+            $beginningInventory = $transactions->first()
+                ? $transactions->first()->quantity_before
+                : $product->quantity_on_hand;
+
+            // Calculate additions (positive quantity changes)
+            $receipts = $transactions->where('type', 'receipt')->sum('quantity');
+            $returns = $transactions->where('type', 'return')->sum('quantity');
+            $jobMaterialTransfers = $transactions->where('type', 'job_material_transfer')->sum('quantity');
+            $positiveAdjustments = $transactions->where('type', 'adjustment')->filter(function($t) {
+                return $t->quantity > 0;
+            })->sum('quantity');
+
+            // Calculate deductions (negative quantity changes)
+            $shipments = abs($transactions->where('type', 'shipment')->sum('quantity'));
+            $jobIssues = abs($transactions->where('type', 'job_issue')->sum('quantity'));
+            $issues = abs($transactions->where('type', 'issue')->sum('quantity'));
+            $negativeAdjustments = abs($transactions->where('type', 'adjustment')->filter(function($t) {
+                return $t->quantity < 0;
+            })->sum('quantity'));
+
+            // Calculate totals
+            $totalAdditions = $receipts + $returns + $jobMaterialTransfers + $positiveAdjustments;
+            $totalDeductions = $shipments + $jobIssues + $issues + $negativeAdjustments;
+
+            // Calculate ending inventory
+            $endingInventory = $beginningInventory + $totalAdditions - $totalDeductions;
+
+            // Net change
+            $netChange = $totalAdditions - $totalDeductions;
+
+            // Use pack-based quantities and pricing if applicable
+            $displayQuantity = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
+            $displayCost = $product->hasPackSize() ? $product->pack_cost : $product->unit_cost;
+
+            // Convert all quantities to packs if applicable
+            $beginningDisplay = $product->hasPackSize() ? $product->eachesToPacks($beginningInventory) : $beginningInventory;
+            $endingDisplay = $product->hasPackSize() ? $product->eachesToPacks($endingInventory) : $endingInventory;
+            $receiptsDisplay = $product->hasPackSize() ? $product->eachesToPacks($receipts) : $receipts;
+            $returnsDisplay = $product->hasPackSize() ? $product->eachesToPacks($returns) : $returns;
+            $jobMaterialTransfersDisplay = $product->hasPackSize() ? $product->eachesToPacks($jobMaterialTransfers) : $jobMaterialTransfers;
+            $shipmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($shipments) : $shipments;
+            $jobIssuesDisplay = $product->hasPackSize() ? $product->eachesToPacks($jobIssues) : $jobIssues;
+            $issuesDisplay = $product->hasPackSize() ? $product->eachesToPacks($issues) : $issues;
+            $positiveAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($positiveAdjustments) : $positiveAdjustments;
+            $negativeAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($negativeAdjustments) : $negativeAdjustments;
+            $totalAdditionsDisplay = $product->hasPackSize() ? $product->eachesToPacks($totalAdditions) : $totalAdditions;
+            $totalDeductionsDisplay = $product->hasPackSize() ? $product->eachesToPacks($totalDeductions) : $totalDeductions;
+            $netChangeDisplay = $product->hasPackSize() ? $product->eachesToPacks($netChange) : $netChange;
+
+            return [
+                'id' => $product->id,
+                'sku' => $product->sku,
+                'description' => $product->description,
+                'category' => $product->category?->name,
+                'supplier' => $product->supplier?->name,
+
+                // Beginning inventory
+                'beginning_inventory' => $beginningInventory,
+                'beginning_inventory_display' => $beginningDisplay,
+
+                // Additions breakdown
+                'receipts' => $receipts,
+                'receipts_display' => $receiptsDisplay,
+                'returns' => $returns,
+                'returns_display' => $returnsDisplay,
+                'job_material_transfers' => $jobMaterialTransfers,
+                'job_material_transfers_display' => $jobMaterialTransfersDisplay,
+                'positive_adjustments' => $positiveAdjustments,
+                'positive_adjustments_display' => $positiveAdjustmentsDisplay,
+                'total_additions' => $totalAdditions,
+                'total_additions_display' => $totalAdditionsDisplay,
+
+                // Deductions breakdown
+                'shipments' => $shipments,
+                'shipments_display' => $shipmentsDisplay,
+                'job_issues' => $jobIssues,
+                'job_issues_display' => $jobIssuesDisplay,
+                'issues' => $issues,
+                'issues_display' => $issuesDisplay,
+                'negative_adjustments' => $negativeAdjustments,
+                'negative_adjustments_display' => $negativeAdjustmentsDisplay,
+                'total_deductions' => $totalDeductions,
+                'total_deductions_display' => $totalDeductionsDisplay,
+
+                // Ending inventory
+                'ending_inventory' => $endingInventory,
+                'ending_inventory_display' => $endingDisplay,
+                'net_change' => $netChange,
+                'net_change_display' => $netChangeDisplay,
+
+                // Pricing and totals
+                'unit_cost' => $product->unit_cost,
+                'display_cost' => $displayCost,
+                'beginning_value' => $beginningDisplay * $displayCost,
+                'ending_value' => $endingDisplay * $displayCost,
+                'value_change' => ($endingDisplay * $displayCost) - ($beginningDisplay * $displayCost),
+
+                // Pack info
+                'pack_size' => $product->pack_size,
+                'has_pack_size' => $product->hasPackSize(),
+                'counting_unit' => $product->counting_unit,
+
+                // Transaction count
+                'transaction_count' => $transactions->count(),
+            ];
+        })
+        // Only include products with activity or inventory
+        ->filter(function($item) {
+            return $item['transaction_count'] > 0 || $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0;
+        })
+        ->values();
+
+        // Calculate summary statistics
+        $summary = [
+            'month' => $startDate->format('F Y'),
+            'start_date' => $startDate->format('Y-m-d'),
+            'end_date' => $endDate->format('Y-m-d'),
+            'products_count' => $statementData->count(),
+            'total_beginning_value' => $statementData->sum('beginning_value'),
+            'total_ending_value' => $statementData->sum('ending_value'),
+            'total_value_change' => $statementData->sum('value_change'),
+            'total_receipts' => $statementData->sum('receipts_display'),
+            'total_shipments' => $statementData->sum('shipments_display'),
+            'total_job_material_transfers' => $statementData->sum('job_material_transfers_display'),
+            'total_job_issues' => $statementData->sum('job_issues_display'),
+            'total_issues' => $statementData->sum('issues_display'),
+            'total_returns' => $statementData->sum('returns_display'),
+            'total_adjustments_positive' => $statementData->sum('positive_adjustments_display'),
+            'total_adjustments_negative' => $statementData->sum('negative_adjustments_display'),
+        ];
+
+        return response()->json([
+            'statement' => $statementData,
+            'summary' => $summary,
+        ]);
+    }
+
+    /**
      * Export report to CSV
      */
     public function exportReport(Request $request)
@@ -356,6 +520,8 @@ class ReportsController extends Controller
                 return $this->exportReorder();
             case 'obsolete':
                 return $this->exportObsolete($request);
+            case 'monthly_statement':
+                return $this->exportMonthlyStatement($request);
             default:
                 return response()->json(['message' => 'Invalid report type'], 400);
         }
@@ -809,5 +975,66 @@ class ReportsController extends Controller
 
         $pdf->setPaper('letter', 'landscape');
         return $pdf->stream('usage-analytics-report-' . $days . 'd-' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * Generate PDF for Monthly Inventory Statement report
+     */
+    public function monthlyInventoryStatementPdf(Request $request)
+    {
+        $data = $this->monthlyInventoryStatement($request);
+        $reportData = $data->original;
+
+        $month = $request->get('month', Carbon::now()->month);
+        $year = $request->get('year', Carbon::now()->year);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.monthly-inventory-statement-report', [
+            'statement' => $reportData['statement'],
+            'summary' => $reportData['summary']
+        ]);
+
+        $pdf->setPaper('letter', 'landscape');
+        return $pdf->stream('monthly-inventory-statement-' . $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '.pdf');
+    }
+
+    private function exportMonthlyStatement($request)
+    {
+        $data = $this->monthlyInventoryStatement($request);
+        $items = collect($data->original['statement']);
+
+        // Map to proper CSV format with pack-based quantities
+        $csvData = $items->map(function($item) {
+            return [
+                $item['sku'],
+                $item['description'],
+                $item['category'] ?? '',
+                $item['beginning_inventory_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['receipts_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['returns_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['job_material_transfers_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['positive_adjustments_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['total_additions_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['shipments_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['job_issues_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['issues_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['negative_adjustments_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['total_deductions_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['ending_inventory_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                $item['net_change_display'] . ' ' . ($item['counting_unit'] ?? 'ea'),
+                number_format($item['display_cost'], 2),
+                number_format($item['beginning_value'], 2),
+                number_format($item['ending_value'], 2),
+                number_format($item['value_change'], 2),
+            ];
+        });
+
+        $month = $data->original['summary']['month'];
+        return $this->generateCSV($csvData, 'monthly_inventory_statement_' . str_replace(' ', '_', $month), [
+            'SKU', 'Description', 'Category',
+            'Beginning Inventory', 'Receipts', 'Returns', 'Job Material Transfers', 'Positive Adjustments', 'Total Additions',
+            'Shipments', 'Job Issues', 'Issues', 'Negative Adjustments', 'Total Deductions',
+            'Ending Inventory', 'Net Change',
+            'Unit Cost', 'Beginning Value', 'Ending Value', 'Value Change'
+        ]);
     }
 }

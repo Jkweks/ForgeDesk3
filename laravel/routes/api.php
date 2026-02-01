@@ -166,6 +166,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/reorder-recommendations', [ReportsController::class, 'reorderRecommendations']);
         Route::get('/reports/obsolete', [ReportsController::class, 'obsoleteInventory']);
         Route::get('/reports/usage-analytics', [ReportsController::class, 'usageAnalytics']);
+        Route::get('/reports/monthly-statement', [ReportsController::class, 'monthlyInventoryStatement']);
         Route::get('/reports/export', [ReportsController::class, 'exportReport']);
 
         // PDF Reports
@@ -175,6 +176,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/reorder-recommendations/pdf', [ReportsController::class, 'reorderRecommendationsPdf']);
         Route::get('/reports/obsolete/pdf', [ReportsController::class, 'obsoleteInventoryPdf']);
         Route::get('/reports/usage-analytics/pdf', [ReportsController::class, 'usageAnalyticsPdf']);
+        Route::get('/reports/monthly-statement/pdf', [ReportsController::class, 'monthlyInventoryStatementPdf']);
 
         // Purchase Orders
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
