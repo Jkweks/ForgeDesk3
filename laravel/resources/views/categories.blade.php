@@ -276,12 +276,12 @@
       // View mode toggle
       document.getElementById('view-tree').addEventListener('change', () => {
         currentView = 'tree';
-        renderCategories();
+        loadCategories(); // Reload with tree endpoint
       });
 
       document.getElementById('view-list').addEventListener('change', () => {
         currentView = 'list';
-        renderCategories();
+        loadCategories(); // Reload with flat list endpoint
       });
 
       // Form submission
@@ -292,14 +292,18 @@
       const search = document.getElementById('searchInput').value;
       const system = document.getElementById('filterSystem').value;
 
-      let url = '/categories?per_page=all&with_parent=true&with_children=true';
+      // For tree view, we need hierarchical data with all descendants
+      // For list view, we can use flat data
+      let url = currentView === 'tree'
+        ? '/category-tree'
+        : '/categories?per_page=all&with_parent=true&with_children=true';
 
       if (search) {
-        url += `&search=${encodeURIComponent(search)}`;
+        url += `${url.includes('?') ? '&' : '?'}search=${encodeURIComponent(search)}`;
       }
 
       if (system) {
-        url += `&system=${encodeURIComponent(system)}`;
+        url += `${url.includes('?') ? '&' : '?'}system=${encodeURIComponent(system)}`;
       }
 
       try {
@@ -449,11 +453,25 @@
       }).join('');
     }
 
+    function flattenTree(categories) {
+      let flat = [];
+      categories.forEach(cat => {
+        flat.push(cat);
+        if (cat.children && cat.children.length > 0) {
+          flat = flat.concat(flattenTree(cat.children));
+        }
+      });
+      return flat;
+    }
+
     function updateStats() {
-      const total = categories.length;
-      const rootCategories = categories.filter(cat => !cat.parent_id).length;
-      const withProducts = categories.filter(cat => cat.products_count > 0).length;
-      const uniqueSystems = new Set(categories.filter(cat => cat.system).map(cat => cat.system)).size;
+      // If categories is hierarchical (tree view), flatten it first
+      const flatCategories = currentView === 'tree' ? flattenTree(categories) : categories;
+
+      const total = flatCategories.length;
+      const rootCategories = currentView === 'tree' ? categories.length : flatCategories.filter(cat => !cat.parent_id).length;
+      const withProducts = flatCategories.filter(cat => cat.products_count > 0).length;
+      const uniqueSystems = new Set(flatCategories.filter(cat => cat.system).map(cat => cat.system)).size;
 
       document.getElementById('statTotalCategories').textContent = total;
       document.getElementById('statRootCategories').textContent = rootCategories;
@@ -498,9 +516,12 @@
       const select = document.getElementById('categoryParent');
       select.innerHTML = '<option value="">None (Root Category)</option>';
 
+      // Flatten categories if in tree view
+      const flatCategories = currentView === 'tree' ? flattenTree(categories) : categories;
+
       // Only show categories that are not the current one or its descendants
-      categories
-        .filter(cat => !excludeId || (cat.id !== excludeId && !isDescendant(cat, excludeId)))
+      flatCategories
+        .filter(cat => !excludeId || (cat.id !== excludeId && !isDescendant(cat, excludeId, flatCategories)))
         .forEach(cat => {
           const option = document.createElement('option');
           option.value = cat.id;
@@ -509,11 +530,14 @@
         });
     }
 
-    function isDescendant(category, ancestorId) {
+    function isDescendant(category, ancestorId, flatCategories = null) {
+      // Use provided flat categories or current categories
+      const cats = flatCategories || (currentView === 'tree' ? flattenTree(categories) : categories);
+
       let current = category;
       while (current.parent_id) {
         if (current.parent_id === ancestorId) return true;
-        current = categories.find(c => c.id === current.parent_id);
+        current = cats.find(c => c.id === current.parent_id);
         if (!current) break;
       }
       return false;

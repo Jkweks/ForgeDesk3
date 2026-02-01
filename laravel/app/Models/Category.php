@@ -41,6 +41,54 @@ class Category extends Model
     }
 
     /**
+     * Get all descendants (recursive)
+     */
+    public function descendants()
+    {
+        return $this->children()->with('descendants');
+    }
+
+    /**
+     * Get all descendant IDs (flat array including self)
+     */
+    public function getDescendantIds($includeSelf = true)
+    {
+        $ids = $includeSelf ? [$this->id] : [];
+
+        foreach ($this->children as $child) {
+            $ids[] = $child->id;
+            $ids = array_merge($ids, $child->getDescendantIds(false));
+        }
+
+        return $ids;
+    }
+
+    /**
+     * Get all ancestors
+     */
+    public function ancestors()
+    {
+        $ancestors = collect([]);
+        $parent = $this->parent;
+
+        while ($parent) {
+            $ancestors->prepend($parent);
+            $parent = $parent->parent;
+        }
+
+        return $ancestors;
+    }
+
+    /**
+     * Get full path as string (e.g., "Grouping > Style > System > Part Type")
+     */
+    public function getFullPathAttribute()
+    {
+        $pathNames = $this->ancestors()->pluck('name')->push($this->name);
+        return $pathNames->implode(' > ');
+    }
+
+    /**
      * Get all products in this category (many-to-many through pivot table)
      */
     public function products()
