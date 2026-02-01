@@ -146,6 +146,47 @@ class Product extends Model
     }
 
     /**
+     * Calculate total quantity on hand from all inventory locations
+     * This is the source of truth for inventory quantities
+     */
+    public function calculateQuantityOnHandFromLocations()
+    {
+        return $this->inventoryLocations()->sum('quantity');
+    }
+
+    /**
+     * Calculate total committed quantity from all inventory locations
+     */
+    public function calculateQuantityCommittedFromLocations()
+    {
+        return $this->inventoryLocations()->sum('quantity_committed');
+    }
+
+    /**
+     * Recalculate and update quantity_on_hand and quantity_committed from inventory locations
+     * Call this after updating inventory_locations to sync the product totals
+     * This is the source of truth for product quantities
+     */
+    public function recalculateQuantitiesFromLocations()
+    {
+        // Use single query for efficiency
+        $totals = $this->inventoryLocations()
+            ->selectRaw('
+                COALESCE(SUM(quantity), 0) as total_quantity,
+                COALESCE(SUM(quantity_committed), 0) as total_committed
+            ')
+            ->first();
+
+        $this->quantity_on_hand = $totals->total_quantity ?? 0;
+        $this->quantity_committed = $totals->total_committed ?? 0;
+        $this->save();
+
+        $this->updateStatus();
+
+        return $this;
+    }
+
+    /**
      * Get reservation items for this product (through job_reservation_items table)
      */
     public function reservationItems()
