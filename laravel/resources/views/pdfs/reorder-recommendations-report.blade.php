@@ -174,10 +174,10 @@
                     <td>{{ $rec['sku'] }}</td>
                     <td>{{ $rec['description'] }}</td>
                     <td>{{ $rec['supplier'] ?? '-' }}</td>
-                    <td class="text-right">{{ number_format($rec['available']) }}</td>
-                    <td class="text-right">{{ number_format($rec['reorder_point']) }}</td>
-                    <td class="text-right">{{ number_format($rec['reorder_point'] + ($rec['shortage'] ?? 0)) }}</td>
-                    <td class="text-right">{{ number_format($rec['recommended_order_qty']) }}</td>
+                    <td class="text-right">{{ number_format($rec['available_display']) }} {{ $rec['counting_unit'] ?? 'ea' }}</td>
+                    <td class="text-right">{{ number_format($rec['reorder_point_display']) }} {{ $rec['counting_unit'] ?? 'ea' }}</td>
+                    <td class="text-right">{{ number_format($rec['target_display']) }} {{ $rec['counting_unit'] ?? 'ea' }}</td>
+                    <td class="text-right">{{ number_format($rec['recommended_order_qty_display']) }} {{ $rec['counting_unit'] ?? 'ea' }}</td>
                     <td class="text-right">${{ number_format($rec['display_cost'], 2) }}</td>
                     <td class="text-right">${{ number_format($rec['recommended_order_value'], 2) }}</td>
                     <td class="text-center">
