@@ -400,19 +400,19 @@ class ReportsController extends Controller
             $displayCost = $product->hasPackSize() ? $product->pack_cost : $product->unit_cost;
 
             // Convert all quantities to packs if applicable
-            $beginningDisplay = $product->hasPackSize() ? $product->eachesToPacks($beginningInventory) : $beginningInventory;
-            $endingDisplay = $product->hasPackSize() ? $product->eachesToPacks($endingInventory) : $endingInventory;
-            $receiptsDisplay = $product->hasPackSize() ? $product->eachesToPacks($receipts) : $receipts;
-            $returnsDisplay = $product->hasPackSize() ? $product->eachesToPacks($returns) : $returns;
-            $jobMaterialTransfersDisplay = $product->hasPackSize() ? $product->eachesToPacks($jobMaterialTransfers) : $jobMaterialTransfers;
-            $shipmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($shipments) : $shipments;
-            $jobIssuesDisplay = $product->hasPackSize() ? $product->eachesToPacks($jobIssues) : $jobIssues;
-            $issuesDisplay = $product->hasPackSize() ? $product->eachesToPacks($issues) : $issues;
-            $positiveAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($positiveAdjustments) : $positiveAdjustments;
-            $negativeAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToPacks($negativeAdjustments) : $negativeAdjustments;
-            $totalAdditionsDisplay = $product->hasPackSize() ? $product->eachesToPacks($totalAdditions) : $totalAdditions;
-            $totalDeductionsDisplay = $product->hasPackSize() ? $product->eachesToPacks($totalDeductions) : $totalDeductions;
-            $netChangeDisplay = $product->hasPackSize() ? $product->eachesToPacks($netChange) : $netChange;
+            $beginningDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($beginningInventory) : $beginningInventory;
+            $endingDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($endingInventory) : $endingInventory;
+            $receiptsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($receipts) : $receipts;
+            $returnsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($returns) : $returns;
+            $jobMaterialTransfersDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($jobMaterialTransfers) : $jobMaterialTransfers;
+            $shipmentsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($shipments) : $shipments;
+            $jobIssuesDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($jobIssues) : $jobIssues;
+            $issuesDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($issues) : $issues;
+            $positiveAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($positiveAdjustments) : $positiveAdjustments;
+            $negativeAdjustmentsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($negativeAdjustments) : $negativeAdjustments;
+            $totalAdditionsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($totalAdditions) : $totalAdditions;
+            $totalDeductionsDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($totalDeductions) : $totalDeductions;
+            $netChangeDisplay = $product->hasPackSize() ? $product->eachesToFullPacks($netChange) : $netChange;
 
             return [
                 'id' => $product->id,
