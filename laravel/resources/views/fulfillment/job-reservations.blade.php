@@ -1018,11 +1018,10 @@
                 return;
             }
 
-            // Find product by SKU
+            // Find product by SKU using dedicated search endpoint
             try {
-                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(sku)}`, {
+                const response = await fetch(`/api/v1/job-reservations/search-product?sku=${encodeURIComponent(sku)}`, {
                     method: 'GET',
-                    credentials: 'include',
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
@@ -1030,15 +1029,13 @@
                 });
 
                 if (!response.ok) {
-                    alert('Product not found or authentication error');
+                    const error = await response.json();
+                    alert(error.message || 'Product not found');
                     return;
                 }
 
-                const products = await response.json();
-                // Case-insensitive SKU search
-                const product = products.data ? products.data.find(p =>
-                    p.sku && p.sku.toLowerCase() === sku.toLowerCase()
-                ) : null;
+                const data = await response.json();
+                const product = data.product;
 
                 if (!product) {
                     alert('Product not found with SKU: ' + sku);

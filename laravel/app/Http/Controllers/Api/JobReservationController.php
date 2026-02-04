@@ -770,6 +770,55 @@ class JobReservationController extends Controller
     }
 
     /**
+     * Search for products by SKU (case-insensitive)
+     */
+    public function searchProduct(Request $request)
+    {
+        try {
+            $sku = $request->get('sku');
+
+            if (!$sku) {
+                return response()->json([
+                    'error' => 'SKU parameter required',
+                ], 400);
+            }
+
+            // Case-insensitive search
+            $product = Product::whereRaw('LOWER(sku) = ?', [strtolower($sku)])
+                ->first();
+
+            if (!$product) {
+                return response()->json([
+                    'error' => 'Product not found',
+                    'message' => "No product found with SKU: {$sku}",
+                ], 404);
+            }
+
+            return response()->json([
+                'product' => [
+                    'id' => $product->id,
+                    'sku' => $product->sku,
+                    'part_number' => $product->part_number,
+                    'finish' => $product->finish,
+                    'description' => $product->description,
+                    'quantity_on_hand' => $product->quantity_on_hand,
+                    'quantity_available' => $product->quantity_available,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Product search failed', [
+                'sku' => $request->get('sku'),
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Search failed',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get status labels
      */
     public function statusLabels()
