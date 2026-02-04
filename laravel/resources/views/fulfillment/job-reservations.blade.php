@@ -1021,6 +1021,8 @@
             // Find product by SKU
             try {
                 const response = await fetch(`/api/v1/products?search=${encodeURIComponent(sku)}`, {
+                    method: 'GET',
+                    credentials: 'include',
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
@@ -1028,12 +1030,15 @@
                 });
 
                 if (!response.ok) {
-                    alert('Product not found');
+                    alert('Product not found or authentication error');
                     return;
                 }
 
                 const products = await response.json();
-                const product = products.data ? products.data.find(p => p.sku === sku) : null;
+                // Case-insensitive SKU search
+                const product = products.data ? products.data.find(p =>
+                    p.sku && p.sku.toLowerCase() === sku.toLowerCase()
+                ) : null;
 
                 if (!product) {
                     alert('Product not found with SKU: ' + sku);
