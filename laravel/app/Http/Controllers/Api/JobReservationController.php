@@ -783,9 +783,10 @@ class JobReservationController extends Controller
                 ], 400);
             }
 
-            // Case-insensitive search
-            $product = Product::whereRaw('LOWER(sku) = ?', [strtolower($sku)])
-                ->first();
+            // Case-insensitive search - get all products and filter in PHP for compatibility
+            $product = Product::all()->first(function ($p) use ($sku) {
+                return strcasecmp($p->sku, $sku) === 0;
+            });
 
             if (!$product) {
                 return response()->json([
@@ -809,6 +810,7 @@ class JobReservationController extends Controller
             Log::error('Product search failed', [
                 'sku' => $request->get('sku'),
                 'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
