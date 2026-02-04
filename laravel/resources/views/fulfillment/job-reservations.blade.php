@@ -124,6 +124,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn" data-bs-dismiss="modal">Close</button>
+            <div id="detailModalActions"></div>
           </div>
         </div>
       </div>
@@ -201,10 +202,160 @@
       </div>
     </div>
 
+    <!-- Edit Reservation Modal -->
+    <div class="modal modal-blur fade" id="editModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalTitle">Edit Reservation</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editReservationId">
+
+            <!-- Reservation Header -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <h3 class="card-title">Reservation Information</h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Job Number <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="editJobNumber" readonly>
+                      <small class="form-hint">Job number cannot be changed</small>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Release Number <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="editReleaseNumber" readonly>
+                      <small class="form-hint">Release number cannot be changed</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Job Name</label>
+                      <input type="text" class="form-control" id="editJobName" placeholder="Enter job name">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Requested By</label>
+                      <input type="text" class="form-control" id="editRequestedBy" placeholder="Enter requester name">
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Needed By</label>
+                      <input type="date" class="form-control" id="editNeededBy">
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Status</label>
+                      <input type="text" class="form-control" id="editStatus" readonly>
+                      <small class="form-hint">Use "Change Status" button to modify status</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Notes</label>
+                  <textarea class="form-control" id="editNotes" rows="3" placeholder="Add any notes..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Line Items -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Line Items</h3>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-sm btn-primary" onclick="showAddItemForm()" id="addItemBtn">
+                    <i class="ti ti-plus me-1"></i>Add Item
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="addItemForm" class="mb-3" style="display: none;">
+                  <div class="card bg-light">
+                    <div class="card-body">
+                      <h4 class="card-title">Add New Item</h4>
+                      <div class="row">
+                        <div class="col-md-6">
+                          <div class="mb-3">
+                            <label class="form-label">Product SKU</label>
+                            <input type="text" class="form-control" id="newItemSKU" placeholder="Search by SKU...">
+                            <input type="hidden" id="newItemProductId">
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="mb-3">
+                            <label class="form-label">Requested Qty</label>
+                            <input type="number" class="form-control" id="newItemRequestedQty" min="1" value="1">
+                          </div>
+                        </div>
+                        <div class="col-md-3">
+                          <div class="mb-3">
+                            <label class="form-label">Committed Qty</label>
+                            <input type="number" class="form-control" id="newItemCommittedQty" min="0" value="0">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success" onclick="addNewItem()">
+                          <i class="ti ti-check me-1"></i>Add Item
+                        </button>
+                        <button type="button" class="btn" onclick="hideAddItemForm()">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Part #</th>
+                        <th>Finish</th>
+                        <th>Description</th>
+                        <th class="text-end">Requested</th>
+                        <th class="text-end">Committed</th>
+                        <th class="text-end">Consumed</th>
+                        <th class="text-end">On Hand</th>
+                        <th class="text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="editItemsBody">
+                      <!-- Items loaded dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="saveReservation()">
+              <i class="ti ti-device-floppy me-1"></i>Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
         let reservations = [];
         let filteredReservations = [];
         let completeItems = [];
+        let editingReservation = null;
+        let editingItems = [];
 
         // Helper function to close modal
         function closeModal(modalId) {
@@ -456,6 +607,18 @@
                 </div>
             `;
 
+            // Add Edit button if not in terminal state
+            const detailModalActions = document.getElementById('detailModalActions');
+            if (!['fulfilled', 'cancelled'].includes(res.status)) {
+                detailModalActions.innerHTML = `
+                    <button type="button" class="btn btn-primary" onclick="openEditModal(${res.id})">
+                        <i class="ti ti-edit me-1"></i>Edit Reservation
+                    </button>
+                `;
+            } else {
+                detailModalActions.innerHTML = '';
+            }
+
             // Show modal using DOM manipulation
             const modalElement = document.getElementById('detailModal');
             modalElement.classList.add('show');
@@ -702,6 +865,311 @@
             } catch (error) {
                 console.error('Error completing job:', error);
                 alert('Error completing job: ' + error.message);
+            }
+        }
+
+        // ===== EDIT RESERVATION FUNCTIONS =====
+
+        async function openEditModal(id) {
+            try {
+                const response = await fetch(`/api/v1/job-reservations/${id}`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    editingReservation = data.reservation;
+                    editingItems = data.items;
+                    showEditModal();
+                    closeModal('detailModal'); // Close detail modal
+                } else {
+                    alert('Error loading reservation for editing');
+                }
+            } catch (error) {
+                console.error('Error loading reservation:', error);
+                alert('Error loading reservation for editing');
+            }
+        }
+
+        function showEditModal() {
+            const res = editingReservation;
+
+            // Populate form fields
+            document.getElementById('editReservationId').value = res.id;
+            document.getElementById('editJobNumber').value = res.job_number;
+            document.getElementById('editReleaseNumber').value = res.release_number;
+            document.getElementById('editJobName').value = res.job_name || '';
+            document.getElementById('editRequestedBy').value = res.requested_by || '';
+            document.getElementById('editNeededBy').value = res.needed_by || '';
+            document.getElementById('editStatus').value = res.status_label || res.status;
+            document.getElementById('editNotes').value = res.notes || '';
+
+            // Reset add item form
+            hideAddItemForm();
+
+            // Populate line items
+            renderEditItems();
+
+            // Show modal
+            const modalElement = document.getElementById('editModal');
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.setAttribute('data-modal-id', 'editModal');
+            document.body.appendChild(backdrop);
+        }
+
+        function renderEditItems() {
+            const tbody = document.getElementById('editItemsBody');
+
+            if (editingItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No items</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = editingItems.map((item, index) => `
+                <tr>
+                    <td><code>${item.product.sku || '-'}</code></td>
+                    <td>${item.product.part_number || '-'}</td>
+                    <td>${item.product.finish || '-'}</td>
+                    <td>${item.product.description || '-'}</td>
+                    <td class="text-end">
+                        <input type="number" class="form-control form-control-sm"
+                               value="${item.requested_qty}"
+                               min="1"
+                               onchange="updateItemQuantity(${index}, 'requested_qty', this.value)"
+                               style="width: 80px;">
+                    </td>
+                    <td class="text-end">
+                        <input type="number" class="form-control form-control-sm"
+                               value="${item.committed_qty}"
+                               min="0"
+                               onchange="updateItemQuantity(${index}, 'committed_qty', this.value)"
+                               style="width: 80px;"
+                               ${item.consumed_qty > 0 ? `min="${item.consumed_qty}"` : ''}>
+                    </td>
+                    <td class="text-end">${item.consumed_qty}</td>
+                    <td class="text-end">${item.product.quantity_on_hand}</td>
+                    <td class="text-center">
+                        ${item.consumed_qty === 0 ? `
+                            <button type="button" class="btn btn-sm btn-ghost-danger"
+                                    onclick="removeEditItem(${index})"
+                                    title="Remove item">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        ` : '<span class="text-muted" title="Cannot remove consumed item">-</span>'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateItemQuantity(index, field, value) {
+            const item = editingItems[index];
+            const numValue = parseInt(value);
+
+            if (field === 'committed_qty' && numValue < item.consumed_qty) {
+                alert(`Cannot reduce committed quantity below already consumed (${item.consumed_qty})`);
+                renderEditItems();
+                return;
+            }
+
+            if (field === 'committed_qty' && numValue > item.committed_qty) {
+                const increase = numValue - item.committed_qty;
+                if (increase > item.product.quantity_available) {
+                    alert(`Only ${item.product.quantity_available} available. Cannot increase by ${increase}.`);
+                    renderEditItems();
+                    return;
+                }
+            }
+
+            item[field] = numValue;
+        }
+
+        function showAddItemForm() {
+            document.getElementById('addItemForm').style.display = 'block';
+            document.getElementById('addItemBtn').style.display = 'none';
+            document.getElementById('newItemSKU').value = '';
+            document.getElementById('newItemProductId').value = '';
+            document.getElementById('newItemRequestedQty').value = 1;
+            document.getElementById('newItemCommittedQty').value = 0;
+        }
+
+        function hideAddItemForm() {
+            document.getElementById('addItemForm').style.display = 'none';
+            document.getElementById('addItemBtn').style.display = 'block';
+        }
+
+        async function addNewItem() {
+            const sku = document.getElementById('newItemSKU').value.trim();
+            const requestedQty = parseInt(document.getElementById('newItemRequestedQty').value);
+            const committedQty = parseInt(document.getElementById('newItemCommittedQty').value);
+
+            if (!sku) {
+                alert('Please enter a product SKU');
+                return;
+            }
+
+            // Find product by SKU
+            try {
+                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(sku)}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (!response.ok) {
+                    alert('Product not found');
+                    return;
+                }
+
+                const products = await response.json();
+                const product = products.data ? products.data.find(p => p.sku === sku) : null;
+
+                if (!product) {
+                    alert('Product not found with SKU: ' + sku);
+                    return;
+                }
+
+                // Check if already in list
+                if (editingItems.some(item => item.product_id === product.id)) {
+                    alert('This product is already in the reservation');
+                    return;
+                }
+
+                // Check available inventory
+                if (committedQty > product.quantity_available) {
+                    alert(`Only ${product.quantity_available} available. Cannot commit ${committedQty}.`);
+                    return;
+                }
+
+                // Add to items array
+                editingItems.push({
+                    id: null, // New item, no ID yet
+                    product_id: product.id,
+                    requested_qty: requestedQty,
+                    committed_qty: committedQty,
+                    consumed_qty: 0,
+                    product: {
+                        id: product.id,
+                        sku: product.sku,
+                        part_number: product.part_number,
+                        finish: product.finish,
+                        description: product.description,
+                        quantity_on_hand: product.quantity_on_hand,
+                        quantity_available: product.quantity_available
+                    }
+                });
+
+                renderEditItems();
+                hideAddItemForm();
+
+            } catch (error) {
+                console.error('Error finding product:', error);
+                alert('Error finding product');
+            }
+        }
+
+        function removeEditItem(index) {
+            if (confirm('Are you sure you want to remove this item?')) {
+                editingItems.splice(index, 1);
+                renderEditItems();
+            }
+        }
+
+        async function saveReservation() {
+            const id = document.getElementById('editReservationId').value;
+            const jobName = document.getElementById('editJobName').value;
+            const requestedBy = document.getElementById('editRequestedBy').value;
+            const neededBy = document.getElementById('editNeededBy').value;
+            const notes = document.getElementById('editNotes').value;
+
+            try {
+                // Update reservation header
+                const headerResponse = await fetch(`/api/v1/job-reservations/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        job_name: jobName,
+                        requested_by: requestedBy,
+                        needed_by: neededBy,
+                        notes: notes
+                    })
+                });
+
+                if (!headerResponse.ok) {
+                    const error = await headerResponse.json();
+                    alert('Error updating reservation: ' + (error.message || error.error));
+                    return;
+                }
+
+                // Update/add/remove items
+                for (const item of editingItems) {
+                    if (item.id === null) {
+                        // New item - add it
+                        const addResponse = await fetch(`/api/v1/job-reservations/${id}/items`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                product_id: item.product_id,
+                                requested_qty: item.requested_qty,
+                                committed_qty: item.committed_qty
+                            })
+                        });
+
+                        if (!addResponse.ok) {
+                            const error = await addResponse.json();
+                            alert('Error adding item: ' + (error.message || error.error));
+                            return;
+                        }
+                    } else {
+                        // Existing item - update it
+                        const updateResponse = await fetch(`/api/v1/job-reservations/${id}/items/${item.id}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                requested_qty: item.requested_qty,
+                                committed_qty: item.committed_qty
+                            })
+                        });
+
+                        if (!updateResponse.ok) {
+                            const error = await updateResponse.json();
+                            alert('Error updating item: ' + (error.message || error.error));
+                            return;
+                        }
+                    }
+                }
+
+                // Success
+                alert('Reservation updated successfully');
+                closeModal('editModal');
+                loadReservations(); // Reload the list
+
+            } catch (error) {
+                console.error('Error saving reservation:', error);
+                alert('Error saving reservation: ' + error.message);
             }
         }
     </script>

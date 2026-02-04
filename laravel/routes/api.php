@@ -70,8 +70,12 @@ Route::prefix('v1')->group(function () {
     // Job Reservations
     Route::get('/job-reservations', [JobReservationController::class, 'index']);
     Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
+    Route::put('/job-reservations/{id}', [JobReservationController::class, 'updateReservation']);
     Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);
     Route::post('/job-reservations/{id}/complete', [JobReservationController::class, 'complete']);
+    Route::post('/job-reservations/{id}/items', [JobReservationController::class, 'addItem']);
+    Route::put('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'updateItem']);
+    Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 });
 
