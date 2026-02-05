@@ -67,20 +67,15 @@ class EzEstimateController extends Controller
                 throw new \Exception('Failed to store uploaded file');
             }
 
-            // Verify file was actually created using Storage facade
-            if (!Storage::exists($path)) {
-                $files = Storage::files('ez_estimates');
-                throw new \Exception(
-                    'File was stored but cannot be found at: ' . $path .
-                    '. Files in directory: ' . implode(', ', $files)
-                );
-            }
-
-            // Get the full filesystem path
+            // Get the full filesystem path and verify it exists
             $fullPath = Storage::path($path);
 
+            if (!file_exists($fullPath)) {
+                throw new \Exception("File was not created at: {$fullPath}");
+            }
+
             if (!is_readable($fullPath)) {
-                throw new \Exception('File exists but is not readable. Check permissions on: ' . $fullPath);
+                throw new \Exception("File exists but is not readable: {$fullPath}");
             }
 
             // Parse and process the file
@@ -131,7 +126,7 @@ class EzEstimateController extends Controller
         $oldTimeLimit = ini_get('max_execution_time');
 
         try {
-            ini_set('memory_limit', '512M');
+            ini_set('memory_limit', '1024M'); // Increase to 1GB
             ini_set('max_execution_time', '300'); // 5 minutes
 
             // Verify file exists and is readable
@@ -143,8 +138,13 @@ class EzEstimateController extends Controller
                 throw new \Exception("File is not readable: {$filePath}");
             }
 
-            // Load the spreadsheet with read-only mode for better performance
-            $spreadsheet = IOFactory::load($filePath);
+            // Create reader with memory-efficient settings
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true); // Only read cell data, skip formatting
+            $reader->setReadEmptyCells(false); // Skip empty cells to save memory
+
+            // Load the spreadsheet with optimized settings
+            $spreadsheet = $reader->load($filePath);
 
             if (!$spreadsheet) {
                 throw new \Exception("Failed to load Excel file");
