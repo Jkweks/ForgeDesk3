@@ -17,20 +17,35 @@ class EzEstimateController extends Controller
      */
     public function debug(Request $request)
     {
-        $suppliers = Product::select('supplier')
+        $suppliers = DB::table('suppliers')
+            ->select('name')
             ->distinct()
-            ->orderBy('supplier')
-            ->pluck('supplier')
+            ->orderBy('name')
+            ->pluck('name')
             ->toArray();
 
-        $sampleProducts = Product::select('id', 'sku', 'part_number', 'supplier', 'finish')
+        $sampleProducts = Product::with('supplier')
+            ->select('id', 'sku', 'part_number', 'supplier_id', 'finish')
             ->limit(10)
             ->get()
+            ->map(function($p) {
+                return [
+                    'id' => $p->id,
+                    'sku' => $p->sku,
+                    'part_number' => $p->part_number,
+                    'supplier' => $p->supplier?->name,
+                    'finish' => $p->finish,
+                ];
+            })
             ->toArray();
 
-        $tubeliteCount = Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])->count();
-        $tubeliteSamples = Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])
-            ->select('id', 'sku', 'part_number', 'supplier', 'finish')
+        $tubeliteCount = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+            ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
+            ->count();
+
+        $tubeliteSamples = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+            ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
+            ->select('products.id', 'products.sku', 'products.part_number', 'suppliers.name as supplier', 'products.finish')
             ->limit(10)
             ->get()
             ->toArray();
@@ -371,14 +386,16 @@ class EzEstimateController extends Controller
 
         // Find all products with this part number
         // These will have different finish codes in their SKU
-        $products = Product::where('part_number', $partNumber)
-            ->whereRaw('LOWER(supplier) = ?', ['tubelite'])
+        $products = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+            ->where('products.part_number', $partNumber)
+            ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
             ->where(function($query) {
-                $query->where('sku', 'LIKE', 'A%')
-                      ->orWhere('sku', 'LIKE', 'E%')
-                      ->orWhere('sku', 'LIKE', 'M%')
-                      ->orWhere('sku', 'LIKE', 'T%');
+                $query->where('products.sku', 'LIKE', 'A%')
+                      ->orWhere('products.sku', 'LIKE', 'E%')
+                      ->orWhere('products.sku', 'LIKE', 'M%')
+                      ->orWhere('products.sku', 'LIKE', 'T%');
             })
+            ->select('products.*')
             ->get();
 
         $updatedCount = 0;
@@ -422,12 +439,14 @@ class EzEstimateController extends Controller
         $pricingCategory = $partData['pricing_category'];
 
         // Find all products with this part number
-        $products = Product::where('part_number', $partNumber)
-            ->whereRaw('LOWER(supplier) = ?', ['tubelite'])
+        $products = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+            ->where('products.part_number', $partNumber)
+            ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
             ->where(function($query) {
-                $query->where('sku', 'LIKE', 'P%')
-                      ->orWhere('sku', 'LIKE', 'S%');
+                $query->where('products.sku', 'LIKE', 'P%')
+                      ->orWhere('products.sku', 'LIKE', 'S%');
             })
+            ->select('products.*')
             ->get();
 
         $updatedCount = 0;
@@ -526,22 +545,27 @@ class EzEstimateController extends Controller
     {
         try {
             $stats = [
-                'total_products' => Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])->count(),
-                'with_net_cost' => Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])
-                    ->whereNotNull('net_cost')
+                'total_products' => Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                    ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
                     ->count(),
-                'stock_length' => Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])
+                'with_net_cost' => Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                    ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
+                    ->whereNotNull('products.net_cost')
+                    ->count(),
+                'stock_length' => Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                    ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
                     ->where(function($query) {
-                        $query->where('sku', 'LIKE', 'A%')
-                              ->orWhere('sku', 'LIKE', 'E%')
-                              ->orWhere('sku', 'LIKE', 'M%')
-                              ->orWhere('sku', 'LIKE', 'T%');
+                        $query->where('products.sku', 'LIKE', 'A%')
+                              ->orWhere('products.sku', 'LIKE', 'E%')
+                              ->orWhere('products.sku', 'LIKE', 'M%')
+                              ->orWhere('products.sku', 'LIKE', 'T%');
                     })
                     ->count(),
-                'accessories' => Product::whereRaw('LOWER(supplier) = ?', ['tubelite'])
+                'accessories' => Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                    ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
                     ->where(function($query) {
-                        $query->where('sku', 'LIKE', 'P%')
-                              ->orWhere('sku', 'LIKE', 'S%');
+                        $query->where('products.sku', 'LIKE', 'P%')
+                              ->orWhere('products.sku', 'LIKE', 'S%');
                     })
                     ->count(),
             ];
