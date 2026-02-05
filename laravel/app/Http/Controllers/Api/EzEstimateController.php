@@ -1,0 +1,420 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+
+class EzEstimateController extends Controller
+{
+    /**
+     * Upload and process EZ Estimate file
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $file = $request->file('file');
+            $fileName = 'ez_estimate_' . time() . '.' . $file->getClientOriginalExtension();
+
+            // Store file in storage/app/ez_estimates
+            $path = $file->storeAs('ez_estimates', $fileName);
+
+            // Parse and process the file
+            $result = $this->processEzEstimate(storage_path('app/' . $path));
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'EZ Estimate processed successfully',
+                'file_path' => $path,
+                'stats' => $result,
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error('EZ Estimate upload failed', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process EZ Estimate: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Process EZ Estimate Excel file and update pricing
+     */
+    private function processEzEstimate($filePath)
+    {
+        $spreadsheet = IOFactory::load($filePath);
+
+        // Parse data from all worksheets
+        $slFormulas = $this->parseSLFormulas($spreadsheet);
+        $pFormulas = $this->parsePFormulas($spreadsheet);
+        $finishCodes = $this->parseFinishCodes($spreadsheet);
+        $multipliers = $this->parseMultipliers($spreadsheet);
+
+        $stats = [
+            'stock_length_updated' => 0,
+            'accessory_updated' => 0,
+            'errors' => [],
+        ];
+
+        // Update Stock Length products (A, E, M, T)
+        foreach ($slFormulas as $partData) {
+            try {
+                $updated = $this->updateStockLengthPricing(
+                    $partData,
+                    $finishCodes,
+                    $multipliers
+                );
+                $stats['stock_length_updated'] += $updated;
+            } catch (\Exception $e) {
+                $stats['errors'][] = "Stock Length {$partData['part_number']}: {$e->getMessage()}";
+            }
+        }
+
+        // Update Accessory products (P, S)
+        foreach ($pFormulas as $partData) {
+            try {
+                $updated = $this->updateAccessoryPricing($partData, $multipliers);
+                $stats['accessory_updated'] += $updated;
+            } catch (\Exception $e) {
+                $stats['errors'][] = "Accessory {$partData['part_number']}: {$e->getMessage()}";
+            }
+        }
+
+        return $stats;
+    }
+
+    /**
+     * Parse SL Formulas worksheet
+     */
+    private function parseSLFormulas($spreadsheet)
+    {
+        $worksheet = $spreadsheet->getSheetByName('SL Formulas');
+        if (!$worksheet) {
+            throw new \Exception('SL Formulas worksheet not found');
+        }
+
+        $data = [];
+        $highestRow = $worksheet->getHighestRow();
+
+        // Start from row 2 to skip header
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
+            $partNumber = $worksheet->getCell("C{$row}")->getValue();
+            $pricePerLength = $worksheet->getCell("G{$row}")->getValue();
+
+            // Skip empty rows
+            if (empty($partNumber)) {
+                continue;
+            }
+
+            $data[] = [
+                'pricing_category' => $pricingCategory,
+                'part_number' => trim($partNumber),
+                'price_per_length' => (float) $pricePerLength,
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Parse P Formulas worksheet
+     */
+    private function parsePFormulas($spreadsheet)
+    {
+        $worksheet = $spreadsheet->getSheetByName('P Formulas');
+        if (!$worksheet) {
+            throw new \Exception('P Formulas worksheet not found');
+        }
+
+        $data = [];
+        $highestRow = $worksheet->getHighestRow();
+
+        // Start from row 2 to skip header
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
+            $partNumber = $worksheet->getCell("C{$row}")->getValue();
+            $pricePerPackage = $worksheet->getCell("H{$row}")->getValue();
+
+            // Skip empty rows
+            if (empty($partNumber)) {
+                continue;
+            }
+
+            $data[] = [
+                'pricing_category' => $pricingCategory,
+                'part_number' => trim($partNumber),
+                'price_per_package' => (float) $pricePerPackage,
+            ];
+        }
+
+        return $data;
+    }
+
+    /**
+     * Parse Finish Codes worksheet
+     */
+    private function parseFinishCodes($spreadsheet)
+    {
+        $worksheet = $spreadsheet->getSheetByName('Finish Codes');
+        if (!$worksheet) {
+            throw new \Exception('Finish Codes worksheet not found');
+        }
+
+        $data = [];
+        $highestRow = $worksheet->getHighestRow();
+
+        // Start from row 2 to skip header
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $finishCode = $worksheet->getCell("F{$row}")->getValue();
+            $finishMultiplier = $worksheet->getCell("H{$row}")->getValue();
+
+            // Skip empty rows
+            if (empty($finishCode)) {
+                continue;
+            }
+
+            $data[trim($finishCode)] = (float) $finishMultiplier;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Parse Multipliers worksheet
+     */
+    private function parseMultipliers($spreadsheet)
+    {
+        $worksheet = $spreadsheet->getSheetByName('Multipliers');
+        if (!$worksheet) {
+            throw new \Exception('Multipliers worksheet not found');
+        }
+
+        $data = [];
+
+        // Read rows 4-12 as specified
+        for ($row = 4; $row <= 12; $row++) {
+            $categories = $worksheet->getCell("B{$row}")->getValue();
+            $multiplier = $worksheet->getCell("D{$row}")->getValue();
+
+            // Skip empty rows
+            if (empty($categories)) {
+                continue;
+            }
+
+            // Categories can be comma-separated or space-separated
+            $categoryList = preg_split('/[,\s]+/', trim($categories));
+
+            foreach ($categoryList as $category) {
+                $category = trim($category);
+                if (!empty($category)) {
+                    $data[$category] = (float) $multiplier;
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Update pricing for Stock Length products (A, E, M, T)
+     * Formula: price per length * finish multiplier * category multiplier = net cost
+     */
+    private function updateStockLengthPricing($partData, $finishCodes, $multipliers)
+    {
+        $partNumber = $partData['part_number'];
+        $pricePerLength = $partData['price_per_length'];
+        $pricingCategory = $partData['pricing_category'];
+
+        // Find all products with this part number
+        // These will have different finish codes in their SKU
+        $products = Product::where('part_number', $partNumber)
+            ->where('manufacturer', 'tubelite')
+            ->where(function($query) {
+                $query->where('sku', 'LIKE', 'A%')
+                      ->orWhere('sku', 'LIKE', 'E%')
+                      ->orWhere('sku', 'LIKE', 'M%')
+                      ->orWhere('sku', 'LIKE', 'T%');
+            })
+            ->get();
+
+        $updatedCount = 0;
+
+        foreach ($products as $product) {
+            // Extract finish code from SKU (two digits after the -)
+            $finishCode = $product->finish;
+
+            // Get finish multiplier (default to 1.0 if not found)
+            $finishMultiplier = $finishCodes[$finishCode] ?? 1.0;
+
+            // Get category multiplier
+            $categoryMultiplier = $multipliers[$pricingCategory] ?? 1.0;
+
+            // Calculate net cost
+            $netCost = $pricePerLength * $finishMultiplier * $categoryMultiplier;
+
+            // Update product
+            $product->update([
+                'price_per_length' => $pricePerLength,
+                'pricing_category' => $pricingCategory,
+                'finish_multiplier' => $finishMultiplier,
+                'category_multiplier' => $categoryMultiplier,
+                'net_cost' => round($netCost, 2),
+            ]);
+
+            $updatedCount++;
+        }
+
+        return $updatedCount;
+    }
+
+    /**
+     * Update pricing for Accessory products (P, S)
+     * Formula: price per unit * category multiplier = net cost
+     */
+    private function updateAccessoryPricing($partData, $multipliers)
+    {
+        $partNumber = $partData['part_number'];
+        $pricePerPackage = $partData['price_per_package'];
+        $pricingCategory = $partData['pricing_category'];
+
+        // Find all products with this part number
+        $products = Product::where('part_number', $partNumber)
+            ->where('manufacturer', 'tubelite')
+            ->where(function($query) {
+                $query->where('sku', 'LIKE', 'P%')
+                      ->orWhere('sku', 'LIKE', 'S%');
+            })
+            ->get();
+
+        $updatedCount = 0;
+
+        foreach ($products as $product) {
+            // Get category multiplier
+            $categoryMultiplier = $multipliers[$pricingCategory] ?? 1.0;
+
+            // Calculate net cost
+            $netCost = $pricePerPackage * $categoryMultiplier;
+
+            // Update product
+            $product->update([
+                'price_per_package' => $pricePerPackage,
+                'pricing_category' => $pricingCategory,
+                'category_multiplier' => $categoryMultiplier,
+                'net_cost' => round($netCost, 2),
+            ]);
+
+            $updatedCount++;
+        }
+
+        return $updatedCount;
+    }
+
+    /**
+     * Get current EZ Estimate file info
+     */
+    public function getCurrentFile()
+    {
+        try {
+            $files = Storage::files('ez_estimates');
+
+            if (empty($files)) {
+                return response()->json([
+                    'success' => true,
+                    'file' => null,
+                ]);
+            }
+
+            // Get the most recent file
+            usort($files, function($a, $b) {
+                return Storage::lastModified($b) - Storage::lastModified($a);
+            });
+
+            $latestFile = $files[0];
+
+            return response()->json([
+                'success' => true,
+                'file' => [
+                    'path' => $latestFile,
+                    'name' => basename($latestFile),
+                    'size' => Storage::size($latestFile),
+                    'uploaded_at' => date('Y-m-d H:i:s', Storage::lastModified($latestFile)),
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get EZ Estimate file info', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get file info',
+            ], 500);
+        }
+    }
+
+    /**
+     * Get pricing statistics
+     */
+    public function getStats()
+    {
+        try {
+            $stats = [
+                'total_products' => Product::where('manufacturer', 'tubelite')->count(),
+                'with_net_cost' => Product::where('manufacturer', 'tubelite')
+                    ->whereNotNull('net_cost')
+                    ->count(),
+                'stock_length' => Product::where('manufacturer', 'tubelite')
+                    ->where(function($query) {
+                        $query->where('sku', 'LIKE', 'A%')
+                              ->orWhere('sku', 'LIKE', 'E%')
+                              ->orWhere('sku', 'LIKE', 'M%')
+                              ->orWhere('sku', 'LIKE', 'T%');
+                    })
+                    ->count(),
+                'accessories' => Product::where('manufacturer', 'tubelite')
+                    ->where(function($query) {
+                        $query->where('sku', 'LIKE', 'P%')
+                              ->orWhere('sku', 'LIKE', 'S%');
+                    })
+                    ->count(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'stats' => $stats,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get pricing stats', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get stats',
+            ], 500);
+        }
+    }
+}
