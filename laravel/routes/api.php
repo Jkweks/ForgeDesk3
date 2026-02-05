@@ -190,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/obsolete/pdf', [ReportsController::class, 'obsoleteInventoryPdf']);
         Route::get('/reports/usage-analytics/pdf', [ReportsController::class, 'usageAnalyticsPdf']);
         Route::get('/reports/monthly-statement/pdf', [ReportsController::class, 'monthlyInventoryStatementPdf']);
+        Route::get('/reports/inventory/data', [ReportsController::class, 'inventoryReportData']);
         Route::get('/reports/inventory/csv', [ReportsController::class, 'exportInventoryCsv']);
         Route::get('/reports/inventory/pdf', [ReportsController::class, 'inventoryReportPdf']);
 

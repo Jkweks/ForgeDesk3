@@ -1129,6 +1129,79 @@ class ReportsController extends Controller
     }
 
     /**
+     * Get Inventory Report data as JSON
+     */
+    public function inventoryReportData(Request $request)
+    {
+        $query = Product::query()->with('supplier');
+
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('category')) {
+            $query->where('category', $request->category);
+        }
+
+        $products = $query->get();
+
+        // Get committed quantities from fulfillment system
+        $committedByProduct = DB::table('job_reservation_items as ri')
+            ->join('job_reservations as r', 'ri.reservation_id', '=', 'r.id')
+            ->whereIn('r.status', ['active', 'in_progress', 'on_hold'])
+            ->whereNull('r.deleted_at')
+            ->select('ri.product_id', DB::raw('SUM(ri.committed_qty) as committed_qty'))
+            ->groupBy('ri.product_id')
+            ->pluck('committed_qty', 'product_id')
+            ->toArray();
+
+        $inventoryData = $products->map(function ($product) use ($committedByProduct) {
+            $committedQty = $committedByProduct[$product->id] ?? 0;
+
+            // Calculate pack-based quantities if pack_size > 1
+            if ($product->pack_size && $product->pack_size > 1) {
+                $onHandQty = floor($product->quantity_on_hand / $product->pack_size);
+                $committedQtyDisplay = ceil($committedQty / $product->pack_size);
+                $availableQty = max(0, $onHandQty - $committedQtyDisplay);
+            } else {
+                $onHandQty = $product->quantity_on_hand;
+                $committedQtyDisplay = $committedQty;
+                $availableQty = max(0, $product->quantity_on_hand - $committedQty);
+            }
+
+            // Calculate available values
+            $availableValueList = $product->unit_cost * $availableQty;
+            $availableValueNet = ($product->net_cost ?? 0) * $availableQty;
+
+            return [
+                'part_number' => $product->part_number ?? '',
+                'finish' => $product->finish ?? '',
+                'description' => $product->description,
+                'unit_cost' => $product->unit_cost,
+                'net_cost' => $product->net_cost ?? 0,
+                'pack_size' => $product->pack_size ?? 1,
+                'on_hand' => $onHandQty,
+                'committed' => $committedQtyDisplay,
+                'available' => $availableQty,
+                'unit_of_measure' => $product->unit_of_measure,
+                'available_value_list' => $availableValueList,
+                'available_value_net' => $availableValueNet,
+            ];
+        });
+
+        $summary = [
+            'total_products' => $inventoryData->count(),
+            'total_value_list' => $inventoryData->sum('available_value_list'),
+            'total_value_net' => $inventoryData->sum('available_value_net'),
+            'total_available_qty' => $inventoryData->sum('available'),
+        ];
+
+        return response()->json([
+            'products' => $inventoryData->values(),
+            'summary' => $summary
+        ]);
+    }
+
+    /**
      * Generate PDF for Inventory Report
      */
     public function inventoryReportPdf(Request $request)
