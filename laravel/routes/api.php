@@ -80,6 +80,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 
     // EZ Estimate Management (called from admin web interface)
+    Route::get('/ez-estimate/test', [\App\Http\Controllers\Api\EzEstimateController::class, 'test']);
     Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
     Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
     Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);

@@ -867,7 +867,15 @@
           },
           body: formData
         })
-        .then(response => response.json())
+        .then(async response => {
+          // Try to parse as JSON, but if it fails, show the text response
+          const text = await response.text();
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            throw new Error('Server returned invalid response: ' + text.substring(0, 500));
+          }
+        })
         .then(data => {
           document.getElementById('uploadProgress').style.display = 'none';
           document.getElementById('uploadResult').style.display = 'block';

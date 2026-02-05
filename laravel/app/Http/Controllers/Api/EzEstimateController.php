@@ -126,13 +126,33 @@ class EzEstimateController extends Controller
      */
     private function processEzEstimate($filePath)
     {
-        $spreadsheet = IOFactory::load($filePath);
+        try {
+            // Verify file exists and is readable
+            if (!file_exists($filePath)) {
+                throw new \Exception("File does not exist: {$filePath}");
+            }
 
-        // Parse data from all worksheets
-        $slFormulas = $this->parseSLFormulas($spreadsheet);
-        $pFormulas = $this->parsePFormulas($spreadsheet);
-        $finishCodes = $this->parseFinishCodes($spreadsheet);
-        $multipliers = $this->parseMultipliers($spreadsheet);
+            if (!is_readable($filePath)) {
+                throw new \Exception("File is not readable: {$filePath}");
+            }
+
+            // Load the spreadsheet
+            $spreadsheet = IOFactory::load($filePath);
+
+            if (!$spreadsheet) {
+                throw new \Exception("Failed to load Excel file");
+            }
+
+            // Parse data from all worksheets
+            $slFormulas = $this->parseSLFormulas($spreadsheet);
+            $pFormulas = $this->parsePFormulas($spreadsheet);
+            $finishCodes = $this->parseFinishCodes($spreadsheet);
+            $multipliers = $this->parseMultipliers($spreadsheet);
+        } catch (\PhpOffice\PhpSpreadsheet\Reader\Exception $e) {
+            throw new \Exception("Excel parsing error: " . $e->getMessage());
+        } catch (\Exception $e) {
+            throw new \Exception("Failed to process Excel file: " . $e->getMessage());
+        }
 
         $stats = [
             'stock_length_updated' => 0,
@@ -392,6 +412,28 @@ class EzEstimateController extends Controller
         }
 
         return $updatedCount;
+    }
+
+    /**
+     * Test endpoint to verify PhpSpreadsheet is available
+     */
+    public function test()
+    {
+        try {
+            // Check if PhpSpreadsheet is available
+            $readerClass = \PhpOffice\PhpSpreadsheet\IOFactory::class;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'PhpSpreadsheet is available',
+                'class' => $readerClass,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'PhpSpreadsheet error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
