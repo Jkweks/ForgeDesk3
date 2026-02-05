@@ -44,50 +44,41 @@ class ImportExportController extends Controller
             $file = fopen('php://output', 'w');
 
             fputcsv($file, [
-                'SKU', 'Description', 'Long Description', 'Category',
-                'Unit Cost', 'Unit Price', 'Pack Size', 'Quantity On Hand (Packs/Eaches)',
-                'Quantity Committed (Packs/Eaches)', 'Quantity Available (Packs/Eaches)',
-                'Minimum Quantity', 'Maximum Quantity', 'Unit of Measure', 'Supplier',
-                'Supplier SKU', 'Lead Time Days', 'Status', 'Active',
+                'Part Number',
+                'Finish',
+                'Description',
+                'Unit Cost',
+                'Net Cost',
+                'Pack Size',
+                'Qty On Hand',
+                'Qty Committed',
+                'Qty Available',
+                'Unit of Measure',
+                'Available Value (List)',
+                'Available Value (Net)',
             ]);
 
             foreach ($products as $product) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
+                $qtyAvailable = max(0, $product->quantity_on_hand - $committedQty);
 
-                // Calculate pack-based quantities
-                if ($product->pack_size && $product->pack_size > 1) {
-                    $onHandPacks = floor($product->quantity_on_hand / $product->pack_size);
-                    $committedPacks = ceil($committedQty / $product->pack_size);
-                    $availablePacks = max(0, $onHandPacks - $committedPacks);
-
-                    $onHandDisplay = "{$onHandPacks} packs";
-                    $committedDisplay = "{$committedPacks} packs";
-                    $availableDisplay = "{$availablePacks} packs";
-                } else {
-                    $onHandDisplay = $product->quantity_on_hand . ' ea';
-                    $committedDisplay = $committedQty . ' ea';
-                    $availableDisplay = max(0, $product->quantity_on_hand - $committedQty) . ' ea';
-                }
+                // Calculate available values
+                $availableValueList = $product->unit_cost * $qtyAvailable;
+                $availableValueNet = ($product->net_cost ?? 0) * $qtyAvailable;
 
                 fputcsv($file, [
-                    $product->sku,
+                    $product->part_number ?? '',
+                    $product->finish ?? '',
                     $product->description,
-                    $product->long_description,
-                    $product->category,
-                    $product->unit_cost,
-                    $product->unit_price,
+                    number_format($product->unit_cost, 2, '.', ''),
+                    number_format($product->net_cost ?? 0, 2, '.', ''),
                     $product->pack_size ?? 1,
-                    $onHandDisplay,
-                    $committedDisplay,
-                    $availableDisplay,
-                    $product->minimum_quantity,
-                    $product->maximum_quantity,
+                    $product->quantity_on_hand,
+                    $committedQty,
+                    $qtyAvailable,
                     $product->unit_of_measure,
-                    $product->supplier ? $product->supplier->name : '',
-                    $product->supplier_sku,
-                    $product->lead_time_days,
-                    $product->status,
-                    $product->is_active ? 'Yes' : 'No',
+                    number_format($availableValueList, 2, '.', ''),
+                    number_format($availableValueNet, 2, '.', ''),
                 ]);
             }
 
