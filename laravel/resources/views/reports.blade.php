@@ -769,18 +769,18 @@
                 <table class="table table-sm table-hover">
                   <thead>
                     <tr>
-                      <th class="sortable-report" data-report="inventory" data-sort="part_number">Part #</th>
-                      <th class="sortable-report" data-report="inventory" data-sort="finish">Finish</th>
-                      <th class="sortable-report" data-report="inventory" data-sort="description">Description</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="unit_cost">Unit Cost</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="net_cost">Net Cost</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="pack_size">Pack</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="on_hand">On Hand</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="committed">Commit</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="available">Avail</th>
+                      <th class="sortable-report" data-report="inventory" data-sort="part_number" style="cursor: pointer;">Part # <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-report="inventory" data-sort="finish" style="cursor: pointer;">Finish <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-report="inventory" data-sort="description" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="unit_cost" style="cursor: pointer;">Unit Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="net_cost" style="cursor: pointer;">Net Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="pack_size" style="cursor: pointer;">Pack <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="on_hand" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="committed" style="cursor: pointer;">Commit <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available" style="cursor: pointer;">Avail <span class="sort-icon"></span></th>
                       <th>UOM</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_list">Val (List)</th>
-                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_net">Val (Net)</th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_list" style="cursor: pointer;">Val (List) <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_net" style="cursor: pointer;">Val (Net) <span class="sort-icon"></span></th>
                     </tr>
                   </thead>
                   <tbody id="inventoryTableBody"></tbody>
@@ -1516,14 +1516,16 @@ const reportSortState = {
   committed: { sortBy: 'sku', sortDir: 'asc' },
   velocity: { sortBy: 'sku', sortDir: 'asc' },
   reorder: { sortBy: 'sku', sortDir: 'asc' },
-  obsolete: { sortBy: 'sku', sortDir: 'asc' }
+  obsolete: { sortBy: 'sku', sortDir: 'asc' },
+  inventory: { sortBy: 'part_number', sortDir: 'asc' }
 };
 const reportSearchState = {
   lowStock: '',
   committed: '',
   velocity: '',
   reorder: '',
-  obsolete: ''
+  obsolete: '',
+  inventory: ''
 };
 
 // Debounce timer for search
@@ -1612,6 +1614,7 @@ function renderReportByName(reportName, page) {
     case 'velocity': renderVelocityTable(page); break;
     case 'reorder': renderReorderTable(page); break;
     case 'obsolete': renderObsoleteTable(page); break;
+    case 'inventory': renderInventoryTable(page); break;
   }
 }
 
