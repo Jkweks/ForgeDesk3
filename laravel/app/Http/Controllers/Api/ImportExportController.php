@@ -66,19 +66,15 @@ class ImportExportController extends Controller
                     $onHandQty = floor($product->quantity_on_hand / $product->pack_size);
                     $committedQtyDisplay = ceil($committedQty / $product->pack_size);
                     $availableQty = max(0, $onHandQty - $committedQtyDisplay);
-
-                    // Calculate available value based on eaches, not packs
-                    $availableEaches = max(0, $product->quantity_on_hand - $committedQty);
                 } else {
                     $onHandQty = $product->quantity_on_hand;
                     $committedQtyDisplay = $committedQty;
                     $availableQty = max(0, $product->quantity_on_hand - $committedQty);
-                    $availableEaches = $availableQty;
                 }
 
-                // Calculate available values based on actual eaches available
-                $availableValueList = $product->unit_cost * $availableEaches;
-                $availableValueNet = ($product->net_cost ?? 0) * $availableEaches;
+                // Calculate available values based on pack quantities displayed
+                $availableValueList = $product->unit_cost * $availableQty;
+                $availableValueNet = ($product->net_cost ?? 0) * $availableQty;
 
                 fputcsv($file, [
                     $product->part_number ?? '',
