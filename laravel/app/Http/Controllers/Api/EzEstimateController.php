@@ -17,18 +17,38 @@ class EzEstimateController extends Controller
      */
     public function upload(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
-        ]);
-
         try {
-            DB::beginTransaction();
+            // Validate file upload
+            $request->validate([
+                'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
+            ]);
+
+            if (!$request->hasFile('file')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No file uploaded',
+                ], 400);
+            }
 
             $file = $request->file('file');
+
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File upload failed: ' . $file->getErrorMessage(),
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
             $fileName = 'ez_estimate_' . time() . '.' . $file->getClientOriginalExtension();
 
             // Store file in storage/app/ez_estimates
             $path = $file->storeAs('ez_estimates', $fileName);
+
+            if (!$path) {
+                throw new \Exception('Failed to store uploaded file');
+            }
 
             // Parse and process the file
             $result = $this->processEzEstimate(storage_path('app/' . $path));
@@ -42,17 +62,28 @@ class EzEstimateController extends Controller
                 'stats' => $result,
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . implode(', ', $e->validator->errors()->all()),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
 
             Log::error('EZ Estimate upload failed', [
                 'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to process EZ Estimate: ' . $e->getMessage(),
+                'debug' => [
+                    'file' => basename($e->getFile()),
+                    'line' => $e->getLine(),
+                ],
             ], 500);
         }
     }
