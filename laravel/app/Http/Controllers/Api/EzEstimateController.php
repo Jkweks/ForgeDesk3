@@ -13,6 +13,38 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class EzEstimateController extends Controller
 {
     /**
+     * Debug endpoint to check manufacturer data
+     */
+    public function debug(Request $request)
+    {
+        $manufacturers = Product::select('manufacturer')
+            ->distinct()
+            ->orderBy('manufacturer')
+            ->pluck('manufacturer')
+            ->toArray();
+
+        $sampleProducts = Product::select('id', 'sku', 'part_number', 'manufacturer', 'finish')
+            ->limit(10)
+            ->get()
+            ->toArray();
+
+        $tubeliteCount = Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])->count();
+        $tubeliteSamples = Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
+            ->select('id', 'sku', 'part_number', 'manufacturer', 'finish')
+            ->limit(10)
+            ->get()
+            ->toArray();
+
+        return response()->json([
+            'total_products' => Product::count(),
+            'manufacturers' => $manufacturers,
+            'tubelite_count' => $tubeliteCount,
+            'tubelite_samples' => $tubeliteSamples,
+            'sample_products' => $sampleProducts,
+        ]);
+    }
+
+    /**
      * Upload and process EZ Estimate file
      */
     public function upload(Request $request)
