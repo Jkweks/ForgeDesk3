@@ -39,6 +39,14 @@ class EzEstimateController extends Controller
                 ], 400);
             }
 
+            // Ensure directory exists
+            $directory = storage_path('app/ez_estimates');
+            if (!file_exists($directory)) {
+                if (!mkdir($directory, 0775, true)) {
+                    throw new \Exception('Failed to create storage directory');
+                }
+            }
+
             DB::beginTransaction();
 
             $fileName = 'ez_estimate_' . time() . '.' . $file->getClientOriginalExtension();
@@ -50,8 +58,19 @@ class EzEstimateController extends Controller
                 throw new \Exception('Failed to store uploaded file');
             }
 
+            $fullPath = storage_path('app/' . $path);
+
+            // Verify file was actually created
+            if (!file_exists($fullPath)) {
+                throw new \Exception('File was stored but cannot be found at: ' . $fullPath);
+            }
+
+            if (!is_readable($fullPath)) {
+                throw new \Exception('File exists but is not readable. Check permissions on: ' . $fullPath);
+            }
+
             // Parse and process the file
-            $result = $this->processEzEstimate(storage_path('app/' . $path));
+            $result = $this->processEzEstimate($fullPath);
 
             DB::commit();
 
