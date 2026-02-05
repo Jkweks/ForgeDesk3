@@ -60,11 +60,25 @@ class ImportExportController extends Controller
 
             foreach ($products as $product) {
                 $committedQty = $committedByProduct[$product->id] ?? 0;
-                $qtyAvailable = max(0, $product->quantity_on_hand - $committedQty);
 
-                // Calculate available values
-                $availableValueList = $product->unit_cost * $qtyAvailable;
-                $availableValueNet = ($product->net_cost ?? 0) * $qtyAvailable;
+                // Calculate pack-based quantities if pack_size > 1
+                if ($product->pack_size && $product->pack_size > 1) {
+                    $onHandQty = floor($product->quantity_on_hand / $product->pack_size);
+                    $committedQtyDisplay = ceil($committedQty / $product->pack_size);
+                    $availableQty = max(0, $onHandQty - $committedQtyDisplay);
+
+                    // Calculate available value based on eaches, not packs
+                    $availableEaches = max(0, $product->quantity_on_hand - $committedQty);
+                } else {
+                    $onHandQty = $product->quantity_on_hand;
+                    $committedQtyDisplay = $committedQty;
+                    $availableQty = max(0, $product->quantity_on_hand - $committedQty);
+                    $availableEaches = $availableQty;
+                }
+
+                // Calculate available values based on actual eaches available
+                $availableValueList = $product->unit_cost * $availableEaches;
+                $availableValueNet = ($product->net_cost ?? 0) * $availableEaches;
 
                 fputcsv($file, [
                     $product->part_number ?? '',
@@ -73,9 +87,9 @@ class ImportExportController extends Controller
                     number_format($product->unit_cost, 2, '.', ''),
                     number_format($product->net_cost ?? 0, 2, '.', ''),
                     $product->pack_size ?? 1,
-                    $product->quantity_on_hand,
-                    $committedQty,
-                    $qtyAvailable,
+                    $onHandQty,
+                    $committedQtyDisplay,
+                    $availableQty,
                     $product->unit_of_measure,
                     number_format($availableValueList, 2, '.', ''),
                     number_format($availableValueNet, 2, '.', ''),
