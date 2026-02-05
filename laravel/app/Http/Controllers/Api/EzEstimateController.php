@@ -497,6 +497,159 @@ class EzEstimateController extends Controller
     }
 
     /**
+     * Test endpoint to show pricing calculation for specific part numbers
+     */
+    public function testPricing(Request $request)
+    {
+        try {
+            $partNumbers = ['S204', 'E14144'];
+
+            // Get the most recent EZ Estimate file
+            $files = Storage::files('ez_estimates');
+            if (empty($files)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No EZ Estimate file found. Please upload one first.',
+                ], 404);
+            }
+
+            usort($files, function($a, $b) {
+                return Storage::lastModified($b) - Storage::lastModified($a);
+            });
+            $latestFile = $files[0];
+            $fullPath = Storage::path($latestFile);
+
+            // Load spreadsheet
+            $reader = IOFactory::createReader('Xlsx');
+            $reader->setReadDataOnly(true);
+            $reader->setReadEmptyCells(false);
+            $spreadsheet = $reader->load($fullPath);
+
+            // Parse all worksheets
+            $slFormulas = $this->parseSLFormulas($spreadsheet);
+            $pFormulas = $this->parsePFormulas($spreadsheet);
+            $finishCodes = $this->parseFinishCodes($spreadsheet);
+            $multipliers = $this->parseMultipliers($spreadsheet);
+
+            $results = [];
+
+            foreach ($partNumbers as $partNumber) {
+                $result = [
+                    'part_number' => $partNumber,
+                    'type' => null,
+                    'excel_data' => null,
+                    'database_products' => [],
+                    'calculations' => [],
+                ];
+
+                // Check if it's in SL Formulas (A, E, M, T parts)
+                $slData = collect($slFormulas)->firstWhere('part_number', $partNumber);
+                if ($slData) {
+                    $result['type'] = 'Stock Length (A/E/M/T)';
+                    $result['excel_data'] = $slData;
+
+                    // Find matching products
+                    $products = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                        ->where('products.part_number', $partNumber)
+                        ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
+                        ->where(function($query) {
+                            $query->where('products.sku', 'LIKE', 'A%')
+                                  ->orWhere('products.sku', 'LIKE', 'E%')
+                                  ->orWhere('products.sku', 'LIKE', 'M%')
+                                  ->orWhere('products.sku', 'LIKE', 'T%');
+                        })
+                        ->select('products.*', 'suppliers.name as supplier_name')
+                        ->get();
+
+                    foreach ($products as $product) {
+                        $finishCode = $product->finish;
+                        $finishMultiplier = $finishCodes[$finishCode] ?? 1.0;
+                        $categoryMultiplier = $multipliers[$slData['pricing_category']] ?? 1.0;
+                        $netCost = $slData['price_per_length'] * $finishMultiplier * $categoryMultiplier;
+
+                        $result['database_products'][] = [
+                            'sku' => $product->sku,
+                            'finish' => $finishCode,
+                            'current_net_cost' => $product->net_cost,
+                        ];
+
+                        $result['calculations'][] = [
+                            'sku' => $product->sku,
+                            'formula' => 'price_per_length × finish_multiplier × category_multiplier',
+                            'price_per_length' => $slData['price_per_length'],
+                            'finish_code' => $finishCode,
+                            'finish_multiplier' => $finishMultiplier,
+                            'pricing_category' => $slData['pricing_category'],
+                            'category_multiplier' => $categoryMultiplier,
+                            'calculation' => "{$slData['price_per_length']} × {$finishMultiplier} × {$categoryMultiplier}",
+                            'net_cost' => round($netCost, 2),
+                        ];
+                    }
+                }
+
+                // Check if it's in P Formulas (P, S parts)
+                $pData = collect($pFormulas)->firstWhere('part_number', $partNumber);
+                if ($pData) {
+                    $result['type'] = 'Accessory (P/S)';
+                    $result['excel_data'] = $pData;
+
+                    // Find matching products
+                    $products = Product::join('suppliers', 'products.supplier_id', '=', 'suppliers.id')
+                        ->where('products.part_number', $partNumber)
+                        ->whereRaw('LOWER(suppliers.name) = ?', ['tubelite'])
+                        ->where(function($query) {
+                            $query->where('products.sku', 'LIKE', 'P%')
+                                  ->orWhere('products.sku', 'LIKE', 'S%');
+                        })
+                        ->select('products.*', 'suppliers.name as supplier_name')
+                        ->get();
+
+                    foreach ($products as $product) {
+                        $categoryMultiplier = $multipliers[$pData['pricing_category']] ?? 1.0;
+                        $netCost = $pData['price_per_package'] * $categoryMultiplier;
+
+                        $result['database_products'][] = [
+                            'sku' => $product->sku,
+                            'current_net_cost' => $product->net_cost,
+                        ];
+
+                        $result['calculations'][] = [
+                            'sku' => $product->sku,
+                            'formula' => 'price_per_package × category_multiplier',
+                            'price_per_package' => $pData['price_per_package'],
+                            'pricing_category' => $pData['pricing_category'],
+                            'category_multiplier' => $categoryMultiplier,
+                            'calculation' => "{$pData['price_per_package']} × {$categoryMultiplier}",
+                            'net_cost' => round($netCost, 2),
+                        ];
+                    }
+                }
+
+                if (!$slData && !$pData) {
+                    $result['error'] = 'Part number not found in EZ Estimate file';
+                }
+
+                $results[] = $result;
+            }
+
+            return response()->json([
+                'success' => true,
+                'file' => basename($latestFile),
+                'finish_codes_sample' => array_slice($finishCodes, 0, 5, true),
+                'multipliers' => $multipliers,
+                'results' => $results,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Test failed: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    }
+
+    /**
      * Get current EZ Estimate file info
      */
     public function getCurrentFile()
