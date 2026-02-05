@@ -67,18 +67,17 @@ class EzEstimateController extends Controller
                 throw new \Exception('Failed to store uploaded file');
             }
 
-            $fullPath = storage_path('app/' . $path);
-
-            // Verify file was actually created
-            if (!file_exists($fullPath)) {
-                // List files in directory to help debug
+            // Verify file was actually created using Storage facade
+            if (!Storage::exists($path)) {
                 $files = Storage::files('ez_estimates');
                 throw new \Exception(
-                    'File was stored but cannot be found at: ' . $fullPath .
-                    '. Files in directory: ' . implode(', ', $files) .
-                    '. Storage returned path: ' . $path
+                    'File was stored but cannot be found at: ' . $path .
+                    '. Files in directory: ' . implode(', ', $files)
                 );
             }
+
+            // Get the full filesystem path
+            $fullPath = Storage::path($path);
 
             if (!is_readable($fullPath)) {
                 throw new \Exception('File exists but is not readable. Check permissions on: ' . $fullPath);
