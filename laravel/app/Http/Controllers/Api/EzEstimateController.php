@@ -187,7 +187,7 @@ class EzEstimateController extends Controller
 
             // Create reader with memory-efficient settings
             $reader = IOFactory::createReader('Xlsx');
-            $reader->setReadDataOnly(true); // Only read cell data, skip formatting
+            $reader->setReadDataOnly(false); // Only read cell data, skip formatting
             $reader->setReadEmptyCells(false); // Skip empty cells to save memory
 
             // Load the spreadsheet with optimized settings
@@ -258,7 +258,7 @@ class EzEstimateController extends Controller
         for ($row = 2; $row <= $highestRow; $row++) {
             $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
             $partNumber = $worksheet->getCell("C{$row}")->getValue();
-            $pricePerLength = $worksheet->getCell("G{$row}")->getValue();
+            $pricePerLength = $worksheet->getCell("G{$row}")->getOldCalculatedValue();
 
             // Skip empty rows or rows without a price in column G
             // (there may be duplicate entries, only use rows with actual pricing)
@@ -293,7 +293,7 @@ class EzEstimateController extends Controller
         for ($row = 2; $row <= $highestRow; $row++) {
             $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
             $partNumber = $worksheet->getCell("C{$row}")->getValue();
-            $pricePerPackage = $worksheet->getCell("I{$row}")->getValue(); // Column I, not H
+            $pricePerPackage = $worksheet->getCell("I{$row}")->getOldCalculatedValue(); // Column I, not H
 
             // Skip empty rows or rows without a price in column I
             if (empty($partNumber) || empty($pricePerPackage) || $pricePerPackage == 0) {
