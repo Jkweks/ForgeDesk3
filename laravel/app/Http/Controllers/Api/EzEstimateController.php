@@ -259,9 +259,11 @@ class EzEstimateController extends Controller
             $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
             $partNumber = $worksheet->getCell("C{$row}")->getValue();
             $pricePerLength = $worksheet->getCell("G{$row}")->getValue();
+            $columnH = $worksheet->getCell("H{$row}")->getValue(); // Check column H for value
 
-            // Skip empty rows
-            if (empty($partNumber)) {
+            // Skip empty rows or rows without a value in column H
+            // (there may be duplicate entries, only use rows with column H populated)
+            if (empty($partNumber) || empty($columnH)) {
                 continue;
             }
 
@@ -292,7 +294,7 @@ class EzEstimateController extends Controller
         for ($row = 2; $row <= $highestRow; $row++) {
             $pricingCategory = $worksheet->getCell("A{$row}")->getValue();
             $partNumber = $worksheet->getCell("C{$row}")->getValue();
-            $pricePerPackage = $worksheet->getCell("H{$row}")->getValue();
+            $pricePerPackage = $worksheet->getCell("I{$row}")->getValue(); // Column I, not H
 
             // Skip empty rows
             if (empty($partNumber)) {
