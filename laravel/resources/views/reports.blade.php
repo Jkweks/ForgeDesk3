@@ -1306,8 +1306,32 @@ async function exportMonthlyStatementPdf() {
   try {
     const month = document.getElementById('statementMonth').value;
     const year = document.getElementById('statementYear').value;
-    window.open(`${API_BASE}/reports/monthly-statement/pdf?month=${month}&year=${year}`, '_blank');
-    showNotification('PDF opened in new tab', 'success');
+
+    showNotification('Generating PDF report...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/monthly-statement/pdf?month=${month}&year=${year}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `monthly-statement-${month}-${year}-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('PDF report generated successfully', 'success');
   } catch (error) {
     console.error('Error exporting PDF:', error);
     showNotification('Error exporting PDF', 'danger');
@@ -1377,8 +1401,31 @@ function renderInventoryTable(page = 1) {
 // Export Inventory CSV
 async function exportInventoryCsv() {
   try {
-    window.open(`${API_BASE}/reports/inventory/csv`, '_blank');
-    showNotification('CSV export started', 'success');
+    showNotification('Generating CSV export...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/inventory/csv`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'text/csv'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate CSV');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('CSV export completed', 'success');
   } catch (error) {
     console.error('Error exporting inventory CSV:', error);
     showNotification('Error exporting CSV', 'danger');
@@ -1388,8 +1435,31 @@ async function exportInventoryCsv() {
 // Export Inventory PDF
 async function exportInventoryPdf() {
   try {
-    window.open(`${API_BASE}/reports/inventory/pdf`, '_blank');
-    showNotification('PDF opened in new tab', 'success');
+    showNotification('Generating PDF report...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/inventory/pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('PDF report generated successfully', 'success');
   } catch (error) {
     console.error('Error exporting inventory PDF:', error);
     showNotification('Error exporting PDF', 'danger');
