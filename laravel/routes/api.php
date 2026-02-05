@@ -78,6 +78,11 @@ Route::prefix('v1')->group(function () {
     Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
     Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
+
+    // EZ Estimate Management (called from admin web interface)
+    Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
+    Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
+    Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -182,11 +187,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/obsolete/pdf', [ReportsController::class, 'obsoleteInventoryPdf']);
         Route::get('/reports/usage-analytics/pdf', [ReportsController::class, 'usageAnalyticsPdf']);
         Route::get('/reports/monthly-statement/pdf', [ReportsController::class, 'monthlyInventoryStatementPdf']);
-
-        // EZ Estimate Management
-        Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
-        Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
-        Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);
 
         // Purchase Orders
         Route::apiResource('purchase-orders', PurchaseOrderController::class);
