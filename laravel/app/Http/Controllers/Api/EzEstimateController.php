@@ -126,7 +126,14 @@ class EzEstimateController extends Controller
      */
     private function processEzEstimate($filePath)
     {
+        // Increase memory and time limits for large Excel files
+        $oldMemoryLimit = ini_get('memory_limit');
+        $oldTimeLimit = ini_get('max_execution_time');
+
         try {
+            ini_set('memory_limit', '512M');
+            ini_set('max_execution_time', '300'); // 5 minutes
+
             // Verify file exists and is readable
             if (!file_exists($filePath)) {
                 throw new \Exception("File does not exist: {$filePath}");
@@ -136,7 +143,7 @@ class EzEstimateController extends Controller
                 throw new \Exception("File is not readable: {$filePath}");
             }
 
-            // Load the spreadsheet
+            // Load the spreadsheet with read-only mode for better performance
             $spreadsheet = IOFactory::load($filePath);
 
             if (!$spreadsheet) {
