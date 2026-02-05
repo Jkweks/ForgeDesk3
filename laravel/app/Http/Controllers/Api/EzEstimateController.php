@@ -49,7 +49,16 @@ class EzEstimateController extends Controller
 
             DB::beginTransaction();
 
-            $fileName = 'ez_estimate_' . time() . '.' . $file->getClientOriginalExtension();
+            // Get file extension, fallback to xlsx if not available
+            $extension = $file->getClientOriginalExtension();
+            if (empty($extension)) {
+                $extension = $file->extension(); // Try alternate method
+            }
+            if (empty($extension)) {
+                $extension = 'xlsx'; // Default fallback
+            }
+
+            $fileName = 'ez_estimate_' . time() . '.' . $extension;
 
             // Store file in storage/app/ez_estimates
             $path = $file->storeAs('ez_estimates', $fileName);
@@ -62,7 +71,13 @@ class EzEstimateController extends Controller
 
             // Verify file was actually created
             if (!file_exists($fullPath)) {
-                throw new \Exception('File was stored but cannot be found at: ' . $fullPath);
+                // List files in directory to help debug
+                $files = Storage::files('ez_estimates');
+                throw new \Exception(
+                    'File was stored but cannot be found at: ' . $fullPath .
+                    '. Files in directory: ' . implode(', ', $files) .
+                    '. Storage returned path: ' . $path
+                );
             }
 
             if (!is_readable($fullPath)) {
