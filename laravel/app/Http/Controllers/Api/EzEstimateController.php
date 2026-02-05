@@ -409,7 +409,12 @@ class EzEstimateController extends Controller
             $finishMultiplier = $finishCodes[$finishCode] ?? 1.0;
 
             // Get category multiplier
-            $categoryMultiplier = $multipliers[$pricingCategory] ?? 1.0;
+            // Special case: If pricing category is "F" (but not "F3"), use "F1" multiplier
+            $categoryKey = $pricingCategory;
+            if ($pricingCategory === 'F') {
+                $categoryKey = 'F1';
+            }
+            $categoryMultiplier = $multipliers[$categoryKey] ?? 1.0;
 
             // Calculate net cost
             $netCost = $pricePerLength * $finishMultiplier * $categoryMultiplier;
@@ -454,7 +459,12 @@ class EzEstimateController extends Controller
 
         foreach ($products as $product) {
             // Get category multiplier
-            $categoryMultiplier = $multipliers[$pricingCategory] ?? 1.0;
+            // Special case: If pricing category is "F" (but not "F3"), use "F1" multiplier
+            $categoryKey = $pricingCategory;
+            if ($pricingCategory === 'F') {
+                $categoryKey = 'F1';
+            }
+            $categoryMultiplier = $multipliers[$categoryKey] ?? 1.0;
 
             // Calculate net cost
             $netCost = $pricePerPackage * $categoryMultiplier;
@@ -563,7 +573,13 @@ class EzEstimateController extends Controller
                     foreach ($products as $product) {
                         $finishCode = $product->finish;
                         $finishMultiplier = $finishCodes[$finishCode] ?? 1.0;
-                        $categoryMultiplier = $multipliers[$slData['pricing_category']] ?? 1.0;
+
+                        // Special case: If pricing category is "F" (but not "F3"), use "F1" multiplier
+                        $categoryKey = $slData['pricing_category'];
+                        if ($slData['pricing_category'] === 'F') {
+                            $categoryKey = 'F1';
+                        }
+                        $categoryMultiplier = $multipliers[$categoryKey] ?? 1.0;
                         $netCost = $slData['price_per_length'] * $finishMultiplier * $categoryMultiplier;
 
                         $result['database_products'][] = [
@@ -604,7 +620,12 @@ class EzEstimateController extends Controller
                         ->get();
 
                     foreach ($products as $product) {
-                        $categoryMultiplier = $multipliers[$pData['pricing_category']] ?? 1.0;
+                        // Special case: If pricing category is "F" (but not "F3"), use "F1" multiplier
+                        $categoryKey = $pData['pricing_category'];
+                        if ($pData['pricing_category'] === 'F') {
+                            $categoryKey = 'F1';
+                        }
+                        $categoryMultiplier = $multipliers[$categoryKey] ?? 1.0;
                         $netCost = $pData['price_per_package'] * $categoryMultiplier;
 
                         $result['database_products'][] = [
