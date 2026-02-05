@@ -280,7 +280,7 @@ class EzEstimateController extends Controller
         // Find all products with this part number
         // These will have different finish codes in their SKU
         $products = Product::where('part_number', $partNumber)
-            ->where('manufacturer', 'tubelite')
+            ->whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
             ->where(function($query) {
                 $query->where('sku', 'LIKE', 'A%')
                       ->orWhere('sku', 'LIKE', 'E%')
@@ -331,7 +331,7 @@ class EzEstimateController extends Controller
 
         // Find all products with this part number
         $products = Product::where('part_number', $partNumber)
-            ->where('manufacturer', 'tubelite')
+            ->whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
             ->where(function($query) {
                 $query->where('sku', 'LIKE', 'P%')
                       ->orWhere('sku', 'LIKE', 'S%');
@@ -412,11 +412,11 @@ class EzEstimateController extends Controller
     {
         try {
             $stats = [
-                'total_products' => Product::where('manufacturer', 'tubelite')->count(),
-                'with_net_cost' => Product::where('manufacturer', 'tubelite')
+                'total_products' => Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])->count(),
+                'with_net_cost' => Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
                     ->whereNotNull('net_cost')
                     ->count(),
-                'stock_length' => Product::where('manufacturer', 'tubelite')
+                'stock_length' => Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
                     ->where(function($query) {
                         $query->where('sku', 'LIKE', 'A%')
                               ->orWhere('sku', 'LIKE', 'E%')
@@ -424,7 +424,7 @@ class EzEstimateController extends Controller
                               ->orWhere('sku', 'LIKE', 'T%');
                     })
                     ->count(),
-                'accessories' => Product::where('manufacturer', 'tubelite')
+                'accessories' => Product::whereRaw('LOWER(manufacturer) = ?', ['tubelite'])
                     ->where(function($query) {
                         $query->where('sku', 'LIKE', 'P%')
                               ->orWhere('sku', 'LIKE', 'S%');
