@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
 
     // Job Reservations
     Route::get('/job-reservations', [JobReservationController::class, 'index']);
+    Route::post('/job-reservations/create-manual', [JobReservationController::class, 'createManual']);
     Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
     Route::put('/job-reservations/{id}', [JobReservationController::class, 'updateReservation']);
     Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);

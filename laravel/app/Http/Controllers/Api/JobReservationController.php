@@ -977,6 +977,169 @@ class JobReservationController extends Controller
     }
 
     /**
+     * Create a manual job reservation without EZ estimate
+     * Allows adding parts directly to a reservation
+     */
+    public function createManual(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'job_number' => 'required|string|max:100',
+                'release_number' => 'required|integer|min:1',
+                'job_name' => 'required|string|max:255',
+                'requested_by' => 'required|string|max:255',
+                'needed_by' => 'nullable|date',
+                'notes' => 'nullable|string',
+                'items' => 'required|array|min:1',
+                'items.*.product_id' => 'required|integer|exists:products,id',
+                'items.*.requested_qty' => 'required|integer|min:1',
+                'items.*.committed_qty' => 'nullable|integer|min:0',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'details' => $validator->errors(),
+                ], 422);
+            }
+
+            // Check for duplicate job_number + release_number
+            $exists = JobReservation::where('job_number', $request->job_number)
+                ->where('release_number', $request->release_number)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'error' => 'Duplicate job reservation',
+                    'message' => "Job {$request->job_number} Release {$request->release_number} already exists",
+                ], 422);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // Create job reservation
+                $reservation = JobReservation::create([
+                    'job_number' => $request->job_number,
+                    'release_number' => $request->release_number,
+                    'job_name' => $request->job_name,
+                    'requested_by' => $request->requested_by,
+                    'needed_by' => $request->needed_by,
+                    'notes' => $request->notes,
+                    'status' => 'active',
+                ]);
+
+                $itemsData = [];
+                $totalRequested = 0;
+                $totalCommitted = 0;
+                $warnings = [];
+
+                // Create reservation items
+                foreach ($request->items as $itemData) {
+                    $product = Product::find($itemData['product_id']);
+
+                    // If committed_qty not provided, default to min(requested_qty, available)
+                    $requestedQty = $itemData['requested_qty'];
+                    $committedQty = $itemData['committed_qty'] ?? min($requestedQty, $product->quantity_available);
+
+                    // Check if committed exceeds available (allow but warn)
+                    if ($committedQty > $product->quantity_available) {
+                        $warnings[] = [
+                            'product_id' => $product->id,
+                            'sku' => $product->sku,
+                            'message' => "Committing {$committedQty} but only {$product->quantity_available} available",
+                            'committed_qty' => $committedQty,
+                            'available_qty' => $product->quantity_available,
+                            'shortage' => $committedQty - $product->quantity_available,
+                        ];
+                    }
+
+                    // Get availability before commitment
+                    $availableBefore = $product->quantity_available;
+
+                    // Create reservation item
+                    $item = JobReservationItem::create([
+                        'reservation_id' => $reservation->id,
+                        'product_id' => $product->id,
+                        'requested_qty' => $requestedQty,
+                        'committed_qty' => $committedQty,
+                        'consumed_qty' => 0,
+                    ]);
+
+                    // Refresh product to get updated availability
+                    $product->refresh();
+                    $availableAfter = $product->quantity_available;
+
+                    $totalRequested += $requestedQty;
+                    $totalCommitted += $committedQty;
+
+                    $itemsData[] = [
+                        'id' => $item->id,
+                        'product_id' => $product->id,
+                        'sku' => $product->sku,
+                        'part_number' => $product->part_number,
+                        'finish' => $product->finish,
+                        'description' => $product->description,
+                        'requested_qty' => $requestedQty,
+                        'committed_qty' => $committedQty,
+                        'consumed_qty' => 0,
+                        'available_before' => $availableBefore,
+                        'available_after' => $availableAfter,
+                        'location' => $product->location,
+                    ];
+                }
+
+                DB::commit();
+
+                Log::info('Manual job reservation created', [
+                    'reservation_id' => $reservation->id,
+                    'job_number' => $reservation->job_number,
+                    'release_number' => $reservation->release_number,
+                    'items_count' => count($itemsData),
+                    'total_requested' => $totalRequested,
+                    'total_committed' => $totalCommitted,
+                ]);
+
+                return response()->json([
+                    'message' => 'Manual reservation created successfully',
+                    'reservation' => [
+                        'id' => $reservation->id,
+                        'job_number' => $reservation->job_number,
+                        'release_number' => $reservation->release_number,
+                        'job_name' => $reservation->job_name,
+                        'requested_by' => $reservation->requested_by,
+                        'needed_by' => $reservation->needed_by?->format('Y-m-d'),
+                        'status' => $reservation->status,
+                        'status_label' => $reservation->status_label,
+                        'notes' => $reservation->notes,
+                        'total_requested' => $totalRequested,
+                        'total_committed' => $totalCommitted,
+                        'created_at' => $reservation->created_at->toISOString(),
+                    ],
+                    'items' => $itemsData,
+                    'warnings' => $warnings,
+                ]);
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create manual reservation', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to create manual reservation',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Replace a reservation item with a different product
      * Useful for swapping to different finish or part number
      * Can only replace items that haven't been consumed yet
