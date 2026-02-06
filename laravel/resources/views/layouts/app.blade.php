@@ -144,6 +144,9 @@
 
     <!-- Page Content -->
     @yield('content')
+
+    <!-- Theme Settings (Available on all pages) -->
+    @include('partials.theme-settings')
   </div>
 
   <!-- Scripts -->
