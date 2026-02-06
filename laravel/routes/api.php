@@ -68,8 +68,12 @@ Route::prefix('v1')->group(function () {
     Route::post('/fulfillment/commit-materials', [MaterialCheckController::class, 'commitMaterials']);
 
     // Job Reservations
+    // IMPORTANT: Specific routes MUST come before parameterized routes like {id}
     Route::get('/job-reservations', [JobReservationController::class, 'index']);
     Route::post('/job-reservations/create-manual', [JobReservationController::class, 'createManual']);
+    Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
+    Route::get('/job-reservations/search-products', [JobReservationController::class, 'searchProducts']);
+    Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
     Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
     Route::put('/job-reservations/{id}', [JobReservationController::class, 'updateReservation']);
     Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);
@@ -78,9 +82,6 @@ Route::prefix('v1')->group(function () {
     Route::put('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'updateItem']);
     Route::post('/job-reservations/{id}/items/{itemId}/replace', [JobReservationController::class, 'replaceItem']);
     Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
-    Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
-    Route::get('/job-reservations/search-products', [JobReservationController::class, 'searchProducts']);
-    Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 
     // EZ Estimate Management (called from admin web interface)
     Route::get('/ez-estimate/test', [\App\Http\Controllers\Api\EzEstimateController::class, 'test']);
