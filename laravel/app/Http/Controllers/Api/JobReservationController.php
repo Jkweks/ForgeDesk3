@@ -813,7 +813,7 @@ class JobReservationController extends Controller
     }
 
     /**
-     * Search for products by SKU (case-insensitive)
+     * Search for products by SKU (case-insensitive) - DEPRECATED, use searchProducts instead
      */
     public function searchProduct(Request $request)
     {
@@ -852,6 +852,71 @@ class JobReservationController extends Controller
         } catch (\Exception $e) {
             Log::error('Product search failed', [
                 'sku' => $request->get('sku'),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Search failed',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Search for products by SKU, part number, or description
+     * Returns paginated results for autocomplete
+     */
+    public function searchProducts(Request $request)
+    {
+        try {
+            $query = $request->get('q') ?: $request->get('search');
+            $perPage = min($request->get('per_page', 10), 50); // Max 50 results
+
+            if (!$query || strlen($query) < 2) {
+                return response()->json([
+                    'data' => [],
+                    'total' => 0,
+                ]);
+            }
+
+            // Search across SKU, part number, and description (case-insensitive)
+            $products = Product::where(function($q) use ($query) {
+                $q->whereRaw('LOWER(sku) LIKE ?', ['%' . strtolower($query) . '%'])
+                  ->orWhereRaw('LOWER(part_number) LIKE ?', ['%' . strtolower($query) . '%'])
+                  ->orWhereRaw('LOWER(description) LIKE ?', ['%' . strtolower($query) . '%']);
+            })
+            ->orderByRaw("CASE
+                WHEN LOWER(sku) = ? THEN 1
+                WHEN LOWER(sku) LIKE ? THEN 2
+                WHEN LOWER(part_number) LIKE ? THEN 3
+                ELSE 4
+            END", [strtolower($query), strtolower($query) . '%', strtolower($query) . '%'])
+            ->orderBy('sku')
+            ->limit($perPage)
+            ->get();
+
+            $results = $products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'sku' => $product->sku,
+                    'part_number' => $product->part_number,
+                    'finish' => $product->finish,
+                    'description' => $product->description,
+                    'quantity_on_hand' => $product->quantity_on_hand,
+                    'quantity_available' => $product->quantity_available,
+                    'location' => $product->location,
+                    'unit_of_measure' => $product->unit_of_measure,
+                ];
+            });
+
+            return response()->json([
+                'data' => $results,
+                'total' => $results->count(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Products search failed', [
+                'query' => $request->get('q') ?: $request->get('search'),
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

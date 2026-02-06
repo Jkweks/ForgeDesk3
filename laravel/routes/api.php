@@ -79,6 +79,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/job-reservations/{id}/items/{itemId}/replace', [JobReservationController::class, 'replaceItem']);
     Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
     Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
+    Route::get('/job-reservations/search-products', [JobReservationController::class, 'searchProducts']);
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
 
     // EZ Estimate Management (called from admin web interface)

@@ -1426,7 +1426,7 @@
             }
 
             try {
-                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(query)}&per_page=10`, {
+                const response = await fetch(`/api/v1/job-reservations/search-products?q=${encodeURIComponent(query)}&per_page=10`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
@@ -1596,7 +1596,7 @@
             }
 
             try {
-                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(query)}&per_page=10`, {
+                const response = await fetch(`/api/v1/job-reservations/search-products?q=${encodeURIComponent(query)}&per_page=10`, {
                     method: 'GET',
                     headers: {
                         'Accept': 'application/json',
