@@ -1405,7 +1405,18 @@
                 replaceItemProductSearch = setTimeout(() => searchReplaceProduct(this.value), 300);
             };
 
-            showModal('replaceItemModal');
+            // Show modal using DOM manipulation
+            const modalElement = document.getElementById('replaceItemModal');
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.setAttribute('data-modal-id', 'replaceItemModal');
+            document.body.appendChild(backdrop);
         }
 
         async function searchReplaceProduct(query) {
@@ -1539,7 +1550,18 @@
             renderManualItems();
             hideManualAddItemForm();
 
-            showModal('manualReservationModal');
+            // Show modal using DOM manipulation
+            const modalElement = document.getElementById('manualReservationModal');
+            modalElement.classList.add('show');
+            modalElement.style.display = 'block';
+            modalElement.setAttribute('aria-modal', 'true');
+            modalElement.removeAttribute('aria-hidden');
+            document.body.classList.add('modal-open');
+
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.setAttribute('data-modal-id', 'manualReservationModal');
+            document.body.appendChild(backdrop);
         }
 
         function showManualAddItemForm() {
