@@ -15,21 +15,32 @@
   <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
   <style>
     @import url("https://rsms.me/inter/inter.css");
+
+    /* Dark mode compatible styles using Tabler CSS variables */
     .status-badge { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
     .table-actions { white-space: nowrap; }
+
+    /* Login container - dark mode compatible gradient */
     .login-container {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--tblr-primary, #667eea) 0%, var(--tblr-purple, #764ba2) 100%);
     }
+
     #app { display: none; }
     #app.active { display: block; }
     #loginPage { display: none; }
     #loginPage.active { display: flex; }
     .loading { text-align: center; padding: 2rem; }
+
+    /* Required field asterisk - uses theme danger color */
     .modal-body .form-label.required:after {
       content: " *";
-      color: #d63939;
+      color: var(--tblr-danger, #d63939);
     }
+
     .alert.position-fixed {
       animation: slideIn 0.3s ease-out;
     }
@@ -38,7 +49,7 @@
       to { transform: translateX(0); opacity: 1; }
     }
 
-    /* Modal scrolling styles */
+    /* Modal scrolling styles - dark mode compatible */
     .modal-content {
       max-height: 90vh;
       display: flex;
@@ -48,22 +59,22 @@
       overflow-y: auto;
       max-height: calc(90vh - 120px);
       scrollbar-width: thin;
-      scrollbar-color: rgba(99, 102, 241, 0.5) rgba(0, 0, 0, 0.1);
+      scrollbar-color: var(--tblr-primary-lt, rgba(99, 102, 241, 0.5)) var(--tblr-border-color, rgba(98, 105, 118, 0.16));
     }
     .modal-body::-webkit-scrollbar {
       width: 8px;
     }
     .modal-body::-webkit-scrollbar-track {
-      background: rgba(0, 0, 0, 0.05);
+      background: var(--tblr-border-color, rgba(98, 105, 118, 0.16));
       border-radius: 4px;
     }
     .modal-body::-webkit-scrollbar-thumb {
-      background: rgba(99, 102, 241, 0.5);
+      background: var(--tblr-primary-lt, rgba(99, 102, 241, 0.5));
       border-radius: 4px;
       transition: background 0.2s ease;
     }
     .modal-body::-webkit-scrollbar-thumb:hover {
-      background: rgba(99, 102, 241, 0.8);
+      background: var(--tblr-primary, rgba(99, 102, 241, 0.8));
     }
     .modal-header,
     .modal-footer {
