@@ -13,7 +13,9 @@ class Product extends Model
     protected $fillable = [
         'sku', 'part_number', 'finish', 'description', 'long_description',
         'category_id',
-        'unit_cost', 'unit_price', 'quantity_on_hand', 'quantity_committed',
+        'unit_cost', 'unit_price', 'net_cost', 'pricing_category',
+        'finish_multiplier', 'category_multiplier', 'price_per_length', 'price_per_package',
+        'quantity_on_hand', 'quantity_committed',
         'minimum_quantity', 'reorder_point', 'safety_stock', 'average_daily_use',
         'on_order_qty', 'maximum_quantity', 'unit_of_measure',
         'pack_size', 'purchase_uom', 'stock_uom', 'min_order_qty', 'order_multiple',
@@ -29,6 +31,11 @@ class Product extends Model
     protected $casts = [
         'unit_cost' => 'decimal:2',
         'unit_price' => 'decimal:2',
+        'net_cost' => 'decimal:2',
+        'finish_multiplier' => 'decimal:4',
+        'category_multiplier' => 'decimal:4',
+        'price_per_length' => 'decimal:2',
+        'price_per_package' => 'decimal:2',
         'average_daily_use' => 'decimal:2',
         'dimension_height' => 'decimal:2',
         'dimension_depth' => 'decimal:2',

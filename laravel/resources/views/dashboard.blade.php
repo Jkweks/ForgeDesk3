@@ -829,11 +829,12 @@
                 </div>
               </div>
               <div class="col-lg-6">
-                <label class="form-label required">Unit Price</label>
+                <label class="form-label">Net Cost</label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
-                  <input type="number" class="form-control" name="unit_price" id="productUnitPrice" placeholder="0.00" step="0.01" min="0" required>
+                  <input type="number" class="form-control" name="net_cost" id="productNetCost" placeholder="0.00" step="0.01" min="0">
                 </div>
+                <small class="form-hint">Calculated from EZ Estimate or manually entered</small>
               </div>
             </div>
 
@@ -1690,8 +1691,8 @@
               <p>$${parseFloat(product.unit_cost).toFixed(2)}</p>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-bold">Unit Price</label>
-              <p>$${parseFloat(product.unit_price).toFixed(2)}</p>
+              <label class="form-label fw-bold">Net Cost</label>
+              <p>$${product.net_cost ? parseFloat(product.net_cost).toFixed(2) : 'Not set'}</p>
             </div>
           </div>
 
@@ -1935,8 +1936,9 @@
               <input type="number" step="0.01" class="form-control" name="unit_cost" value="${product.unit_cost || '0.00'}">
             </div>
             <div class="col-md-6">
-              <label class="form-label">Unit Price</label>
-              <input type="number" step="0.01" class="form-control" name="unit_price" value="${product.unit_price || '0.00'}">
+              <label class="form-label">Net Cost</label>
+              <input type="number" step="0.01" class="form-control" name="net_cost" value="${product.net_cost || ''}">
+              <small class="form-hint">Calculated from EZ Estimate or manually entered</small>
             </div>
           </div>
 
