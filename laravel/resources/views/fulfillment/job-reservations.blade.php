@@ -12,10 +12,16 @@
               <h1 class="page-title">Job Reservations</h1>
             </div>
             <div class="col-auto ms-auto">
-              <a href="/fulfillment/material-check" class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-                New Material Check
-              </a>
+              <div class="btn-list">
+                <button type="button" class="btn btn-secondary" onclick="openManualReservationModal()">
+                  <i class="ti ti-edit me-1"></i>
+                  Manual Reservation
+                </button>
+                <a href="/fulfillment/material-check" class="btn btn-primary">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                  New Material Check
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -344,6 +350,193 @@
             <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
             <button type="button" class="btn btn-primary" onclick="saveReservation()">
               <i class="ti ti-device-floppy me-1"></i>Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Replace Item Modal -->
+    <div class="modal modal-blur fade" id="replaceItemModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Replace Item</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="replaceItemIndex">
+            <div class="alert alert-info">
+              <strong>Replacing:</strong> <span id="replaceOldProduct"></span>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Search for Replacement Product (by SKU, Part #, or Description)</label>
+              <input type="text" class="form-control" id="replaceProductSearch" placeholder="Type to search...">
+              <input type="hidden" id="replaceNewProductId">
+            </div>
+            <div id="replaceSearchResults" class="list-group mb-3" style="max-height: 300px; overflow-y: auto; display: none;">
+              <!-- Search results populated here -->
+            </div>
+            <div id="replaceSelectedProduct" style="display: none;">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h4 class="card-title">Selected Replacement</h4>
+                  <div id="replaceProductDetails"></div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Reason for Replacement (Optional)</label>
+              <textarea class="form-control" id="replaceReason" rows="2" placeholder="e.g., Finish color change requested"></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="confirmReplaceItem()">
+              <i class="ti ti-replace me-1"></i>Replace Item
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Manual Reservation Modal -->
+    <div class="modal modal-blur fade" id="manualReservationModal" tabindex="-1" role="dialog" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create Manual Reservation</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Job Information -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <h3 class="card-title">Job Information</h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Job Number <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="manualJobNumber" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Release Number <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control" id="manualReleaseNumber" min="1" value="1" required>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="mb-3">
+                      <label class="form-label">Needed By</label>
+                      <input type="date" class="form-control" id="manualNeededBy">
+                    </div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Job Name <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="manualJobName" required>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label class="form-label">Requested By <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="manualRequestedBy" required>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Notes</label>
+                  <textarea class="form-control" id="manualNotes" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Line Items -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Line Items</h3>
+                <div class="card-actions">
+                  <button type="button" class="btn btn-sm btn-primary" onclick="showManualAddItemForm()" id="manualAddItemBtn">
+                    <i class="ti ti-plus me-1"></i>Add Item
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="manualAddItemForm" class="mb-3" style="display: none;">
+                  <div class="card bg-light">
+                    <div class="card-body">
+                      <h4 class="card-title">Add Item</h4>
+                      <div class="row">
+                        <div class="col-md-8">
+                          <div class="mb-3">
+                            <label class="form-label">Product (Search by SKU, Part #, or Description)</label>
+                            <input type="text" class="form-control" id="manualItemSearch" placeholder="Type to search...">
+                            <input type="hidden" id="manualItemProductId">
+                          </div>
+                          <div id="manualSearchResults" class="list-group mb-3" style="max-height: 200px; overflow-y: auto; display: none;">
+                            <!-- Search results -->
+                          </div>
+                          <div id="manualSelectedProduct" style="display: none;" class="alert alert-success mb-3">
+                            <strong>Selected:</strong> <span id="manualProductInfo"></span>
+                          </div>
+                        </div>
+                        <div class="col-md-2">
+                          <div class="mb-3">
+                            <label class="form-label">Requested Qty</label>
+                            <input type="number" class="form-control" id="manualItemRequestedQty" min="1" value="1">
+                          </div>
+                        </div>
+                        <div class="col-md-2">
+                          <div class="mb-3">
+                            <label class="form-label">Committed Qty</label>
+                            <input type="number" class="form-control" id="manualItemCommittedQty" min="0" value="0">
+                            <small class="form-hint">Leave 0 for auto</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success" onclick="addManualItem()">
+                          <i class="ti ti-check me-1"></i>Add Item
+                        </button>
+                        <button type="button" class="btn" onclick="hideManualAddItemForm()">Cancel</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-hover">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Part #</th>
+                        <th>Finish</th>
+                        <th>Description</th>
+                        <th class="text-end">Requested</th>
+                        <th class="text-end">Committed</th>
+                        <th class="text-end">Available</th>
+                        <th class="text-center">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="manualItemsBody">
+                      <tr>
+                        <td colspan="8" class="text-center text-muted">No items added yet. Click "Add Item" to begin.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="createManualReservation()">
+              <i class="ti ti-device-floppy me-1"></i>Create Reservation
             </button>
           </div>
         </div>
@@ -967,12 +1160,19 @@
                     <td class="text-end">${item.product.quantity_on_hand}</td>
                     <td class="text-center">
                         ${item.consumed_qty === 0 ? `
-                            <button type="button" class="btn btn-sm btn-ghost-danger"
-                                    onclick="removeEditItem(${index})"
-                                    title="Remove item">
-                                <i class="ti ti-trash"></i>
-                            </button>
-                        ` : '<span class="text-muted" title="Cannot remove consumed item">-</span>'}
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-ghost-primary"
+                                        onclick="showReplaceItemModal(${index})"
+                                        title="Replace with different part/finish">
+                                    <i class="ti ti-replace"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-ghost-danger"
+                                        onclick="removeEditItem(${index})"
+                                        title="Remove item">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </div>
+                        ` : '<span class="text-muted" title="Cannot modify consumed item">-</span>'}
                     </td>
                 </tr>
             `).join('');
@@ -1178,6 +1378,386 @@
             } catch (error) {
                 console.error('Error saving reservation:', error);
                 alert('Error saving reservation: ' + error.message);
+            }
+        }
+
+        // ===== REPLACE ITEM FUNCTIONS =====
+        let replaceItemProductSearch;
+
+        function showReplaceItemModal(itemIndex) {
+            const item = editingItems[itemIndex];
+            document.getElementById('replaceItemIndex').value = itemIndex;
+            document.getElementById('replaceOldProduct').textContent =
+                `${item.product.sku} - ${item.product.part_number} ${item.product.finish || ''} (${item.product.description})`;
+
+            // Reset search
+            document.getElementById('replaceProductSearch').value = '';
+            document.getElementById('replaceNewProductId').value = '';
+            document.getElementById('replaceReason').value = '';
+            document.getElementById('replaceSearchResults').style.display = 'none';
+            document.getElementById('replaceSelectedProduct').style.display = 'none';
+
+            // Setup search handler
+            const searchInput = document.getElementById('replaceProductSearch');
+            clearTimeout(replaceItemProductSearch);
+            searchInput.oninput = function() {
+                clearTimeout(replaceItemProductSearch);
+                replaceItemProductSearch = setTimeout(() => searchReplaceProduct(this.value), 300);
+            };
+
+            showModal('replaceItemModal');
+        }
+
+        async function searchReplaceProduct(query) {
+            if (query.length < 2) {
+                document.getElementById('replaceSearchResults').style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(query)}&per_page=10`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const resultsDiv = document.getElementById('replaceSearchResults');
+
+                    if (data.data && data.data.length > 0) {
+                        resultsDiv.innerHTML = data.data.map(product => `
+                            <button type="button" class="list-group-item list-group-item-action" onclick="selectReplaceProduct(${product.id}, '${product.sku}', '${product.part_number || ''}', '${product.finish || ''}', '${product.description.replace(/'/g, "\\'")}', ${product.quantity_on_hand}, ${product.quantity_available})">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong>${product.sku}</strong>
+                                    <span class="badge bg-${product.quantity_available > 0 ? 'success' : 'danger'}">${product.quantity_available} avail</span>
+                                </div>
+                                <small>${product.part_number || ''} ${product.finish || ''} - ${product.description}</small>
+                            </button>
+                        `).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item">No products found</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error searching products:', error);
+            }
+        }
+
+        function selectReplaceProduct(productId, sku, partNumber, finish, description, onHand, available) {
+            document.getElementById('replaceNewProductId').value = productId;
+            document.getElementById('replaceSearchResults').style.display = 'none';
+            document.getElementById('replaceProductSearch').value = sku;
+
+            const detailsDiv = document.getElementById('replaceProductDetails');
+            detailsDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>SKU:</strong> ${sku}<br>
+                        <strong>Part#:</strong> ${partNumber}<br>
+                        <strong>Finish:</strong> ${finish || 'N/A'}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Description:</strong> ${description}<br>
+                        <strong>On Hand:</strong> ${onHand}<br>
+                        <strong>Available:</strong> <span class="badge bg-${available > 0 ? 'success' : 'danger'}">${available}</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('replaceSelectedProduct').style.display = 'block';
+        }
+
+        async function confirmReplaceItem() {
+            const itemIndex = parseInt(document.getElementById('replaceItemIndex').value);
+            const newProductId = document.getElementById('replaceNewProductId').value;
+            const reason = document.getElementById('replaceReason').value;
+
+            if (!newProductId) {
+                alert('Please select a replacement product');
+                return;
+            }
+
+            const item = editingItems[itemIndex];
+
+            try {
+                const response = await fetch(`/api/v1/job-reservations/${editingReservation.id}/items/${item.id}/replace`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        new_product_id: newProductId,
+                        reason: reason
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`✅ ${data.message}\n\nOld: ${data.old_product.sku}\nNew: ${data.new_product.sku}`);
+
+                    // Update the item in editing items array
+                    editingItems[itemIndex].product = data.new_product;
+                    editingItems[itemIndex].product_id = data.new_product.product_id;
+
+                    // Re-render the items table
+                    renderEditItems();
+
+                    closeModal('replaceItemModal');
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.message || error.error));
+                    if (error.details) {
+                        console.error('Replace error details:', error.details);
+                    }
+                }
+            } catch (error) {
+                console.error('Error replacing item:', error);
+                alert('Error replacing item: ' + error.message);
+            }
+        }
+
+        // ===== MANUAL RESERVATION FUNCTIONS =====
+        let manualItems = [];
+        let manualItemSearchTimeout;
+
+        function openManualReservationModal() {
+            // Reset form
+            document.getElementById('manualJobNumber').value = '';
+            document.getElementById('manualReleaseNumber').value = '1';
+            document.getElementById('manualJobName').value = '';
+            document.getElementById('manualRequestedBy').value = '';
+            document.getElementById('manualNeededBy').value = '';
+            document.getElementById('manualNotes').value = '';
+
+            manualItems = [];
+            renderManualItems();
+            hideManualAddItemForm();
+
+            showModal('manualReservationModal');
+        }
+
+        function showManualAddItemForm() {
+            document.getElementById('manualAddItemForm').style.display = 'block';
+            document.getElementById('manualAddItemBtn').style.display = 'none';
+
+            // Reset form
+            document.getElementById('manualItemSearch').value = '';
+            document.getElementById('manualItemProductId').value = '';
+            document.getElementById('manualItemRequestedQty').value = '1';
+            document.getElementById('manualItemCommittedQty').value = '0';
+            document.getElementById('manualSearchResults').style.display = 'none';
+            document.getElementById('manualSelectedProduct').style.display = 'none';
+
+            // Setup search handler
+            const searchInput = document.getElementById('manualItemSearch');
+            searchInput.oninput = function() {
+                clearTimeout(manualItemSearchTimeout);
+                manualItemSearchTimeout = setTimeout(() => searchManualProduct(this.value), 300);
+            };
+        }
+
+        function hideManualAddItemForm() {
+            document.getElementById('manualAddItemForm').style.display = 'none';
+            document.getElementById('manualAddItemBtn').style.display = 'block';
+        }
+
+        async function searchManualProduct(query) {
+            if (query.length < 2) {
+                document.getElementById('manualSearchResults').style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/v1/products?search=${encodeURIComponent(query)}&per_page=10`, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const resultsDiv = document.getElementById('manualSearchResults');
+
+                    if (data.data && data.data.length > 0) {
+                        resultsDiv.innerHTML = data.data.map(product => `
+                            <button type="button" class="list-group-item list-group-item-action" onclick="selectManualProduct(${product.id}, '${product.sku}', '${product.part_number || ''}', '${product.finish || ''}', '${product.description.replace(/'/g, "\\'")}', ${product.quantity_available})">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong>${product.sku}</strong>
+                                    <span class="badge bg-${product.quantity_available > 0 ? 'success' : 'warning'}">${product.quantity_available} avail</span>
+                                </div>
+                                <small>${product.part_number || ''} ${product.finish || ''} - ${product.description}</small>
+                            </button>
+                        `).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item">No products found</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Error searching products:', error);
+            }
+        }
+
+        function selectManualProduct(productId, sku, partNumber, finish, description, available) {
+            document.getElementById('manualItemProductId').value = productId;
+            document.getElementById('manualSearchResults').style.display = 'none';
+            document.getElementById('manualItemSearch').value = sku;
+            document.getElementById('manualProductInfo').textContent = `${sku} - ${partNumber} ${finish} (${available} available)`;
+            document.getElementById('manualSelectedProduct').style.display = 'block';
+
+            // Store product details for later
+            window.tempManualProduct = { productId, sku, partNumber, finish, description, available };
+        }
+
+        function addManualItem() {
+            const productId = document.getElementById('manualItemProductId').value;
+            const requestedQty = parseInt(document.getElementById('manualItemRequestedQty').value);
+            const committedQty = parseInt(document.getElementById('manualItemCommittedQty').value);
+
+            if (!productId) {
+                alert('Please select a product');
+                return;
+            }
+
+            if (requestedQty < 1) {
+                alert('Requested quantity must be at least 1');
+                return;
+            }
+
+            // Check if product already in list
+            if (manualItems.some(item => item.product_id == productId)) {
+                alert('This product is already in the reservation');
+                return;
+            }
+
+            const product = window.tempManualProduct;
+            manualItems.push({
+                product_id: productId,
+                sku: product.sku,
+                part_number: product.partNumber,
+                finish: product.finish,
+                description: product.description,
+                requested_qty: requestedQty,
+                committed_qty: committedQty,
+                available: product.available
+            });
+
+            renderManualItems();
+            hideManualAddItemForm();
+        }
+
+        function renderManualItems() {
+            const tbody = document.getElementById('manualItemsBody');
+
+            if (manualItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No items added yet. Click "Add Item" to begin.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = manualItems.map((item, index) => `
+                <tr>
+                    <td><code>${item.sku}</code></td>
+                    <td>${item.part_number}</td>
+                    <td>${item.finish || '-'}</td>
+                    <td>${item.description}</td>
+                    <td class="text-end">${item.requested_qty}</td>
+                    <td class="text-end">${item.committed_qty || 'Auto'}</td>
+                    <td class="text-end"><span class="badge bg-${item.available > 0 ? 'success' : 'warning'}">${item.available}</span></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-ghost-danger" onclick="removeManualItem(${index})" title="Remove">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function removeManualItem(index) {
+            manualItems.splice(index, 1);
+            renderManualItems();
+        }
+
+        async function createManualReservation() {
+            // Validate form
+            const jobNumber = document.getElementById('manualJobNumber').value.trim();
+            const releaseNumber = parseInt(document.getElementById('manualReleaseNumber').value);
+            const jobName = document.getElementById('manualJobName').value.trim();
+            const requestedBy = document.getElementById('manualRequestedBy').value.trim();
+            const neededBy = document.getElementById('manualNeededBy').value;
+            const notes = document.getElementById('manualNotes').value.trim();
+
+            if (!jobNumber) {
+                alert('Job Number is required');
+                return;
+            }
+
+            if (!jobName) {
+                alert('Job Name is required');
+                return;
+            }
+
+            if (!requestedBy) {
+                alert('Requested By is required');
+                return;
+            }
+
+            if (manualItems.length === 0) {
+                alert('Please add at least one item to the reservation');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/v1/job-reservations/create-manual', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        job_number: jobNumber,
+                        release_number: releaseNumber,
+                        job_name: jobName,
+                        requested_by: requestedBy,
+                        needed_by: neededBy || null,
+                        notes: notes || null,
+                        items: manualItems
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    let message = `✅ Manual reservation created successfully!\n\nJob: ${data.reservation.job_number}-${data.reservation.release_number}\nStatus: ${data.reservation.status_label}\nItems: ${data.items.length}`;
+
+                    if (data.warnings && data.warnings.length > 0) {
+                        message += '\n\n⚠️ Warnings:\n';
+                        data.warnings.forEach(w => {
+                            message += `- ${w.message}\n`;
+                        });
+                    }
+
+                    alert(message);
+                    closeModal('manualReservationModal');
+                    loadReservations();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.message || error.error));
+                    if (error.details) {
+                        console.error('Error details:', error.details);
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating manual reservation:', error);
+                alert('Error creating manual reservation: ' + error.message);
             }
         }
     </script>
