@@ -511,7 +511,7 @@ class EzEstimateController extends Controller
     public function testPricing(Request $request)
     {
         try {
-            $partNumbers = ['S204', 'E14144'];
+            $partNumbers = ['S449', 'E14144'];
 
             // Get the most recent EZ Estimate file
             $files = Storage::files('ez_estimates');
