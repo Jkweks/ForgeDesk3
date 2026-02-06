@@ -68,11 +68,28 @@ Route::prefix('v1')->group(function () {
     Route::post('/fulfillment/commit-materials', [MaterialCheckController::class, 'commitMaterials']);
 
     // Job Reservations
+    // IMPORTANT: Specific routes MUST come before parameterized routes like {id}
     Route::get('/job-reservations', [JobReservationController::class, 'index']);
+    Route::post('/job-reservations/create-manual', [JobReservationController::class, 'createManual']);
+    Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
+    Route::get('/job-reservations/search-products', [JobReservationController::class, 'searchProducts']);
+    Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
     Route::get('/job-reservations/{id}', [JobReservationController::class, 'show']);
+    Route::put('/job-reservations/{id}', [JobReservationController::class, 'updateReservation']);
     Route::post('/job-reservations/{id}/status', [JobReservationController::class, 'updateStatus']);
     Route::post('/job-reservations/{id}/complete', [JobReservationController::class, 'complete']);
-    Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
+    Route::post('/job-reservations/{id}/items', [JobReservationController::class, 'addItem']);
+    Route::put('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'updateItem']);
+    Route::post('/job-reservations/{id}/items/{itemId}/replace', [JobReservationController::class, 'replaceItem']);
+    Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
+
+    // EZ Estimate Management (called from admin web interface)
+    Route::get('/ez-estimate/test', [\App\Http\Controllers\Api\EzEstimateController::class, 'test']);
+    Route::get('/ez-estimate/debug', [\App\Http\Controllers\Api\EzEstimateController::class, 'debug']);
+    Route::get('/ez-estimate/test-pricing', [\App\Http\Controllers\Api\EzEstimateController::class, 'testPricing']);
+    Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
+    Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
+    Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -166,6 +183,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/reorder-recommendations', [ReportsController::class, 'reorderRecommendations']);
         Route::get('/reports/obsolete', [ReportsController::class, 'obsoleteInventory']);
         Route::get('/reports/usage-analytics', [ReportsController::class, 'usageAnalytics']);
+        Route::get('/reports/monthly-statement', [ReportsController::class, 'monthlyInventoryStatement']);
         Route::get('/reports/export', [ReportsController::class, 'exportReport']);
 
         // PDF Reports
@@ -175,6 +193,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports/reorder-recommendations/pdf', [ReportsController::class, 'reorderRecommendationsPdf']);
         Route::get('/reports/obsolete/pdf', [ReportsController::class, 'obsoleteInventoryPdf']);
         Route::get('/reports/usage-analytics/pdf', [ReportsController::class, 'usageAnalyticsPdf']);
+        Route::get('/reports/monthly-statement/pdf', [ReportsController::class, 'monthlyInventoryStatementPdf']);
+        Route::get('/reports/inventory/data', [ReportsController::class, 'inventoryReportData']);
+        Route::get('/reports/inventory/csv', [ReportsController::class, 'exportInventoryCsv']);
+        Route::get('/reports/inventory/pdf', [ReportsController::class, 'inventoryReportPdf']);
 
         // Purchase Orders
         Route::apiResource('purchase-orders', PurchaseOrderController::class);

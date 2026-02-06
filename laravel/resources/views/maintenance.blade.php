@@ -598,10 +598,10 @@
                 </div>
               </div>
               <div class="col-md-3 mb-3">
-                <label class="form-label">Unit Price</label>
+                <label class="form-label">Net Cost</label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
-                  <input type="number" class="form-control" id="newToolUnitPrice" step="0.01" min="0" value="0">
+                  <input type="number" class="form-control" id="newToolNetCost" step="0.01" min="0" value="0">
                 </div>
               </div>
               <div class="col-md-3 mb-3">

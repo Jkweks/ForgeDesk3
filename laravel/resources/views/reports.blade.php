@@ -65,6 +65,18 @@
                   Usage
                 </button>
               </div>
+              <div class="col-6 col-md-4 col-lg-2">
+                <button class="btn btn-outline-cyan w-100" onclick="showReport('monthlyStatement')">
+                  <i class="ti ti-calendar-stats me-1"></i>
+                  Monthly Statement
+                </button>
+              </div>
+              <div class="col-6 col-md-4 col-lg-2">
+                <button class="btn btn-outline-purple w-100" onclick="showReport('inventory')">
+                  <i class="ti ti-packages me-1"></i>
+                  Inventory
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -565,6 +577,221 @@
           </div>
         </div>
       </div>
+
+      <!-- Monthly Inventory Statement Report -->
+      <div class="col-12" id="monthlyStatementReport" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="ti ti-calendar-stats me-2"></i>Monthly Inventory Statement</h3>
+            <div class="ms-auto d-flex gap-2">
+              <select class="form-select form-select-sm" id="statementMonth" onchange="loadMonthlyStatementReport()">
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+              <select class="form-select form-select-sm" id="statementYear" onchange="loadMonthlyStatementReport()">
+                <option value="2024">2024</option>
+                <option value="2025">2025</option>
+                <option value="2026" selected>2026</option>
+                <option value="2027">2027</option>
+              </select>
+              <button class="btn btn-sm btn-outline-primary" onclick="exportMonthlyStatementPdf()">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="exportReport('monthly_statement')">
+                <i class="ti ti-download me-1"></i>CSV
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Products</div>
+                    <div class="h2 mb-0" id="statementProducts">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Beginning Value</div>
+                    <div class="h2 mb-0 text-info" id="statementBeginValue">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Ending Value</div>
+                    <div class="h2 mb-0 text-success" id="statementEndValue">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Value Change</div>
+                    <div class="h2 mb-0" id="statementValueChange">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="statementLoading" class="text-center py-4">
+              <div class="spinner-border" role="status"></div>
+              <div class="text-muted mt-2">Loading statement...</div>
+            </div>
+
+            <div id="statementContent" style="display: none;">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Description</th>
+                      <th>Category</th>
+                      <th class="text-end">Begin</th>
+                      <th class="text-end">Additions</th>
+                      <th class="text-end">Deductions</th>
+                      <th class="text-end">Ending</th>
+                      <th class="text-end">Change</th>
+                      <th class="text-end">End Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="statementBody"></tbody>
+                </table>
+              </div>
+
+              <div class="mt-3">
+                <h5>Transaction Totals</h5>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="table-responsive">
+                      <table class="table table-sm">
+                        <thead>
+                          <tr>
+                            <th>Additions</th>
+                            <th class="text-end">Quantity</th>
+                          </tr>
+                        </thead>
+                        <tbody id="statementAdditionsBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="table-responsive">
+                      <table class="table table-sm">
+                        <thead>
+                          <tr>
+                            <th>Deductions</th>
+                            <th class="text-end">Quantity</th>
+                          </tr>
+                        </thead>
+                        <tbody id="statementDeductionsBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inventory Report -->
+      <div class="col-12" id="inventoryReport" style="display: none;">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title"><i class="ti ti-packages me-2"></i>Inventory Report</h3>
+            <div class="ms-auto d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" onclick="exportInventoryPdf()">
+                <i class="ti ti-file-type-pdf me-1"></i>PDF
+              </button>
+              <button class="btn btn-sm btn-primary" onclick="exportInventoryCsv()">
+                <i class="ti ti-download me-1"></i>CSV
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Total Products</div>
+                    <div class="h2 mb-0" id="inventoryProductsCount">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Available Qty</div>
+                    <div class="h2 mb-0 text-info" id="inventoryAvailableQty">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Value (List)</div>
+                    <div class="h2 mb-0 text-success" id="inventoryValueList">-</div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card card-sm">
+                  <div class="card-body">
+                    <div class="text-muted">Value (Net)</div>
+                    <div class="h2 mb-0 text-primary" id="inventoryValueNet">-</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="inventoryLoading" class="text-center py-4">
+              <div class="spinner-border" role="status"></div>
+              <div class="text-muted mt-2">Loading inventory...</div>
+            </div>
+
+            <div id="inventoryContent" style="display: none;">
+              <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                  <thead>
+                    <tr>
+                      <th class="sortable-report" data-report="inventory" data-sort="part_number" style="cursor: pointer;">Part # <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-report="inventory" data-sort="finish" style="cursor: pointer;">Finish <span class="sort-icon"></span></th>
+                      <th class="sortable-report" data-report="inventory" data-sort="description" style="cursor: pointer;">Description <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="unit_cost" style="cursor: pointer;">Unit Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="net_cost" style="cursor: pointer;">Net Cost <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="pack_size" style="cursor: pointer;">Pack <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="on_hand" style="cursor: pointer;">On Hand <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="committed" style="cursor: pointer;">Commit <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available" style="cursor: pointer;">Avail <span class="sort-icon"></span></th>
+                      <th>UOM</th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_list" style="cursor: pointer;">Val (List) <span class="sort-icon"></span></th>
+                      <th class="text-end sortable-report" data-report="inventory" data-sort="available_value_net" style="cursor: pointer;">Val (Net) <span class="sort-icon"></span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="inventoryTableBody"></tbody>
+                </table>
+              </div>
+
+              <div class="card-footer d-flex align-items-center" id="inventoryPagination" style="display: none;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -584,7 +811,9 @@ function showReport(reportType) {
     'velocity': 'velocityReport',
     'reorder': 'reorderReport',
     'obsolete': 'obsoleteReport',
-    'usage': 'usageReport'
+    'usage': 'usageReport',
+    'monthlyStatement': 'monthlyStatementReport',
+    'inventory': 'inventoryReport'
   };
 
   const reportId = reportMap[reportType];
@@ -611,6 +840,12 @@ function showReport(reportType) {
         break;
       case 'usage':
         loadUsageReport();
+        break;
+      case 'monthlyStatement':
+        loadMonthlyStatementReport();
+        break;
+      case 'inventory':
+        loadInventoryReport();
         break;
     }
   }
@@ -972,6 +1207,265 @@ async function loadUsageReport() {
   }
 }
 
+// Monthly Inventory Statement Report
+async function loadMonthlyStatementReport() {
+  try {
+    const month = document.getElementById('statementMonth').value;
+    const year = document.getElementById('statementYear').value;
+    document.getElementById('statementLoading').style.display = 'block';
+    document.getElementById('statementContent').style.display = 'none';
+
+    const response = await authenticatedFetch(`/reports/monthly-statement?month=${month}&year=${year}`);
+
+    // Update summary cards
+    document.getElementById('statementProducts').textContent = response.summary.products_count;
+    document.getElementById('statementBeginValue').textContent = '$' + parseFloat(response.summary.total_beginning_value).toFixed(2);
+    document.getElementById('statementEndValue').textContent = '$' + parseFloat(response.summary.total_ending_value).toFixed(2);
+
+    const valueChange = parseFloat(response.summary.total_value_change);
+    const valueChangeEl = document.getElementById('statementValueChange');
+    valueChangeEl.textContent = (valueChange >= 0 ? '+' : '') + '$' + valueChange.toFixed(2);
+    valueChangeEl.className = 'h2 mb-0 ' + (valueChange >= 0 ? 'text-success' : 'text-danger');
+
+    // Render main statement table
+    const statementBody = document.getElementById('statementBody');
+    if (response.statement.length === 0) {
+      statementBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">No activity for this period</td></tr>';
+    } else {
+      statementBody.innerHTML = response.statement.map(item => {
+        const netChange = parseFloat(item.net_change_display);
+        const changeClass = netChange >= 0 ? 'text-success' : 'text-danger';
+        return `
+          <tr>
+            <td>${item.sku}</td>
+            <td>${item.description}</td>
+            <td>${item.category || '-'}</td>
+            <td class="text-end">${parseFloat(item.beginning_inventory_display).toFixed(0)}</td>
+            <td class="text-end text-success">${parseFloat(item.total_additions_display).toFixed(0)}</td>
+            <td class="text-end text-danger">${parseFloat(item.total_deductions_display).toFixed(0)}</td>
+            <td class="text-end">${parseFloat(item.ending_inventory_display).toFixed(0)}</td>
+            <td class="text-end ${changeClass}">${(netChange >= 0 ? '+' : '')}${netChange.toFixed(0)}</td>
+            <td class="text-end">$${parseFloat(item.ending_value).toFixed(2)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Render additions breakdown
+    const additionsBody = document.getElementById('statementAdditionsBody');
+    additionsBody.innerHTML = `
+      <tr>
+        <td>Receipts</td>
+        <td class="text-end text-success">${parseFloat(response.summary.total_receipts).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Returns</td>
+        <td class="text-end text-success">${parseFloat(response.summary.total_returns).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Job Material Transfers</td>
+        <td class="text-end text-success">${parseFloat(response.summary.total_job_material_transfers).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Positive Adjustments</td>
+        <td class="text-end text-success">${parseFloat(response.summary.total_adjustments_positive).toFixed(0)}</td>
+      </tr>
+    `;
+
+    // Render deductions breakdown
+    const deductionsBody = document.getElementById('statementDeductionsBody');
+    deductionsBody.innerHTML = `
+      <tr>
+        <td>Shipments</td>
+        <td class="text-end text-danger">${parseFloat(response.summary.total_shipments).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Job Issues</td>
+        <td class="text-end text-danger">${parseFloat(response.summary.total_job_issues).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Issues</td>
+        <td class="text-end text-danger">${parseFloat(response.summary.total_issues).toFixed(0)}</td>
+      </tr>
+      <tr>
+        <td>Negative Adjustments</td>
+        <td class="text-end text-danger">${parseFloat(response.summary.total_adjustments_negative).toFixed(0)}</td>
+      </tr>
+    `;
+
+    document.getElementById('statementLoading').style.display = 'none';
+    document.getElementById('statementContent').style.display = 'block';
+  } catch (error) {
+    console.error('Error loading monthly statement:', error);
+    showNotification('Error loading monthly statement', 'danger');
+  }
+}
+
+// Export Monthly Statement PDF
+async function exportMonthlyStatementPdf() {
+  try {
+    const month = document.getElementById('statementMonth').value;
+    const year = document.getElementById('statementYear').value;
+
+    showNotification('Generating PDF report...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/monthly-statement/pdf?month=${month}&year=${year}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `monthly-statement-${month}-${year}-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('PDF report generated successfully', 'success');
+  } catch (error) {
+    console.error('Error exporting PDF:', error);
+    showNotification('Error exporting PDF', 'danger');
+  }
+}
+
+// Inventory Report
+async function loadInventoryReport(page = 1) {
+  try {
+    document.getElementById('inventoryLoading').style.display = 'block';
+    document.getElementById('inventoryContent').style.display = 'none';
+
+    const response = await authenticatedFetch('/reports/inventory/data');
+
+    // Update summary cards
+    document.getElementById('inventoryProductsCount').textContent = response.summary.total_products;
+    document.getElementById('inventoryAvailableQty').textContent = response.summary.total_available_qty.toLocaleString();
+    document.getElementById('inventoryValueList').textContent = formatCurrency(response.summary.total_value_list);
+    document.getElementById('inventoryValueNet').textContent = formatCurrency(response.summary.total_value_net);
+
+    // Store full data for pagination
+    reportPaginationState.inventory = response.products;
+
+    // Render paginated table
+    renderInventoryTable(page);
+
+    document.getElementById('inventoryLoading').style.display = 'none';
+    document.getElementById('inventoryContent').style.display = 'block';
+  } catch (error) {
+    console.error('Error loading inventory report:', error);
+    showNotification('Error loading inventory report', 'danger');
+  }
+}
+
+function renderInventoryTable(page = 1) {
+  const processedData = getProcessedReportData('inventory');
+  const pagination = paginateData(processedData, page);
+  const tbody = document.getElementById('inventoryTableBody');
+
+  updateReportSortIcons('inventory');
+
+  if (processedData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted">No inventory items</td></tr>';
+    document.getElementById('inventoryPagination').style.display = 'none';
+  } else {
+    tbody.innerHTML = pagination.data.map(item => `
+      <tr>
+        <td><strong>${escapeHtml(item.part_number || '')}</strong></td>
+        <td>${escapeHtml(item.finish || '')}</td>
+        <td>${escapeHtml(item.description)}</td>
+        <td class="text-end">${formatCurrency(item.unit_cost)}</td>
+        <td class="text-end">${formatCurrency(item.net_cost)}</td>
+        <td class="text-end">${item.pack_size}</td>
+        <td class="text-end">${item.on_hand.toLocaleString()}</td>
+        <td class="text-end">${item.committed.toLocaleString()}</td>
+        <td class="text-end">${item.available.toLocaleString()}</td>
+        <td>${escapeHtml(item.unit_of_measure || '')}</td>
+        <td class="text-end">${formatCurrency(item.available_value_list)}</td>
+        <td class="text-end">${formatCurrency(item.available_value_net)}</td>
+      </tr>
+    `).join('');
+
+    renderReportPagination('inventoryPagination', pagination, renderInventoryTable);
+  }
+}
+
+// Export Inventory CSV
+async function exportInventoryCsv() {
+  try {
+    showNotification('Generating CSV export...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/inventory/csv`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'text/csv'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate CSV');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('CSV export completed', 'success');
+  } catch (error) {
+    console.error('Error exporting inventory CSV:', error);
+    showNotification('Error exporting CSV', 'danger');
+  }
+}
+
+// Export Inventory PDF
+async function exportInventoryPdf() {
+  try {
+    showNotification('Generating PDF report...', 'info');
+
+    const response = await fetch(`${API_BASE}/reports/inventory/pdf`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate PDF');
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `inventory-report-${new Date().toISOString().split('T')[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(downloadUrl);
+
+    showNotification('PDF report generated successfully', 'success');
+  } catch (error) {
+    console.error('Error exporting inventory PDF:', error);
+    showNotification('Error exporting PDF', 'danger');
+  }
+}
+
 // Export report
 async function exportReport(type) {
   try {
@@ -1092,14 +1586,16 @@ const reportSortState = {
   committed: { sortBy: 'sku', sortDir: 'asc' },
   velocity: { sortBy: 'sku', sortDir: 'asc' },
   reorder: { sortBy: 'sku', sortDir: 'asc' },
-  obsolete: { sortBy: 'sku', sortDir: 'asc' }
+  obsolete: { sortBy: 'sku', sortDir: 'asc' },
+  inventory: { sortBy: 'part_number', sortDir: 'asc' }
 };
 const reportSearchState = {
   lowStock: '',
   committed: '',
   velocity: '',
   reorder: '',
-  obsolete: ''
+  obsolete: '',
+  inventory: ''
 };
 
 // Debounce timer for search
@@ -1188,6 +1684,7 @@ function renderReportByName(reportName, page) {
     case 'velocity': renderVelocityTable(page); break;
     case 'reorder': renderReorderTable(page); break;
     case 'obsolete': renderObsoleteTable(page); break;
+    case 'inventory': renderInventoryTable(page); break;
   }
 }
 

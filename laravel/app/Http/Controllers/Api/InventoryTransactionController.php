@@ -328,7 +328,7 @@ class InventoryTransactionController extends Controller
     public function createManual(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:issue,return,receipt',
+            'type' => 'required|in:issue,return,receipt,job_material_transfer',
             'transaction_date' => 'required|date',
             'reference_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
@@ -350,6 +350,7 @@ class InventoryTransactionController extends Controller
                 $quantityBefore = $product->quantity_on_hand;
 
                 // For 'issue' type, negate the quantity (removing from inventory)
+                // For receipt, return, and job_material_transfer, add to inventory (positive)
                 $quantityChange = $validated['type'] === 'issue' ? -$productData['quantity'] : $productData['quantity'];
 
                 // Update product quantity
