@@ -754,12 +754,12 @@
                                         data-already-consumed="${item.consumed_qty}"
                                         value="${item.consumed_qty}"
                                         min="${item.consumed_qty}"
-                                        max="${item.committed_qty}"
                                         onchange="updateToRelease(${item.product_id})"
-                                        style="width: 100px;">
+                                        style="width: 100px;"
+                                        title="Can consume more than committed if needed">
                                 </td>
                                 <td>
-                                    <span id="release_${item.product_id}" class="badge bg-info">${toRelease}</span>
+                                    <span id="release_${item.product_id}" class="badge bg-success" title="">${toRelease}</span>
                                 </td>
                             </tr>
                         `;
@@ -800,15 +800,21 @@
                 return;
             }
 
+            // Allow over-consumption but warn
             if (consumed > committed) {
-                alert(`Cannot consume more than committed quantity (${committed})`);
-                input.value = committed;
-                return;
+                const overConsumption = consumed - committed;
+                const badge = document.getElementById(`release_${productId}`);
+                badge.textContent = `-${overConsumption}`;
+                badge.className = 'badge bg-warning';
+                badge.title = `Over-consuming by ${overConsumption} units`;
+            } else {
+                // Update to release badge
+                const toRelease = committed - consumed;
+                const badge = document.getElementById(`release_${productId}`);
+                badge.textContent = toRelease;
+                badge.className = 'badge bg-success';
+                badge.title = '';
             }
-
-            // Update to release badge
-            const toRelease = committed - consumed;
-            document.getElementById(`release_${productId}`).textContent = toRelease;
         }
 
         async function confirmComplete() {
