@@ -881,17 +881,18 @@ class JobReservationController extends Controller
             }
 
             // Search across SKU, part number, and description (case-insensitive)
-            $products = Product::where(function($q) use ($query) {
-                $q->whereRaw('LOWER(sku) LIKE ?', ['%' . strtolower($query) . '%'])
-                  ->orWhereRaw('LOWER(part_number) LIKE ?', ['%' . strtolower($query) . '%'])
-                  ->orWhereRaw('LOWER(description) LIKE ?', ['%' . strtolower($query) . '%']);
+            $searchTerm = strtolower($query);
+            $products = Product::where(function($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(sku) LIKE ?', ['%' . $searchTerm . '%'])
+                  ->orWhereRaw('LOWER(COALESCE(part_number, \'\')) LIKE ?', ['%' . $searchTerm . '%'])
+                  ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', ['%' . $searchTerm . '%']);
             })
             ->orderByRaw("CASE
                 WHEN LOWER(sku) = ? THEN 1
                 WHEN LOWER(sku) LIKE ? THEN 2
-                WHEN LOWER(part_number) LIKE ? THEN 3
+                WHEN LOWER(COALESCE(part_number, '')) LIKE ? THEN 3
                 ELSE 4
-            END", [strtolower($query), strtolower($query) . '%', strtolower($query) . '%'])
+            END", [$searchTerm, $searchTerm . '%', $searchTerm . '%'])
             ->orderBy('sku')
             ->limit($perPage)
             ->get();
