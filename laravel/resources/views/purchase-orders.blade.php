@@ -888,8 +888,15 @@ async function deletePO(poId) {
 
 // Show receive modal
 async function showReceiveModal(poId) {
+  // Show loading notification
+  const loadingToast = showNotification('Loading purchase order...', 'info', false);
+
   try {
     const po = await authenticatedFetch(`/purchase-orders/${poId}`);
+
+    // Dismiss loading notification
+    if (loadingToast && loadingToast.hide) loadingToast.hide();
+
     document.getElementById('receivePOId').value = po.id;
     document.getElementById('receiveDate').value = new Date().toISOString().split('T')[0];
     document.getElementById('receiveNotes').value = '';
@@ -926,6 +933,9 @@ async function showReceiveModal(poId) {
 
     safeShowModal('receiveModal');
   } catch (error) {
+    // Dismiss loading notification
+    if (loadingToast && loadingToast.hide) loadingToast.hide();
+
     console.error('Error loading receive modal:', error);
     showNotification('Error loading receive modal', 'danger');
   }

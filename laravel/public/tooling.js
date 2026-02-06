@@ -176,13 +176,11 @@ function getToolLifeProgressBar(percentage) {
 // Quick install tool - opens install modal with tool pre-selected
 function quickInstallTool(productId) {
   openInstallToolModal();
-  // Wait for modal to load then select the product
-  setTimeout(() => {
-    const productSelect = document.getElementById('installToolProduct');
-    if (productSelect) {
-      productSelect.value = productId;
-    }
-  }, 500);
+  // Select the product immediately (modal elements are already in DOM)
+  const productSelect = document.getElementById('installToolProduct');
+  if (productSelect) {
+    productSelect.value = productId;
+  }
 }
 
 // View all installations for a tool
@@ -542,12 +540,35 @@ async function openAddToolingProductModal() {
   const form = document.getElementById('addToolingProductForm');
   form.reset();
 
-  // Load categories, suppliers, and machine types
-  await Promise.all([
-    loadCategoriesForTooling(),
-    loadSuppliersForTooling(),
-    loadMachineTypesForTooling()
-  ]);
+  // Only load data if not already cached
+  if (categories.length === 0 || suppliers.length === 0 || machineTypes.length === 0) {
+    // Disable form while loading
+    const submitBtn = document.querySelector('#addToolingProductForm button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Loading...';
+    }
+
+    try {
+      // Load categories, suppliers, and machine types
+      await Promise.all([
+        loadCategoriesForTooling(),
+        loadSuppliersForTooling(),
+        loadMachineTypesForTooling()
+      ]);
+
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="ti ti-check me-1"></i>Save Product';
+      }
+    } catch (error) {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="ti ti-check me-1"></i>Save Product';
+      }
+      showNotification('Failed to load form data', 'danger');
+    }
+  }
 
   // Reset tool life section visibility
   document.getElementById('toolLifeSection').style.display = 'none';

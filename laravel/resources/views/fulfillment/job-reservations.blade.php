@@ -913,6 +913,14 @@
         }
 
         async function showCompleteModal(id) {
+            // Show loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'completeModalLoading';
+            loadingDiv.className = 'position-fixed top-50 start-50 translate-middle text-center';
+            loadingDiv.style.zIndex = '9999';
+            loadingDiv.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading reservation...</p>';
+            document.body.appendChild(loadingDiv);
+
             try {
                 const response = await fetch(`/api/v1/job-reservations/${id}`, {
                     method: 'GET',
@@ -921,6 +929,9 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     }
                 });
+
+                // Remove loading indicator
+                loadingDiv.remove();
 
                 if (response.ok) {
                     const data = await response.json();
@@ -975,6 +986,10 @@
                     alert('Error loading reservation details');
                 }
             } catch (error) {
+                // Remove loading indicator
+                const loading = document.getElementById('completeModalLoading');
+                if (loading) loading.remove();
+
                 console.error('Error loading reservation:', error);
                 alert('Error loading reservation details');
             }

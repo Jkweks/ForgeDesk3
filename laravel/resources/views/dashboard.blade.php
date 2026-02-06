@@ -2075,7 +2075,15 @@
     async function loadProductLocations(productId) {
       try {
         const response = await apiCall(`/products/${productId}/locations`);
-        currentProductLocations = await response.json();
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Ensure we have an array
+        currentProductLocations = Array.isArray(data) ? data : [];
 
         // Update locations count badge
         document.getElementById('locationsCount').textContent = currentProductLocations.length;
@@ -2090,6 +2098,9 @@
         await loadAllLocations();
       } catch (error) {
         console.error('Error loading locations:', error);
+        currentProductLocations = [];
+        document.getElementById('locationsCount').textContent = '0';
+        renderLocationsTable();
         showNotification('Failed to load locations', 'danger');
       }
     }
