@@ -121,6 +121,77 @@
       }
     }
 
+    /* Dark mode badge improvements - better contrast and visibility */
+    [data-bs-theme="dark"] .badge.bg-primary {
+      background-color: #4299e1 !important;
+      color: #1a202c !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-success {
+      background-color: #48bb78 !important;
+      color: #1a202c !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-info {
+      background-color: #4299e1 !important;
+      color: #1a202c !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-warning {
+      background-color: #ed8936 !important;
+      color: #1a202c !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-danger {
+      background-color: #f56565 !important;
+      color: #fff !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-secondary {
+      background-color: #718096 !important;
+      color: #fff !important;
+    }
+    [data-bs-theme="dark"] .badge.bg-dark {
+      background-color: #4a5568 !important;
+      color: #fff !important;
+    }
+
+    /* Dark mode table row improvements - better visibility for shaded rows */
+    [data-bs-theme="dark"] .table-success {
+      background-color: rgba(72, 187, 120, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .table-success td,
+    [data-bs-theme="dark"] .table-success th {
+      border-color: rgba(72, 187, 120, 0.25) !important;
+    }
+
+    [data-bs-theme="dark"] .table-warning {
+      background-color: rgba(237, 137, 54, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .table-warning td,
+    [data-bs-theme="dark"] .table-warning th {
+      border-color: rgba(237, 137, 54, 0.25) !important;
+    }
+
+    [data-bs-theme="dark"] .table-danger {
+      background-color: rgba(245, 101, 101, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .table-danger td,
+    [data-bs-theme="dark"] .table-danger th {
+      border-color: rgba(245, 101, 101, 0.25) !important;
+    }
+
+    [data-bs-theme="dark"] .table-secondary {
+      background-color: rgba(113, 128, 150, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .table-secondary td,
+    [data-bs-theme="dark"] .table-secondary th {
+      border-color: rgba(113, 128, 150, 0.25) !important;
+    }
+
+    [data-bs-theme="dark"] .table-info {
+      background-color: rgba(66, 153, 225, 0.15) !important;
+    }
+    [data-bs-theme="dark"] .table-info td,
+    [data-bs-theme="dark"] .table-info th {
+      border-color: rgba(66, 153, 225, 0.25) !important;
+    }
+
     @yield('styles')
   </style>
 </head>
