@@ -311,11 +311,54 @@ class JobReservationController extends Controller
                         ], 422);
                     }
 
+                    // Allow over-consumption but validate stock availability
                     if ($actualQty > $item->committed_qty) {
-                        return response()->json([
-                            'error' => 'Invalid consumption',
-                            'message' => "Cannot consume more than committed quantity ({$item->committed_qty})",
-                        ], 422);
+                        $overConsumption = $actualQty - $item->committed_qty;
+                        $product = $item->product;
+
+                        // Check if we have enough stock for the over-consumption
+                        // Available = on_hand - (all other commitments excluding this reservation item)
+                        $otherCommitments = $product->activeReservationItems()
+                            ->where('id', '!=', $item->id)
+                            ->sum('committed_qty');
+                        $availableForOverConsume = $product->quantity_on_hand - $otherCommitments - $item->consumed_qty;
+
+                        if ($overConsumption > $availableForOverConsume) {
+                            return response()->json([
+                                'error' => 'Insufficient stock for over-consumption',
+                                'message' => sprintf(
+                                    'Product %s: Attempting to consume %d but only %d available (committed: %d, attempting: %d, over-consumption: %d)',
+                                    $product->sku,
+                                    $actualQty,
+                                    $availableForOverConsume + $item->consumed_qty,
+                                    $item->committed_qty,
+                                    $actualQty,
+                                    $overConsumption
+                                ),
+                                'details' => [
+                                    'product_id' => $productId,
+                                    'sku' => $product->sku,
+                                    'on_hand' => $product->quantity_on_hand,
+                                    'committed_qty' => $item->committed_qty,
+                                    'already_consumed' => $item->consumed_qty,
+                                    'attempting_to_consume' => $actualQty,
+                                    'over_consumption' => $overConsumption,
+                                    'available_for_over_consume' => $availableForOverConsume,
+                                ],
+                            ], 422);
+                        }
+
+                        // Update committed_qty to match actual consumption if over-consuming
+                        $item->committed_qty = $actualQty;
+
+                        Log::info('Over-consumption allowed', [
+                            'reservation_id' => $id,
+                            'product_id' => $productId,
+                            'sku' => $product->sku,
+                            'original_committed' => $item->committed_qty,
+                            'actual_consumed' => $actualQty,
+                            'over_consumption' => $overConsumption,
+                        ]);
                     }
 
                     // Calculate deltas
@@ -930,6 +973,166 @@ class JobReservationController extends Controller
                 'overdue_reservations' => 0,
                 'upcoming_reservations' => 0,
             ]);
+        }
+    }
+
+    /**
+     * Replace a reservation item with a different product
+     * Useful for swapping to different finish or part number
+     * Can only replace items that haven't been consumed yet
+     */
+    public function replaceItem($id, $itemId, Request $request)
+    {
+        try {
+            $reservation = JobReservation::findOrFail($id);
+
+            // Cannot edit fulfilled or cancelled reservations
+            if (in_array($reservation->status, ['fulfilled', 'cancelled'])) {
+                return response()->json([
+                    'error' => 'Cannot replace items in a ' . $reservation->status . ' reservation',
+                ], 400);
+            }
+
+            $item = JobReservationItem::where('reservation_id', $id)
+                ->where('id', $itemId)
+                ->firstOrFail();
+
+            // Cannot replace items that have been partially or fully consumed
+            if ($item->consumed_qty > 0) {
+                return response()->json([
+                    'error' => 'Cannot replace item that has already been consumed',
+                    'consumed_qty' => $item->consumed_qty,
+                ], 400);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'new_product_id' => 'required|exists:products,id',
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'error' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $newProductId = $request->new_product_id;
+            $reason = $request->reason;
+
+            // Get both products
+            $oldProduct = Product::findOrFail($item->product_id);
+            $newProduct = Product::findOrFail($newProductId);
+
+            // Check if trying to replace with same product
+            if ($oldProduct->id === $newProduct->id) {
+                return response()->json([
+                    'error' => 'New product must be different from the current product',
+                ], 400);
+            }
+
+            // Check if new product already exists in this reservation
+            $existingItem = JobReservationItem::where('reservation_id', $id)
+                ->where('product_id', $newProductId)
+                ->where('id', '!=', $itemId)
+                ->first();
+
+            if ($existingItem) {
+                return response()->json([
+                    'error' => 'Product ' . $newProduct->sku . ' already exists in this reservation',
+                    'message' => 'Consider updating the existing item quantities instead',
+                ], 400);
+            }
+
+            // Check availability of new product for the committed quantity
+            if ($newProduct->quantity_available < $item->committed_qty) {
+                return response()->json([
+                    'error' => 'Insufficient availability for new product',
+                    'details' => [
+                        'new_sku' => $newProduct->sku,
+                        'required_qty' => $item->committed_qty,
+                        'available_qty' => $newProduct->quantity_available,
+                        'shortage' => $item->committed_qty - $newProduct->quantity_available,
+                    ],
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            try {
+                // Store old product info for response
+                $oldProductInfo = [
+                    'product_id' => $oldProduct->id,
+                    'sku' => $oldProduct->sku,
+                    'part_number' => $oldProduct->part_number,
+                    'finish' => $oldProduct->finish,
+                    'description' => $oldProduct->description,
+                ];
+
+                // Update the item with new product
+                $item->product_id = $newProductId;
+                $item->save();
+
+                // Log the replacement in notes if provided
+                if ($reason) {
+                    $logMessage = sprintf(
+                        "\n[%s] Item replaced: %s → %s. Reason: %s",
+                        now()->format('Y-m-d H:i:s'),
+                        $oldProduct->sku,
+                        $newProduct->sku,
+                        $reason
+                    );
+                    $reservation->notes = ($reservation->notes ?? '') . $logMessage;
+                    $reservation->save();
+                }
+
+                DB::commit();
+
+                // Reload item with new product relationship
+                $item->load('product');
+
+                return response()->json([
+                    'message' => 'Item replaced successfully',
+                    'old_product' => $oldProductInfo,
+                    'new_product' => [
+                        'product_id' => $newProduct->id,
+                        'sku' => $newProduct->sku,
+                        'part_number' => $newProduct->part_number,
+                        'finish' => $newProduct->finish,
+                        'description' => $newProduct->description,
+                        'quantity_on_hand' => $newProduct->quantity_on_hand,
+                        'quantity_available' => $newProduct->quantity_available,
+                        'location' => $newProduct->location,
+                    ],
+                    'item' => [
+                        'id' => $item->id,
+                        'product_id' => $item->product_id,
+                        'requested_qty' => $item->requested_qty,
+                        'committed_qty' => $item->committed_qty,
+                        'consumed_qty' => $item->consumed_qty,
+                        'released_qty' => $item->released_qty,
+                    ],
+                ]);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'error' => 'Reservation or item not found',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Failed to replace reservation item', [
+                'reservation_id' => $id,
+                'item_id' => $itemId,
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'error' => 'Failed to replace reservation item',
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

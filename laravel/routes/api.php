@@ -75,6 +75,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/job-reservations/{id}/complete', [JobReservationController::class, 'complete']);
     Route::post('/job-reservations/{id}/items', [JobReservationController::class, 'addItem']);
     Route::put('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'updateItem']);
+    Route::post('/job-reservations/{id}/items/{itemId}/replace', [JobReservationController::class, 'replaceItem']);
     Route::delete('/job-reservations/{id}/items/{itemId}', [JobReservationController::class, 'removeItem']);
     Route::get('/job-reservations/search-product', [JobReservationController::class, 'searchProduct']);
     Route::get('/job-reservations/status-labels', [JobReservationController::class, 'statusLabels']);
