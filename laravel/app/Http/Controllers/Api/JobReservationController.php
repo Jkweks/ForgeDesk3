@@ -881,18 +881,19 @@ class JobReservationController extends Controller
             }
 
             // Search across SKU, part number, and description (case-insensitive)
-            $searchTerm = strtolower($query);
+            $searchTerm = '%' . strtolower($query) . '%';
+
             $products = Product::where(function($q) use ($searchTerm) {
-                $q->whereRaw('LOWER(sku) LIKE ?', ['%' . $searchTerm . '%'])
-                  ->orWhereRaw('LOWER(COALESCE(part_number, \'\')) LIKE ?', ['%' . $searchTerm . '%'])
-                  ->orWhereRaw('LOWER(COALESCE(description, \'\')) LIKE ?', ['%' . $searchTerm . '%']);
+                $q->whereRaw('LOWER(sku) LIKE ?', [$searchTerm])
+                  ->orWhere(function($subQ) use ($searchTerm) {
+                      $subQ->whereNotNull('part_number')
+                           ->whereRaw('LOWER(part_number) LIKE ?', [$searchTerm]);
+                  })
+                  ->orWhere(function($subQ) use ($searchTerm) {
+                      $subQ->whereNotNull('description')
+                           ->whereRaw('LOWER(description) LIKE ?', [$searchTerm]);
+                  });
             })
-            ->orderByRaw("CASE
-                WHEN LOWER(sku) = ? THEN 1
-                WHEN LOWER(sku) LIKE ? THEN 2
-                WHEN LOWER(COALESCE(part_number, '')) LIKE ? THEN 3
-                ELSE 4
-            END", [$searchTerm, $searchTerm . '%', $searchTerm . '%'])
             ->orderBy('sku')
             ->limit($perPage)
             ->get();
@@ -900,14 +901,14 @@ class JobReservationController extends Controller
             $results = $products->map(function ($product) {
                 return [
                     'id' => $product->id,
-                    'sku' => $product->sku,
-                    'part_number' => $product->part_number,
-                    'finish' => $product->finish,
-                    'description' => $product->description,
-                    'quantity_on_hand' => $product->quantity_on_hand,
-                    'quantity_available' => $product->quantity_available,
-                    'location' => $product->location,
-                    'unit_of_measure' => $product->unit_of_measure,
+                    'sku' => $product->sku ?? '',
+                    'part_number' => $product->part_number ?? '',
+                    'finish' => $product->finish ?? '',
+                    'description' => $product->description ?? '',
+                    'quantity_on_hand' => $product->quantity_on_hand ?? 0,
+                    'quantity_available' => $product->quantity_available ?? 0,
+                    'location' => $product->location ?? '',
+                    'unit_of_measure' => $product->unit_of_measure ?? '',
                 ];
             });
 
@@ -919,13 +920,17 @@ class JobReservationController extends Controller
             Log::error('Products search failed', [
                 'query' => $request->get('q') ?: $request->get('search'),
                 'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
                 'error' => 'Search failed',
                 'message' => $e->getMessage(),
-            ], 500);
+                'data' => [],
+                'total' => 0,
+            ], 200); // Return 200 with empty data instead of 500
         }
     }
 
