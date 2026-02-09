@@ -118,15 +118,20 @@ class ReportsController extends Controller
         $days = $request->get('days', 90);
         $since = Carbon::now()->subDays($days);
 
+        // Eager load products with their transactions in a single query
         $products = Product::where('is_active', true)
-            ->with(['category', 'supplier'])
+            ->with([
+                'category',
+                'supplier',
+                'transactions' => function($query) use ($since) {
+                    $query->where('transaction_date', '>=', $since);
+                }
+            ])
             ->get();
 
         $velocityData = $products->map(function ($product) use ($since) {
-            // Get transaction history
-            $transactions = InventoryTransaction::where('product_id', $product->id)
-                ->where('transaction_date', '>=', $since)
-                ->get();
+            // Use pre-loaded transactions (no additional query)
+            $transactions = $product->transactions;
 
             $receipts = $transactions->where('type', 'receipt')->sum('quantity');
 
@@ -229,17 +234,24 @@ class ReportsController extends Controller
         $inactiveDays = $request->get('inactive_days', 180);
         $since = Carbon::now()->subDays($inactiveDays);
 
+        // Eager load products with last shipment transaction in a single query
         $products = Product::where('is_active', true)
             ->where('is_discontinued', false)
-            ->with(['category', 'supplier'])
+            ->with([
+                'category',
+                'supplier',
+                'transactions' => function($query) {
+                    $query->where('type', 'shipment')
+                        ->orderBy('transaction_date', 'desc')
+                        ->limit(1);
+                }
+            ])
+            ->withCount('usedInProducts') // Single query for BOM usage count
             ->get();
 
         $obsoleteCandidates = $products->filter(function ($product) use ($since) {
-            // Get last transaction
-            $lastTransaction = InventoryTransaction::where('product_id', $product->id)
-                ->where('type', 'shipment')
-                ->orderBy('transaction_date', 'desc')
-                ->first();
+            // Use pre-loaded last shipment transaction (no additional query)
+            $lastTransaction = $product->transactions->first();
 
             if (!$lastTransaction) {
                 return true; // Never shipped = potentially obsolete
@@ -247,10 +259,8 @@ class ReportsController extends Controller
 
             return $lastTransaction->transaction_date < $since;
         })->map(function ($product) {
-            $lastShipment = InventoryTransaction::where('product_id', $product->id)
-                ->where('type', 'shipment')
-                ->orderBy('transaction_date', 'desc')
-                ->first();
+            // Use pre-loaded last shipment (no additional query)
+            $lastShipment = $product->transactions->first();
 
             $daysSinceLastUse = $lastShipment
                 ? Carbon::now()->diffInDays($lastShipment->transaction_date)
@@ -272,7 +282,7 @@ class ReportsController extends Controller
                 'total_value' => $displayQuantity * $displayCost,
                 'last_shipment_date' => $lastShipment?->transaction_date,
                 'days_since_last_use' => $daysSinceLastUse,
-                'is_used_in_bom' => $product->usedInProducts()->count() > 0,
+                'is_used_in_bom' => $product->used_in_products_count > 0, // Use pre-loaded count
                 'pack_size' => $product->pack_size,
                 'counting_unit' => $product->counting_unit,
             ];
@@ -352,17 +362,21 @@ class ReportsController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfDay();
         $endDate = $startDate->copy()->endOfMonth()->endOfDay();
 
-        // Get all products with active inventory
+        // Eager load products with their transactions for the date range
         $products = Product::where('is_active', true)
-            ->with(['category', 'supplier'])
+            ->with([
+                'category',
+                'supplier',
+                'transactions' => function($query) use ($startDate, $endDate) {
+                    $query->whereBetween('transaction_date', [$startDate, $endDate])
+                        ->orderBy('transaction_date', 'asc');
+                }
+            ])
             ->get();
 
         $statementData = $products->map(function ($product) use ($startDate, $endDate) {
-            // Get all transactions for this product in the date range
-            $transactions = InventoryTransaction::where('product_id', $product->id)
-                ->whereBetween('transaction_date', [$startDate, $endDate])
-                ->orderBy('transaction_date', 'asc')
-                ->get();
+            // Use pre-loaded transactions (no additional query)
+            $transactions = $product->transactions;
 
             // Calculate beginning inventory (quantity_before of first transaction, or current if no transactions)
             $beginningInventory = $transactions->first()

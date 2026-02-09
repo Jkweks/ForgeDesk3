@@ -1,6 +1,72 @@
 <script>
   const API_BASE = '/api/v1';
   let authToken = localStorage.getItem('authToken');
+  let currentUser = null;
+
+  // Load user data from localStorage
+  try {
+    const userData = localStorage.getItem('userData');
+    if (userData) {
+      currentUser = JSON.parse(userData);
+    }
+  } catch (e) {
+    console.error('Error parsing user data:', e);
+  }
+
+  // Permission helper
+  function hasPermission(permission) {
+    if (!currentUser || !currentUser.permissions) {
+      return false;
+    }
+    return currentUser.permissions.includes(permission);
+  }
+
+  // Pricing visibility helper
+  function canViewPricing() {
+    return hasPermission('pricing.view');
+  }
+
+  // Format price with masking if no permission
+  function formatPrice(value, options = {}) {
+    if (!canViewPricing()) {
+      const length = options.length || 10;
+      return '−'.repeat(length); // Using minus sign (U+2212) for visual consistency
+    }
+
+    // Format the price if user has permission
+    if (value === null || value === undefined || value === '') {
+      return options.placeholder || '—';
+    }
+
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) {
+      return options.placeholder || '—';
+    }
+
+    const prefix = options.prefix || '$';
+    return prefix + num.toFixed(2);
+  }
+
+  // Create a pricing element that's masked for users without permission
+  function createPriceElement(value, options = {}) {
+    const span = document.createElement('span');
+
+    if (!canViewPricing()) {
+      span.className = 'price-masked';
+      span.setAttribute('aria-label', 'Price hidden');
+      span.textContent = formatPrice(value, options);
+
+      // Store actual value in data attribute (hidden but accessible in inspector)
+      if (value !== null && value !== undefined) {
+        span.setAttribute('data-actual-value', value);
+      }
+    } else {
+      span.className = 'price-visible';
+      span.textContent = formatPrice(value, options);
+    }
+
+    return span;
+  }
 
   // Bootstrap Modal Helper - handles initialization safely
   function showModal(modalElement) {
@@ -93,7 +159,9 @@
       // Handle 401 Unauthorized - redirect to login
       if (response.status === 401) {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
         authToken = null;
+        currentUser = null;
         showLogin();
         showNotification('Session expired. Please login again.', 'warning');
         throw new Error('Session expired');
@@ -145,7 +213,9 @@
       if (response.ok) {
         const data = await response.json();
         authToken = data.token;
+        currentUser = data.user;
         localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userData', JSON.stringify(data.user));
         location.reload(); // Reload to initialize the app
       } else {
         document.getElementById('loginError').textContent = 'Invalid credentials';
@@ -162,7 +232,9 @@
   document.getElementById('logoutBtn')?.addEventListener('click', async (e) => {
     e.preventDefault();
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     authToken = null;
+    currentUser = null;
     location.reload();
   });
 

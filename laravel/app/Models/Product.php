@@ -152,6 +152,11 @@ class Product extends Model
         return $this->hasMany(InventoryLocation::class);
     }
 
+    public function transactions()
+    {
+        return $this->hasMany(InventoryTransaction::class);
+    }
+
     /**
      * Calculate total quantity on hand from all inventory locations
      * This is the source of truth for inventory quantities

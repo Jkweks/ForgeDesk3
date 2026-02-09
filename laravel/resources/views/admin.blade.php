@@ -486,7 +486,7 @@
 
     <!-- Add Role Modal -->
     <div class="modal modal-blur fade" id="addRoleModal" tabindex="-1" style="display: none;" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Add New Role</h5>
@@ -495,62 +495,24 @@
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label required">Role Name</label>
-              <input type="text" class="form-control" id="addRoleName" placeholder="Role name">
+              <input type="text" class="form-control" id="addRoleName" placeholder="e.g., custom_role (lowercase, underscores only)">
+              <small class="form-text text-muted">Internal role name (lowercase, underscores, no spaces)</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Display Name</label>
+              <input type="text" class="form-control" id="addRoleDisplayName" placeholder="e.g., Custom Role">
+              <small class="form-text text-muted">User-friendly display name</small>
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
-              <textarea class="form-control" id="addRoleDescription" rows="3" placeholder="Role description"></textarea>
+              <textarea class="form-control" id="addRoleDescription" rows="2" placeholder="Role description"></textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Permissions</label>
-              <div class="row">
-                <div class="col-md-6">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Products</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Products</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Pricing</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Pricing</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Inventory</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Inventory</span>
-                  </label>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Create Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Approve Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Reports</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Admin Access</span>
-                  </label>
+              <div id="addRolePermissions" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted py-3">
+                  <div class="spinner-border spinner-border-sm" role="status"></div>
+                  <p class="mt-2 mb-0">Loading permissions...</p>
                 </div>
               </div>
             </div>
@@ -563,10 +525,60 @@
       </div>
     </div>
 
+    <!-- Edit Role Modal -->
+    <div class="modal modal-blur fade" id="editRoleModal" tabindex="-1" style="display: none;" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Role</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editRoleId">
+            <input type="hidden" id="editRoleIsSystem">
+
+            <div class="alert alert-warning" id="systemRoleWarning" style="display: none;">
+              <i class="ti ti-alert-triangle me-2"></i>
+              This is a system role. The role name cannot be changed.
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label required">Role Name</label>
+              <input type="text" class="form-control" id="editRoleName" placeholder="e.g., custom_role">
+              <small class="form-text text-muted">Internal role name (lowercase, underscores, no spaces)</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Display Name</label>
+              <input type="text" class="form-control" id="editRoleDisplayName" placeholder="e.g., Custom Role">
+              <small class="form-text text-muted">User-friendly display name</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="editRoleDescription" rows="2" placeholder="Role description"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Permissions</label>
+              <div id="editRolePermissions" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted py-3">
+                  <div class="spinner-border spinner-border-sm" role="status"></div>
+                  <p class="mt-2 mb-0">Loading permissions...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="saveEditRole()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       // Placeholder data for demonstration
       let users = [];
       let roles = [];
+      let permissions = [];
 
       // Bootstrap Modal helpers
       function showModal(element) {
@@ -581,9 +593,41 @@
 
       // Notification helper
       function showNotification(message, type = 'success') {
-        // TODO: Implement notification system
-        console.log(`[${type}] ${message}`);
-        alert(message);
+        const bgColors = {
+          success: 'bg-success',
+          danger: 'bg-danger',
+          warning: 'bg-warning',
+          info: 'bg-info'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white ${bgColors[type] || 'bg-success'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+          container = document.createElement('div');
+          container.id = 'toastContainer';
+          container.className = 'toast-container position-fixed top-0 end-0 p-3';
+          container.style.zIndex = '9999';
+          document.body.appendChild(container);
+        }
+
+        container.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+        bsToast.show();
+
+        toast.addEventListener('hidden.bs.toast', () => {
+          toast.remove();
+        });
       }
 
       // User Management Functions
@@ -597,7 +641,7 @@
         showModal(document.getElementById('addUserModal'));
       }
 
-      function saveNewUser() {
+      async function saveNewUser() {
         const firstName = document.getElementById('addUserFirstName').value;
         const lastName = document.getElementById('addUserLastName').value;
         const email = document.getElementById('addUserEmail').value;
@@ -610,85 +654,360 @@
           return;
         }
 
-        // TODO: Implement API call to create user
-        showNotification('User created successfully (placeholder)', 'success');
-        hideModal(document.getElementById('addUserModal'));
-        loadUsers();
+        try {
+          const response = await authenticatedFetch('/users', {
+            method: 'POST',
+            body: JSON.stringify({
+              first_name: firstName,
+              last_name: lastName,
+              email: email,
+              password: password,
+              role: role,
+              is_active: active
+            })
+          });
+
+          showNotification('User created successfully', 'success');
+          hideModal(document.getElementById('addUserModal'));
+          loadUsers();
+          loadStatistics();
+        } catch (error) {
+          console.error('Error creating user:', error);
+          showNotification(error.message || 'Failed to create user', 'danger');
+        }
       }
 
-      function editUser(userId) {
-        // TODO: Load user data and show edit modal
-        showNotification('Edit user functionality (placeholder)', 'info');
+      async function editUser(userId) {
+        try {
+          const user = await authenticatedFetch(`/users/${userId}`);
+
+          document.getElementById('editUserId').value = user.id;
+          document.getElementById('editUserFirstName').value = user.first_name;
+          document.getElementById('editUserLastName').value = user.last_name;
+          document.getElementById('editUserEmail').value = user.email;
+          document.getElementById('editUserPassword').value = '';
+          document.getElementById('editUserRole').value = user.role;
+          document.getElementById('editUserActive').checked = user.is_active;
+
+          showModal(document.getElementById('editUserModal'));
+        } catch (error) {
+          console.error('Error loading user:', error);
+          showNotification('Failed to load user details', 'danger');
+        }
       }
 
-      function deleteUser(userId) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+      async function deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
 
-        // TODO: Implement API call to delete user
-        showNotification('User deleted (placeholder)', 'success');
-        loadUsers();
+        try {
+          await authenticatedFetch(`/users/${userId}`, {
+            method: 'DELETE'
+          });
+
+          showNotification('User deleted successfully', 'success');
+          loadUsers();
+          loadStatistics();
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showNotification(error.message || 'Failed to delete user', 'danger');
+        }
       }
 
-      function saveEditUser() {
-        // TODO: Implement API call to update user
-        showNotification('User updated successfully (placeholder)', 'success');
-        hideModal(document.getElementById('editUserModal'));
-        loadUsers();
+      async function saveEditUser() {
+        const userId = document.getElementById('editUserId').value;
+        const firstName = document.getElementById('editUserFirstName').value;
+        const lastName = document.getElementById('editUserLastName').value;
+        const email = document.getElementById('editUserEmail').value;
+        const password = document.getElementById('editUserPassword').value;
+        const role = document.getElementById('editUserRole').value;
+        const active = document.getElementById('editUserActive').checked;
+
+        if (!firstName || !lastName || !email || !role) {
+          showNotification('Please fill in all required fields', 'danger');
+          return;
+        }
+
+        try {
+          const payload = {
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            role: role,
+            is_active: active
+          };
+
+          // Only include password if it was changed
+          if (password) {
+            payload.password = password;
+          }
+
+          await authenticatedFetch(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          showNotification('User updated successfully', 'success');
+          hideModal(document.getElementById('editUserModal'));
+          loadUsers();
+        } catch (error) {
+          console.error('Error updating user:', error);
+          showNotification(error.message || 'Failed to update user', 'danger');
+        }
       }
 
       // Role Management Functions
-      function showAddRoleModal() {
+      async function showAddRoleModal() {
         document.getElementById('addRoleName').value = '';
+        document.getElementById('addRoleDisplayName').value = '';
         document.getElementById('addRoleDescription').value = '';
+
+        // Load permissions and render checkboxes
+        await loadPermissions();
+        renderPermissionsCheckboxes('addRolePermissions', []);
+
         showModal(document.getElementById('addRoleModal'));
       }
 
-      function saveNewRole() {
-        const name = document.getElementById('addRoleName').value;
-        const description = document.getElementById('addRoleDescription').value;
+      async function saveNewRole() {
+        const name = document.getElementById('addRoleName').value.trim();
+        const displayName = document.getElementById('addRoleDisplayName').value.trim();
+        const description = document.getElementById('addRoleDescription').value.trim();
 
         if (!name) {
           showNotification('Please enter a role name', 'danger');
           return;
         }
 
-        // TODO: Implement API call to create role
-        showNotification('Role created successfully (placeholder)', 'success');
-        hideModal(document.getElementById('addRoleModal'));
-        loadRoles();
+        if (!displayName) {
+          showNotification('Please enter a display name', 'danger');
+          return;
+        }
+
+        // Get selected permissions
+        const checkboxes = document.querySelectorAll('#addRolePermissions input[type="checkbox"]:checked');
+        const selectedPermissions = Array.from(checkboxes).map(cb => cb.value);
+
+        try {
+          await authenticatedFetch('/roles', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: name,
+              display_name: displayName,
+              description: description,
+              permissions: selectedPermissions
+            })
+          });
+
+          showNotification('Role created successfully', 'success');
+          hideModal(document.getElementById('addRoleModal'));
+          loadRoles();
+        } catch (error) {
+          console.error('Error creating role:', error);
+          showNotification(error.message || 'Failed to create role', 'danger');
+        }
       }
 
-      function editRole(roleId) {
-        // TODO: Load role data and show edit modal
-        showNotification('Edit role functionality (placeholder)', 'info');
+      async function editRole(roleId) {
+        try {
+          // Load role data
+          const role = await authenticatedFetch(`/roles/${roleId}`);
+
+          // Populate edit modal
+          document.getElementById('editRoleId').value = role.id;
+          document.getElementById('editRoleName').value = role.name;
+          document.getElementById('editRoleDisplayName').value = role.display_name;
+          document.getElementById('editRoleDescription').value = role.description || '';
+          document.getElementById('editRoleIsSystem').value = role.is_system;
+
+          // Disable name editing for system roles
+          if (role.is_system) {
+            document.getElementById('editRoleName').disabled = true;
+            document.getElementById('systemRoleWarning').style.display = 'block';
+          } else {
+            document.getElementById('editRoleName').disabled = false;
+            document.getElementById('systemRoleWarning').style.display = 'none';
+          }
+
+          // Load permissions and render with current role's permissions checked
+          await loadPermissions();
+          const rolePermissions = role.permissions.map(p => p.name);
+          renderPermissionsCheckboxes('editRolePermissions', rolePermissions);
+
+          showModal(document.getElementById('editRoleModal'));
+        } catch (error) {
+          console.error('Error loading role:', error);
+          showNotification('Failed to load role data', 'danger');
+        }
       }
 
-      function deleteRole(roleId) {
-        if (!confirm('Are you sure you want to delete this role?')) return;
+      async function saveEditRole() {
+        const roleId = document.getElementById('editRoleId').value;
+        const name = document.getElementById('editRoleName').value.trim();
+        const displayName = document.getElementById('editRoleDisplayName').value.trim();
+        const description = document.getElementById('editRoleDescription').value.trim();
+        const isSystem = document.getElementById('editRoleIsSystem').value === 'true';
 
-        // TODO: Implement API call to delete role
-        showNotification('Role deleted (placeholder)', 'success');
-        loadRoles();
+        if (!displayName) {
+          showNotification('Please enter a display name', 'danger');
+          return;
+        }
+
+        // Get selected permissions
+        const checkboxes = document.querySelectorAll('#editRolePermissions input[type="checkbox"]:checked');
+        const selectedPermissions = Array.from(checkboxes).map(cb => cb.value);
+
+        try {
+          const payload = {
+            display_name: displayName,
+            description: description,
+            permissions: selectedPermissions
+          };
+
+          // Only send name if it's not a system role
+          if (!isSystem) {
+            payload.name = name;
+          }
+
+          await authenticatedFetch(`/roles/${roleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          showNotification('Role updated successfully', 'success');
+          hideModal(document.getElementById('editRoleModal'));
+          loadRoles();
+        } catch (error) {
+          console.error('Error updating role:', error);
+          showNotification(error.message || 'Failed to update role', 'danger');
+        }
+      }
+
+      async function deleteRole(roleId) {
+        const role = roles.find(r => r.id === roleId);
+
+        if (!role) return;
+
+        if (role.is_system) {
+          showNotification('Cannot delete system roles', 'danger');
+          return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the role "${role.display_name}"? This action cannot be undone.`)) {
+          return;
+        }
+
+        try {
+          await authenticatedFetch(`/roles/${roleId}`, {
+            method: 'DELETE'
+          });
+
+          showNotification('Role deleted successfully', 'success');
+          loadRoles();
+        } catch (error) {
+          console.error('Error deleting role:', error);
+          showNotification(error.message || 'Failed to delete role', 'danger');
+        }
+      }
+
+      // Load permissions from API
+      async function loadPermissions() {
+        if (permissions.length > 0) return; // Already loaded
+
+        try {
+          permissions = await authenticatedFetch('/permissions');
+        } catch (error) {
+          console.error('Error loading permissions:', error);
+          showNotification('Failed to load permissions', 'danger');
+        }
+      }
+
+      // Render permissions checkboxes grouped by category
+      function renderPermissionsCheckboxes(containerId, checkedPermissions = []) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        if (permissions.length === 0) {
+          container.innerHTML = '<p class="text-muted">No permissions available</p>';
+          return;
+        }
+
+        permissions.forEach(group => {
+          const categoryDiv = document.createElement('div');
+          categoryDiv.className = 'mb-3';
+
+          const categoryTitle = document.createElement('h4');
+          categoryTitle.className = 'text-muted mb-2';
+          categoryTitle.style.fontSize = '0.875rem';
+          categoryTitle.style.textTransform = 'capitalize';
+          categoryTitle.textContent = group.category;
+          categoryDiv.appendChild(categoryTitle);
+
+          const row = document.createElement('div');
+          row.className = 'row';
+
+          group.permissions.forEach((permission, index) => {
+            const col = document.createElement('div');
+            col.className = 'col-md-6';
+
+            const isChecked = checkedPermissions.includes(permission.name);
+
+            const label = document.createElement('label');
+            label.className = 'form-check';
+            label.innerHTML = `
+              <input class="form-check-input" type="checkbox" value="${permission.name}" ${isChecked ? 'checked' : ''}>
+              <span class="form-check-label">
+                ${permission.display_name}
+                ${permission.description ? `<br><small class="text-muted">${permission.description}</small>` : ''}
+              </span>
+            `;
+
+            col.appendChild(label);
+            row.appendChild(col);
+          });
+
+          categoryDiv.appendChild(row);
+          container.appendChild(categoryDiv);
+        });
       }
 
       // Data Loading Functions
-      function loadUsers() {
+      async function loadUsers() {
         document.getElementById('loadingUsers').style.display = 'block';
         document.getElementById('usersTableContainer').style.display = 'none';
 
-        // TODO: Replace with actual API call
-        setTimeout(() => {
-          // Placeholder data
-          users = [
-            { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin', status: 'active', last_login: '2026-01-31', created_at: '2026-01-01' },
-            { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'manager', status: 'active', last_login: '2026-01-30', created_at: '2026-01-05' },
-            { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'fabricator', status: 'active', last_login: '2026-01-29', created_at: '2026-01-10' },
-          ];
+        try {
+          const roleFilter = document.getElementById('filterRole')?.value;
+          const statusFilter = document.getElementById('filterStatus')?.value;
+          const searchQuery = document.getElementById('searchUsers')?.value;
+
+          let url = '/users?';
+          if (roleFilter) url += `role=${roleFilter}&`;
+          if (statusFilter) url += `is_active=${statusFilter}&`;
+          if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+
+          users = await authenticatedFetch(url);
 
           renderUsers();
           document.getElementById('loadingUsers').style.display = 'none';
           document.getElementById('usersTableContainer').style.display = 'block';
-        }, 500);
+        } catch (error) {
+          console.error('Error loading users:', error);
+          document.getElementById('loadingUsers').style.display = 'none';
+          showNotification('Failed to load users', 'danger');
+        }
+      }
+
+      async function loadStatistics() {
+        try {
+          const stats = await authenticatedFetch('/users/statistics');
+
+          document.getElementById('statTotalUsers').textContent = stats.total_users;
+          document.getElementById('statActiveUsers').textContent = stats.active_users;
+          document.getElementById('statAdminUsers').textContent = stats.admin_users;
+          document.getElementById('statTotalRoles').textContent = Object.keys(stats.by_role || {}).length;
+        } catch (error) {
+          console.error('Error loading statistics:', error);
+        }
       }
 
       function renderUsers() {
@@ -696,7 +1015,7 @@
         tbody.innerHTML = '';
 
         users.forEach(user => {
-          const statusBadge = user.status === 'active'
+          const statusBadge = user.is_active
             ? '<span class="badge bg-success">Active</span>'
             : '<span class="badge bg-secondary">Inactive</span>';
 
@@ -707,14 +1026,17 @@
             viewer: '<span class="badge bg-gray">Viewer</span>'
           }[user.role] || '<span class="badge bg-gray">' + user.role + '</span>';
 
+          const lastLogin = user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never';
+          const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
+
           const row = `
             <tr>
               <td>${user.name}</td>
               <td>${user.email}</td>
               <td>${roleBadge}</td>
               <td>${statusBadge}</td>
-              <td>${user.last_login || 'Never'}</td>
-              <td>${user.created_at}</td>
+              <td>${lastLogin}</td>
+              <td>${createdAt}</td>
               <td>
                 <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit">
                   <i class="ti ti-edit"></i>
@@ -727,31 +1049,23 @@
           `;
           tbody.innerHTML += row;
         });
-
-        // Update stats
-        document.getElementById('statTotalUsers').textContent = users.length;
-        document.getElementById('statActiveUsers').textContent = users.filter(u => u.status === 'active').length;
-        document.getElementById('statAdminUsers').textContent = users.filter(u => u.role === 'admin').length;
       }
 
-      function loadRoles() {
+      async function loadRoles() {
         document.getElementById('loadingRoles').style.display = 'block';
         document.getElementById('rolesContainer').style.display = 'none';
 
-        // TODO: Replace with actual API call
-        setTimeout(() => {
-          // Placeholder data
-          roles = [
-            { id: 1, name: 'Admin', description: 'Full system access', user_count: 2 },
-            { id: 2, name: 'Manager', description: 'Manage inventory and orders', user_count: 5 },
-            { id: 3, name: 'Fabricator', description: 'View and fulfill orders', user_count: 10 },
-            { id: 4, name: 'Viewer', description: 'Read-only access', user_count: 3 },
-          ];
+        try {
+          roles = await authenticatedFetch('/roles');
 
           renderRoles();
           document.getElementById('loadingRoles').style.display = 'none';
           document.getElementById('rolesContainer').style.display = 'flex';
-        }, 500);
+        } catch (error) {
+          console.error('Error loading roles:', error);
+          document.getElementById('loadingRoles').style.display = 'none';
+          showNotification('Failed to load roles', 'danger');
+        }
       }
 
       function renderRoles() {
@@ -759,14 +1073,21 @@
         container.innerHTML = '';
 
         roles.forEach(role => {
+          const systemBadge = role.is_system ? '<span class="badge bg-info ms-2">System</span>' : '';
+          const deleteOption = role.is_system
+            ? ''
+            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
+                 <i class="ti ti-trash me-2"></i>Delete
+               </a>`;
+
           const card = `
             <div class="col-md-6 col-lg-4">
               <div class="card">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                      <h3 class="card-title mb-1">${role.name}</h3>
-                      <div class="text-muted">${role.description}</div>
+                      <h3 class="card-title mb-1">${role.display_name}${systemBadge}</h3>
+                      <div class="text-muted">${role.description || 'No description'}</div>
                     </div>
                     <div class="dropdown">
                       <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown">
@@ -776,16 +1097,20 @@
                         <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;">
                           <i class="ti ti-edit me-2"></i>Edit
                         </a>
-                        <a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
-                          <i class="ti ti-trash me-2"></i>Delete
-                        </a>
+                        ${deleteOption}
                       </div>
                     </div>
                   </div>
                   <div class="mt-3">
-                    <div class="d-flex align-items-center">
-                      <i class="ti ti-users me-2 text-muted"></i>
-                      <span class="text-muted">${role.user_count} user${role.user_count !== 1 ? 's' : ''}</span>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <i class="ti ti-users me-2 text-muted"></i>
+                        <span class="text-muted">${role.user_count} user${role.user_count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div>
+                        <i class="ti ti-shield-lock me-2 text-muted"></i>
+                        <span class="text-muted">${role.permission_count} permissions</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -794,15 +1119,13 @@
           `;
           container.innerHTML += card;
         });
-
-        // Update stats
-        document.getElementById('statTotalRoles').textContent = roles.length;
       }
 
       // Initialize on page load
       document.addEventListener('DOMContentLoaded', function() {
         loadUsers();
         loadRoles();
+        loadStatistics();
         loadPricingStats();
         loadCurrentEzEstimate();
       });

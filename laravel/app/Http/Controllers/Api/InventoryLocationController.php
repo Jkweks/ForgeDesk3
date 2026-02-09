@@ -16,12 +16,33 @@ class InventoryLocationController extends Controller
      */
     public function index(Product $product)
     {
-        $locations = $product->inventoryLocations()
-            ->with('storageLocation')
-            ->orderBy('is_primary', 'desc')
-            ->get();
+        try {
+            $locations = $product->inventoryLocations()
+                ->with('storageLocation')
+                ->orderBy('is_primary', 'desc')
+                ->get();
 
-        return response()->json($locations);
+            // Ensure all locations have valid data
+            $locations = $locations->map(function($location) {
+                // Ensure numeric values are not null
+                $location->quantity = $location->quantity ?? 0;
+                $location->quantity_committed = $location->quantity_committed ?? 0;
+
+                return $location;
+            });
+
+            return response()->json($locations);
+        } catch (\Exception $e) {
+            \Log::error('Error loading product locations', [
+                'product_id' => $product->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            // Return empty array to prevent frontend crashes
+            // Frontend will show error notification but continue functioning
+            return response()->json([]);
+        }
     }
 
     /**
