@@ -1833,6 +1833,13 @@
     let currentProductData = null;
     let isEditMode = false;
 
+    // Reset edit mode when the product modal is closed
+    document.getElementById('viewProductModal').addEventListener('hidden.bs.modal', function () {
+      if (isEditMode) {
+        cancelEditMode();
+      }
+    });
+
     async function toggleEditMode() {
       isEditMode = true;
       document.getElementById('editProductBtn').style.display = 'none';
