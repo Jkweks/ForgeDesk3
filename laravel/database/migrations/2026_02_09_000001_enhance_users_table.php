@@ -24,8 +24,8 @@ return new class extends Migration
         DB::statement("
             UPDATE users
             SET
-                first_name = SUBSTRING_INDEX(name, ' ', 1),
-                last_name = SUBSTRING_INDEX(name, ' ', -1)
+                first_name = SPLIT_PART(name, ' ', 1),
+                last_name = REVERSE(SPLIT_PART(REVERSE(name), ' ', 1))
             WHERE first_name IS NULL
         ");
     }
