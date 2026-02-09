@@ -58,6 +58,15 @@ Route::post('/login', function (Request $request) {
 
     $token = $user->createToken('auth-token')->plainTextToken;
 
+    // Get user permissions
+    $permissions = [];
+    if ($user->role) {
+        $role = \App\Models\Role::where('name', $user->role)->first();
+        if ($role) {
+            $permissions = $role->permissions->pluck('name')->toArray();
+        }
+    }
+
     return response()->json([
         'token' => $token,
         'user' => [
@@ -66,6 +75,7 @@ Route::post('/login', function (Request $request) {
             'email' => $user->email,
             'role' => $user->role,
             'is_active' => $user->is_active,
+            'permissions' => $permissions,
         ]
     ]);
 });

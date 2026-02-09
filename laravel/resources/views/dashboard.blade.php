@@ -1688,11 +1688,11 @@
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="form-label fw-bold">Unit Cost</label>
-              <p>$${parseFloat(product.unit_cost).toFixed(2)}</p>
+              <p><span class="${canViewPricing() ? 'price-visible' : 'price-masked'}" ${!canViewPricing() && product.unit_cost ? `data-actual-value="${product.unit_cost}"` : ''} aria-label="${canViewPricing() ? '' : 'Price hidden'}">${formatPrice(product.unit_cost)}</span></p>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-bold">Net Cost</label>
-              <p>$${product.net_cost ? parseFloat(product.net_cost).toFixed(2) : 'Not set'}</p>
+              <p><span class="${canViewPricing() ? 'price-visible' : 'price-masked'}" ${!canViewPricing() && product.net_cost ? `data-actual-value="${product.net_cost}"` : ''} aria-label="${canViewPricing() ? '' : 'Price hidden'}">${product.net_cost ? formatPrice(product.net_cost) : (canViewPricing() ? 'Not set' : formatPrice(null))}</span></p>
             </div>
           </div>
 

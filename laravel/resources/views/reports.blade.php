@@ -1824,6 +1824,11 @@ function getStatusBadge(status) {
 }
 
 function formatCurrency(value) {
+  // Use the global formatPrice function which handles permission-based masking
+  if (typeof formatPrice === 'function') {
+    return formatPrice(value);
+  }
+  // Fallback if formatPrice not available
   return '$' + parseFloat(value).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
 }
 
