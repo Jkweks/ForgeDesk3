@@ -13,13 +13,15 @@ use Illuminate\Support\Facades\Log;
 class RepairFulfilledLocationDeductions extends Command
 {
     protected $signature = 'inventory:repair-fulfilled-deductions
-                            {--dry-run : Show what would be changed without modifying data}';
+                            {--dry-run : Show what would be changed without modifying data}
+                            {--last=0 : Only process the N most recently fulfilled reservations}';
 
     protected $description = 'Retroactively deduct inventory from storage locations for fulfilled jobs that were completed before the location-deduction fix';
 
     public function handle()
     {
         $dryRun = $this->option('dry-run');
+        $last = (int) $this->option('last');
 
         if ($dryRun) {
             $this->info('=== DRY RUN MODE - No changes will be made ===');
@@ -27,11 +29,18 @@ class RepairFulfilledLocationDeductions extends Command
 
         $this->info('Scanning fulfilled reservations for missing location deductions...');
 
-        $reservations = JobReservation::where('status', 'fulfilled')
+        $query = JobReservation::where('status', 'fulfilled')
             ->with(['items.product'])
-            ->get();
+            ->orderBy('updated_at', 'desc');
 
-        $this->info("Found {$reservations->count()} fulfilled reservation(s).");
+        if ($last > 0) {
+            $query->limit($last);
+            $this->info("Limiting to the {$last} most recently fulfilled reservation(s).");
+        }
+
+        $reservations = $query->get();
+
+        $this->info("Found {$reservations->count()} fulfilled reservation(s) to process.");
 
         $totalDeductions = 0;
         $productsAffected = [];
