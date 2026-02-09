@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\InventoryLocation;
+use App\Models\InventoryTransaction;
 use App\Models\JobReservation;
 use App\Models\JobReservationItem;
 use App\Models\Product;
@@ -311,45 +313,10 @@ class JobReservationController extends Controller
                         ], 422);
                     }
 
-                    // Allow over-consumption but validate stock availability
+                    // Allow over-consumption (update committed_qty to match)
                     if ($actualQty > $item->committed_qty) {
                         $overConsumption = $actualQty - $item->committed_qty;
                         $product = $item->product;
-
-                        // Check if we have enough stock for the over-consumption
-                        // Available = on_hand - (all other commitments excluding this reservation item)
-                        $otherCommitments = $product->activeReservationItems()
-                            ->where('id', '!=', $item->id)
-                            ->sum('committed_qty');
-                        $availableForOverConsume = $product->quantity_on_hand - $otherCommitments - $item->consumed_qty;
-
-                        if ($overConsumption > $availableForOverConsume) {
-                            return response()->json([
-                                'error' => 'Insufficient stock for over-consumption',
-                                'message' => sprintf(
-                                    'Product %s: Attempting to consume %d but only %d available (committed: %d, attempting: %d, over-consumption: %d)',
-                                    $product->sku,
-                                    $actualQty,
-                                    $availableForOverConsume + $item->consumed_qty,
-                                    $item->committed_qty,
-                                    $actualQty,
-                                    $overConsumption
-                                ),
-                                'details' => [
-                                    'product_id' => $productId,
-                                    'sku' => $product->sku,
-                                    'on_hand' => $product->quantity_on_hand,
-                                    'committed_qty' => $item->committed_qty,
-                                    'already_consumed' => $item->consumed_qty,
-                                    'attempting_to_consume' => $actualQty,
-                                    'over_consumption' => $overConsumption,
-                                    'available_for_over_consume' => $availableForOverConsume,
-                                ],
-                            ], 422);
-                        }
-
-                        // Update committed_qty to match actual consumption if over-consuming
-                        $item->committed_qty = $actualQty;
 
                         Log::info('Over-consumption allowed', [
                             'reservation_id' => $id,
@@ -359,6 +326,8 @@ class JobReservationController extends Controller
                             'actual_consumed' => $actualQty,
                             'over_consumption' => $overConsumption,
                         ]);
+
+                        $item->committed_qty = $actualQty;
                     }
 
                     // Calculate deltas
@@ -372,12 +341,83 @@ class JobReservationController extends Controller
                     $item->consumed_qty = $actualQty;
                     $item->save();
 
-                    // Update product stock
+                    // Deduct from inventory locations: primary first, then secondary sequentially
                     if ($consumedDelta > 0) {
                         $product = $item->product;
                         $stockBefore = $product->quantity_on_hand;
-                        $product->quantity_on_hand -= $consumedDelta;
-                        $product->save();
+
+                        $remaining = $consumedDelta;
+
+                        // Get locations ordered: primary first, then secondary by id
+                        $locations = InventoryLocation::where('product_id', $productId)
+                            ->orderBy('is_primary', 'desc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+                        foreach ($locations as $location) {
+                            if ($remaining <= 0) {
+                                break;
+                            }
+
+                            $deductFromThis = min($remaining, $location->quantity);
+                            if ($deductFromThis > 0) {
+                                $location->quantity -= $deductFromThis;
+                                $location->save();
+                                $remaining -= $deductFromThis;
+
+                                Log::info('Inventory deducted from location', [
+                                    'product_id' => $productId,
+                                    'storage_location_id' => $location->storage_location_id,
+                                    'is_primary' => $location->is_primary,
+                                    'deducted' => $deductFromThis,
+                                    'location_qty_after' => $location->quantity,
+                                ]);
+                            }
+                        }
+
+                        // If remaining > 0, we have over-consumption beyond all locations.
+                        // Deduct the remainder from the primary location (allows negative).
+                        if ($remaining > 0) {
+                            $primaryLocation = $locations->where('is_primary', true)->first();
+                            if ($primaryLocation) {
+                                $primaryLocation->quantity -= $remaining;
+                                $primaryLocation->save();
+
+                                Log::warning('Over-consumption: primary location went negative', [
+                                    'product_id' => $productId,
+                                    'storage_location_id' => $primaryLocation->storage_location_id,
+                                    'remaining_deducted' => $remaining,
+                                    'location_qty_after' => $primaryLocation->quantity,
+                                ]);
+                            } elseif ($locations->isNotEmpty()) {
+                                // No primary location, use first available
+                                $fallback = $locations->first();
+                                $fallback->quantity -= $remaining;
+                                $fallback->save();
+
+                                Log::warning('Over-consumption: fallback location went negative', [
+                                    'product_id' => $productId,
+                                    'storage_location_id' => $fallback->storage_location_id,
+                                    'remaining_deducted' => $remaining,
+                                    'location_qty_after' => $fallback->quantity,
+                                ]);
+                            }
+                        }
+
+                        // Recalculate product totals from locations (source of truth)
+                        $product->recalculateQuantitiesFromLocations();
+
+                        // Create inventory transaction for audit trail
+                        InventoryTransaction::create([
+                            'product_id' => $productId,
+                            'type' => 'fulfillment',
+                            'quantity' => -$consumedDelta,
+                            'quantity_before' => $stockBefore,
+                            'quantity_after' => $product->quantity_on_hand,
+                            'reference_number' => $reservation->job_number . '-R' . $reservation->release_number,
+                            'notes' => "Job completion: {$reservation->job_number} R{$reservation->release_number}",
+                            'transaction_date' => now(),
+                        ]);
 
                         Log::info('Stock updated for product', [
                             'product_id' => $productId,
