@@ -49,7 +49,7 @@
           </div>
         </a>
         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-          <a href="#" class="dropdown-item">Status</a>
+          <a href="/status" class="dropdown-item">Status</a>
           <a href="#" class="dropdown-item">Profile</a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item">Settings</a>
