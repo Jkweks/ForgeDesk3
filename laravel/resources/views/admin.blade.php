@@ -597,7 +597,7 @@
         showModal(document.getElementById('addUserModal'));
       }
 
-      function saveNewUser() {
+      async function saveNewUser() {
         const firstName = document.getElementById('addUserFirstName').value;
         const lastName = document.getElementById('addUserLastName').value;
         const email = document.getElementById('addUserEmail').value;
@@ -610,30 +610,105 @@
           return;
         }
 
-        // TODO: Implement API call to create user
-        showNotification('User created successfully (placeholder)', 'success');
-        hideModal(document.getElementById('addUserModal'));
-        loadUsers();
+        try {
+          const response = await authenticatedFetch('/users', {
+            method: 'POST',
+            body: JSON.stringify({
+              first_name: firstName,
+              last_name: lastName,
+              email: email,
+              password: password,
+              role: role,
+              is_active: active
+            })
+          });
+
+          showNotification('User created successfully', 'success');
+          hideModal(document.getElementById('addUserModal'));
+          loadUsers();
+          loadStatistics();
+        } catch (error) {
+          console.error('Error creating user:', error);
+          showNotification(error.message || 'Failed to create user', 'danger');
+        }
       }
 
-      function editUser(userId) {
-        // TODO: Load user data and show edit modal
-        showNotification('Edit user functionality (placeholder)', 'info');
+      async function editUser(userId) {
+        try {
+          const user = await authenticatedFetch(`/users/${userId}`);
+
+          document.getElementById('editUserId').value = user.id;
+          document.getElementById('editUserFirstName').value = user.first_name;
+          document.getElementById('editUserLastName').value = user.last_name;
+          document.getElementById('editUserEmail').value = user.email;
+          document.getElementById('editUserPassword').value = '';
+          document.getElementById('editUserRole').value = user.role;
+          document.getElementById('editUserActive').checked = user.is_active;
+
+          showModal(document.getElementById('editUserModal'));
+        } catch (error) {
+          console.error('Error loading user:', error);
+          showNotification('Failed to load user details', 'danger');
+        }
       }
 
-      function deleteUser(userId) {
-        if (!confirm('Are you sure you want to delete this user?')) return;
+      async function deleteUser(userId) {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
 
-        // TODO: Implement API call to delete user
-        showNotification('User deleted (placeholder)', 'success');
-        loadUsers();
+        try {
+          await authenticatedFetch(`/users/${userId}`, {
+            method: 'DELETE'
+          });
+
+          showNotification('User deleted successfully', 'success');
+          loadUsers();
+          loadStatistics();
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showNotification(error.message || 'Failed to delete user', 'danger');
+        }
       }
 
-      function saveEditUser() {
-        // TODO: Implement API call to update user
-        showNotification('User updated successfully (placeholder)', 'success');
-        hideModal(document.getElementById('editUserModal'));
-        loadUsers();
+      async function saveEditUser() {
+        const userId = document.getElementById('editUserId').value;
+        const firstName = document.getElementById('editUserFirstName').value;
+        const lastName = document.getElementById('editUserLastName').value;
+        const email = document.getElementById('editUserEmail').value;
+        const password = document.getElementById('editUserPassword').value;
+        const role = document.getElementById('editUserRole').value;
+        const active = document.getElementById('editUserActive').checked;
+
+        if (!firstName || !lastName || !email || !role) {
+          showNotification('Please fill in all required fields', 'danger');
+          return;
+        }
+
+        try {
+          const payload = {
+            first_name: firstName,
+            last_name: lastName,
+            email: email,
+            role: role,
+            is_active: active
+          };
+
+          // Only include password if it was changed
+          if (password) {
+            payload.password = password;
+          }
+
+          await authenticatedFetch(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          showNotification('User updated successfully', 'success');
+          hideModal(document.getElementById('editUserModal'));
+          loadUsers();
+        } catch (error) {
+          console.error('Error updating user:', error);
+          showNotification(error.message || 'Failed to update user', 'danger');
+        }
       }
 
       // Role Management Functions
@@ -672,23 +747,43 @@
       }
 
       // Data Loading Functions
-      function loadUsers() {
+      async function loadUsers() {
         document.getElementById('loadingUsers').style.display = 'block';
         document.getElementById('usersTableContainer').style.display = 'none';
 
-        // TODO: Replace with actual API call
-        setTimeout(() => {
-          // Placeholder data
-          users = [
-            { id: 1, name: 'John Doe', email: 'john@example.com', role: 'admin', status: 'active', last_login: '2026-01-31', created_at: '2026-01-01' },
-            { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'manager', status: 'active', last_login: '2026-01-30', created_at: '2026-01-05' },
-            { id: 3, name: 'Bob Johnson', email: 'bob@example.com', role: 'fabricator', status: 'active', last_login: '2026-01-29', created_at: '2026-01-10' },
-          ];
+        try {
+          const roleFilter = document.getElementById('filterRole')?.value;
+          const statusFilter = document.getElementById('filterStatus')?.value;
+          const searchQuery = document.getElementById('searchUsers')?.value;
+
+          let url = '/users?';
+          if (roleFilter) url += `role=${roleFilter}&`;
+          if (statusFilter) url += `is_active=${statusFilter}&`;
+          if (searchQuery) url += `search=${encodeURIComponent(searchQuery)}&`;
+
+          users = await authenticatedFetch(url);
 
           renderUsers();
           document.getElementById('loadingUsers').style.display = 'none';
           document.getElementById('usersTableContainer').style.display = 'block';
-        }, 500);
+        } catch (error) {
+          console.error('Error loading users:', error);
+          document.getElementById('loadingUsers').style.display = 'none';
+          showNotification('Failed to load users', 'danger');
+        }
+      }
+
+      async function loadStatistics() {
+        try {
+          const stats = await authenticatedFetch('/users/statistics');
+
+          document.getElementById('statTotalUsers').textContent = stats.total_users;
+          document.getElementById('statActiveUsers').textContent = stats.active_users;
+          document.getElementById('statAdminUsers').textContent = stats.admin_users;
+          document.getElementById('statTotalRoles').textContent = Object.keys(stats.by_role || {}).length;
+        } catch (error) {
+          console.error('Error loading statistics:', error);
+        }
       }
 
       function renderUsers() {
@@ -696,7 +791,7 @@
         tbody.innerHTML = '';
 
         users.forEach(user => {
-          const statusBadge = user.status === 'active'
+          const statusBadge = user.is_active
             ? '<span class="badge bg-success">Active</span>'
             : '<span class="badge bg-secondary">Inactive</span>';
 
@@ -707,14 +802,17 @@
             viewer: '<span class="badge bg-gray">Viewer</span>'
           }[user.role] || '<span class="badge bg-gray">' + user.role + '</span>';
 
+          const lastLogin = user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : 'Never';
+          const createdAt = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
+
           const row = `
             <tr>
               <td>${user.name}</td>
               <td>${user.email}</td>
               <td>${roleBadge}</td>
               <td>${statusBadge}</td>
-              <td>${user.last_login || 'Never'}</td>
-              <td>${user.created_at}</td>
+              <td>${lastLogin}</td>
+              <td>${createdAt}</td>
               <td>
                 <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit">
                   <i class="ti ti-edit"></i>
@@ -727,31 +825,23 @@
           `;
           tbody.innerHTML += row;
         });
-
-        // Update stats
-        document.getElementById('statTotalUsers').textContent = users.length;
-        document.getElementById('statActiveUsers').textContent = users.filter(u => u.status === 'active').length;
-        document.getElementById('statAdminUsers').textContent = users.filter(u => u.role === 'admin').length;
       }
 
-      function loadRoles() {
+      async function loadRoles() {
         document.getElementById('loadingRoles').style.display = 'block';
         document.getElementById('rolesContainer').style.display = 'none';
 
-        // TODO: Replace with actual API call
-        setTimeout(() => {
-          // Placeholder data
-          roles = [
-            { id: 1, name: 'Admin', description: 'Full system access', user_count: 2 },
-            { id: 2, name: 'Manager', description: 'Manage inventory and orders', user_count: 5 },
-            { id: 3, name: 'Fabricator', description: 'View and fulfill orders', user_count: 10 },
-            { id: 4, name: 'Viewer', description: 'Read-only access', user_count: 3 },
-          ];
+        try {
+          roles = await authenticatedFetch('/roles');
 
           renderRoles();
           document.getElementById('loadingRoles').style.display = 'none';
           document.getElementById('rolesContainer').style.display = 'flex';
-        }, 500);
+        } catch (error) {
+          console.error('Error loading roles:', error);
+          document.getElementById('loadingRoles').style.display = 'none';
+          showNotification('Failed to load roles', 'danger');
+        }
       }
 
       function renderRoles() {
@@ -759,14 +849,21 @@
         container.innerHTML = '';
 
         roles.forEach(role => {
+          const systemBadge = role.is_system ? '<span class="badge bg-info ms-2">System</span>' : '';
+          const deleteOption = role.is_system
+            ? ''
+            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
+                 <i class="ti ti-trash me-2"></i>Delete
+               </a>`;
+
           const card = `
             <div class="col-md-6 col-lg-4">
               <div class="card">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start mb-3">
                     <div>
-                      <h3 class="card-title mb-1">${role.name}</h3>
-                      <div class="text-muted">${role.description}</div>
+                      <h3 class="card-title mb-1">${role.display_name}${systemBadge}</h3>
+                      <div class="text-muted">${role.description || 'No description'}</div>
                     </div>
                     <div class="dropdown">
                       <button class="btn btn-icon btn-sm" type="button" data-bs-toggle="dropdown">
@@ -776,16 +873,20 @@
                         <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;">
                           <i class="ti ti-edit me-2"></i>Edit
                         </a>
-                        <a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
-                          <i class="ti ti-trash me-2"></i>Delete
-                        </a>
+                        ${deleteOption}
                       </div>
                     </div>
                   </div>
                   <div class="mt-3">
-                    <div class="d-flex align-items-center">
-                      <i class="ti ti-users me-2 text-muted"></i>
-                      <span class="text-muted">${role.user_count} user${role.user_count !== 1 ? 's' : ''}</span>
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <i class="ti ti-users me-2 text-muted"></i>
+                        <span class="text-muted">${role.user_count} user${role.user_count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div>
+                        <i class="ti ti-shield-lock me-2 text-muted"></i>
+                        <span class="text-muted">${role.permission_count} permissions</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -794,15 +895,13 @@
           `;
           container.innerHTML += card;
         });
-
-        // Update stats
-        document.getElementById('statTotalRoles').textContent = roles.length;
       }
 
       // Initialize on page load
       document.addEventListener('DOMContentLoaded', function() {
         loadUsers();
         loadRoles();
+        loadStatistics();
         loadPricingStats();
         loadCurrentEzEstimate();
       });

@@ -48,11 +48,25 @@ Route::post('/login', function (Request $request) {
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
+    // Check if user is active
+    if (!$user->is_active) {
+        return response()->json(['message' => 'Your account has been deactivated. Please contact an administrator.'], 403);
+    }
+
+    // Update last login timestamp
+    $user->updateLastLogin();
+
     $token = $user->createToken('auth-token')->plainTextToken;
 
     return response()->json([
         'token' => $token,
-        'user' => $user
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->full_name ?: $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+        ]
     ]);
 });
 
@@ -98,6 +112,30 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/user', function (Request $request) {
             return $request->user();
         });
+
+        // User Management
+        Route::get('/users', [\App\Http\Controllers\Api\UserController::class, 'index']);
+        Route::get('/users/statistics', [\App\Http\Controllers\Api\UserController::class, 'statistics']);
+        Route::get('/users/{user}', [\App\Http\Controllers\Api\UserController::class, 'show']);
+        Route::post('/users', [\App\Http\Controllers\Api\UserController::class, 'store']);
+        Route::put('/users/{user}', [\App\Http\Controllers\Api\UserController::class, 'update']);
+        Route::delete('/users/{user}', [\App\Http\Controllers\Api\UserController::class, 'destroy']);
+        Route::post('/users/{user}/restore', [\App\Http\Controllers\Api\UserController::class, 'restore']);
+        Route::post('/users/{user}/reset-password', [\App\Http\Controllers\Api\UserController::class, 'resetPassword']);
+
+        // Self-service user endpoints
+        Route::post('/user/change-password', [\App\Http\Controllers\Api\UserController::class, 'changePassword']);
+        Route::put('/user/profile', [\App\Http\Controllers\Api\UserController::class, 'updateProfile']);
+
+        // Role & Permission Management
+        Route::get('/roles', [\App\Http\Controllers\Api\RoleController::class, 'index']);
+        Route::get('/roles/{role}', [\App\Http\Controllers\Api\RoleController::class, 'show']);
+        Route::post('/roles', [\App\Http\Controllers\Api\RoleController::class, 'store']);
+        Route::put('/roles/{role}', [\App\Http\Controllers\Api\RoleController::class, 'update']);
+        Route::delete('/roles/{role}', [\App\Http\Controllers\Api\RoleController::class, 'destroy']);
+        Route::get('/permissions', [\App\Http\Controllers\Api\RoleController::class, 'permissions']);
+        Route::post('/roles/{role}/permissions', [\App\Http\Controllers\Api\RoleController::class, 'assignPermissions']);
+
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
         Route::get('/dashboard/inventory/{status}', [DashboardController::class, 'inventoryByStatus']);
