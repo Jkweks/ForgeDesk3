@@ -238,12 +238,34 @@
     location.reload();
   });
 
-  // Show app or login based on auth state
-  if (authToken) {
-    showApp();
-  } else {
-    showLogin();
+  // Validate session on page load
+  async function validateSession() {
+    if (!authToken) {
+      showLogin();
+      return;
+    }
+
+    try {
+      const response = await apiCall('/user');
+      if (!response.ok) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        authToken = null;
+        currentUser = null;
+        showLogin();
+        if (response.status === 401) {
+          showNotification('Session expired. Please login again.', 'warning');
+        }
+        return;
+      }
+      showApp();
+    } catch (error) {
+      // Network error - show app optimistically (API calls will handle 401s)
+      showApp();
+    }
   }
+
+  validateSession();
 
   // Notification helper
   function showNotification(message, type = 'info') {
