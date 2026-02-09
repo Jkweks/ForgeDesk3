@@ -63,6 +63,11 @@ Route::get('/maintenance', function () {
     return view('maintenance');
 });
 
+// System Status
+Route::get('/status', function () {
+    return view('status');
+});
+
 // Administration
 Route::get('/admin', function () {
     return view('admin');

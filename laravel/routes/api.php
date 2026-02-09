@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\CycleCountController;
 use App\Http\Controllers\Api\MachineToolingController;
 use App\Http\Controllers\Api\MaterialCheckController;
+use App\Http\Controllers\Api\StatusController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -145,6 +146,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/roles/{role}', [\App\Http\Controllers\Api\RoleController::class, 'destroy']);
         Route::get('/permissions', [\App\Http\Controllers\Api\RoleController::class, 'permissions']);
         Route::post('/roles/{role}/permissions', [\App\Http\Controllers\Api\RoleController::class, 'assignPermissions']);
+
+        // System Status
+        Route::get('/status', [StatusController::class, 'index']);
 
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index']);
