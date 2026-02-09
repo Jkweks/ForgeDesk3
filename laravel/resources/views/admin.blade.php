@@ -486,7 +486,7 @@
 
     <!-- Add Role Modal -->
     <div class="modal modal-blur fade" id="addRoleModal" tabindex="-1" style="display: none;" aria-hidden="true">
-      <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Add New Role</h5>
@@ -495,62 +495,24 @@
           <div class="modal-body">
             <div class="mb-3">
               <label class="form-label required">Role Name</label>
-              <input type="text" class="form-control" id="addRoleName" placeholder="Role name">
+              <input type="text" class="form-control" id="addRoleName" placeholder="e.g., custom_role (lowercase, underscores only)">
+              <small class="form-text text-muted">Internal role name (lowercase, underscores, no spaces)</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Display Name</label>
+              <input type="text" class="form-control" id="addRoleDisplayName" placeholder="e.g., Custom Role">
+              <small class="form-text text-muted">User-friendly display name</small>
             </div>
             <div class="mb-3">
               <label class="form-label">Description</label>
-              <textarea class="form-control" id="addRoleDescription" rows="3" placeholder="Role description"></textarea>
+              <textarea class="form-control" id="addRoleDescription" rows="2" placeholder="Role description"></textarea>
             </div>
             <div class="mb-3">
               <label class="form-label">Permissions</label>
-              <div class="row">
-                <div class="col-md-6">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Products</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Products</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Pricing</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Pricing</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Inventory</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Manage Inventory</span>
-                  </label>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Create Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Approve Purchase Orders</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">View Reports</span>
-                  </label>
-                  <label class="form-check">
-                    <input class="form-check-input" type="checkbox">
-                    <span class="form-check-label">Admin Access</span>
-                  </label>
+              <div id="addRolePermissions" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted py-3">
+                  <div class="spinner-border spinner-border-sm" role="status"></div>
+                  <p class="mt-2 mb-0">Loading permissions...</p>
                 </div>
               </div>
             </div>
@@ -563,10 +525,60 @@
       </div>
     </div>
 
+    <!-- Edit Role Modal -->
+    <div class="modal modal-blur fade" id="editRoleModal" tabindex="-1" style="display: none;" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Role</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="editRoleId">
+            <input type="hidden" id="editRoleIsSystem">
+
+            <div class="alert alert-warning" id="systemRoleWarning" style="display: none;">
+              <i class="ti ti-alert-triangle me-2"></i>
+              This is a system role. The role name cannot be changed.
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label required">Role Name</label>
+              <input type="text" class="form-control" id="editRoleName" placeholder="e.g., custom_role">
+              <small class="form-text text-muted">Internal role name (lowercase, underscores, no spaces)</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label required">Display Name</label>
+              <input type="text" class="form-control" id="editRoleDisplayName" placeholder="e.g., Custom Role">
+              <small class="form-text text-muted">User-friendly display name</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Description</label>
+              <textarea class="form-control" id="editRoleDescription" rows="2" placeholder="Role description"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Permissions</label>
+              <div id="editRolePermissions" class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+                <div class="text-center text-muted py-3">
+                  <div class="spinner-border spinner-border-sm" role="status"></div>
+                  <p class="mt-2 mb-0">Loading permissions...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn me-auto" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="saveEditRole()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       // Placeholder data for demonstration
       let users = [];
       let roles = [];
+      let permissions = [];
 
       // Bootstrap Modal helpers
       function showModal(element) {
@@ -581,9 +593,41 @@
 
       // Notification helper
       function showNotification(message, type = 'success') {
-        // TODO: Implement notification system
-        console.log(`[${type}] ${message}`);
-        alert(message);
+        const bgColors = {
+          success: 'bg-success',
+          danger: 'bg-danger',
+          warning: 'bg-warning',
+          info: 'bg-info'
+        };
+
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white ${bgColors[type] || 'bg-success'} border-0`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        toast.innerHTML = `
+          <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        `;
+
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+          container = document.createElement('div');
+          container.id = 'toastContainer';
+          container.className = 'toast-container position-fixed top-0 end-0 p-3';
+          container.style.zIndex = '9999';
+          document.body.appendChild(container);
+        }
+
+        container.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast, { autohide: true, delay: 3000 });
+        bsToast.show();
+
+        toast.addEventListener('hidden.bs.toast', () => {
+          toast.remove();
+        });
       }
 
       // User Management Functions
@@ -712,38 +756,218 @@
       }
 
       // Role Management Functions
-      function showAddRoleModal() {
+      async function showAddRoleModal() {
         document.getElementById('addRoleName').value = '';
+        document.getElementById('addRoleDisplayName').value = '';
         document.getElementById('addRoleDescription').value = '';
+
+        // Load permissions and render checkboxes
+        await loadPermissions();
+        renderPermissionsCheckboxes('addRolePermissions', []);
+
         showModal(document.getElementById('addRoleModal'));
       }
 
-      function saveNewRole() {
-        const name = document.getElementById('addRoleName').value;
-        const description = document.getElementById('addRoleDescription').value;
+      async function saveNewRole() {
+        const name = document.getElementById('addRoleName').value.trim();
+        const displayName = document.getElementById('addRoleDisplayName').value.trim();
+        const description = document.getElementById('addRoleDescription').value.trim();
 
         if (!name) {
           showNotification('Please enter a role name', 'danger');
           return;
         }
 
-        // TODO: Implement API call to create role
-        showNotification('Role created successfully (placeholder)', 'success');
-        hideModal(document.getElementById('addRoleModal'));
-        loadRoles();
+        if (!displayName) {
+          showNotification('Please enter a display name', 'danger');
+          return;
+        }
+
+        // Get selected permissions
+        const checkboxes = document.querySelectorAll('#addRolePermissions input[type="checkbox"]:checked');
+        const selectedPermissions = Array.from(checkboxes).map(cb => cb.value);
+
+        try {
+          await authenticatedFetch('/roles', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: name,
+              display_name: displayName,
+              description: description,
+              permissions: selectedPermissions
+            })
+          });
+
+          showNotification('Role created successfully', 'success');
+          hideModal(document.getElementById('addRoleModal'));
+          loadRoles();
+        } catch (error) {
+          console.error('Error creating role:', error);
+          showNotification(error.message || 'Failed to create role', 'danger');
+        }
       }
 
-      function editRole(roleId) {
-        // TODO: Load role data and show edit modal
-        showNotification('Edit role functionality (placeholder)', 'info');
+      async function editRole(roleId) {
+        try {
+          // Load role data
+          const role = await authenticatedFetch(`/roles/${roleId}`);
+
+          // Populate edit modal
+          document.getElementById('editRoleId').value = role.id;
+          document.getElementById('editRoleName').value = role.name;
+          document.getElementById('editRoleDisplayName').value = role.display_name;
+          document.getElementById('editRoleDescription').value = role.description || '';
+          document.getElementById('editRoleIsSystem').value = role.is_system;
+
+          // Disable name editing for system roles
+          if (role.is_system) {
+            document.getElementById('editRoleName').disabled = true;
+            document.getElementById('systemRoleWarning').style.display = 'block';
+          } else {
+            document.getElementById('editRoleName').disabled = false;
+            document.getElementById('systemRoleWarning').style.display = 'none';
+          }
+
+          // Load permissions and render with current role's permissions checked
+          await loadPermissions();
+          const rolePermissions = role.permissions.map(p => p.name);
+          renderPermissionsCheckboxes('editRolePermissions', rolePermissions);
+
+          showModal(document.getElementById('editRoleModal'));
+        } catch (error) {
+          console.error('Error loading role:', error);
+          showNotification('Failed to load role data', 'danger');
+        }
       }
 
-      function deleteRole(roleId) {
-        if (!confirm('Are you sure you want to delete this role?')) return;
+      async function saveEditRole() {
+        const roleId = document.getElementById('editRoleId').value;
+        const name = document.getElementById('editRoleName').value.trim();
+        const displayName = document.getElementById('editRoleDisplayName').value.trim();
+        const description = document.getElementById('editRoleDescription').value.trim();
+        const isSystem = document.getElementById('editRoleIsSystem').value === 'true';
 
-        // TODO: Implement API call to delete role
-        showNotification('Role deleted (placeholder)', 'success');
-        loadRoles();
+        if (!displayName) {
+          showNotification('Please enter a display name', 'danger');
+          return;
+        }
+
+        // Get selected permissions
+        const checkboxes = document.querySelectorAll('#editRolePermissions input[type="checkbox"]:checked');
+        const selectedPermissions = Array.from(checkboxes).map(cb => cb.value);
+
+        try {
+          const payload = {
+            display_name: displayName,
+            description: description,
+            permissions: selectedPermissions
+          };
+
+          // Only send name if it's not a system role
+          if (!isSystem) {
+            payload.name = name;
+          }
+
+          await authenticatedFetch(`/roles/${roleId}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+
+          showNotification('Role updated successfully', 'success');
+          hideModal(document.getElementById('editRoleModal'));
+          loadRoles();
+        } catch (error) {
+          console.error('Error updating role:', error);
+          showNotification(error.message || 'Failed to update role', 'danger');
+        }
+      }
+
+      async function deleteRole(roleId) {
+        const role = roles.find(r => r.id === roleId);
+
+        if (!role) return;
+
+        if (role.is_system) {
+          showNotification('Cannot delete system roles', 'danger');
+          return;
+        }
+
+        if (!confirm(`Are you sure you want to delete the role "${role.display_name}"? This action cannot be undone.`)) {
+          return;
+        }
+
+        try {
+          await authenticatedFetch(`/roles/${roleId}`, {
+            method: 'DELETE'
+          });
+
+          showNotification('Role deleted successfully', 'success');
+          loadRoles();
+        } catch (error) {
+          console.error('Error deleting role:', error);
+          showNotification(error.message || 'Failed to delete role', 'danger');
+        }
+      }
+
+      // Load permissions from API
+      async function loadPermissions() {
+        if (permissions.length > 0) return; // Already loaded
+
+        try {
+          permissions = await authenticatedFetch('/permissions');
+        } catch (error) {
+          console.error('Error loading permissions:', error);
+          showNotification('Failed to load permissions', 'danger');
+        }
+      }
+
+      // Render permissions checkboxes grouped by category
+      function renderPermissionsCheckboxes(containerId, checkedPermissions = []) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        if (permissions.length === 0) {
+          container.innerHTML = '<p class="text-muted">No permissions available</p>';
+          return;
+        }
+
+        permissions.forEach(group => {
+          const categoryDiv = document.createElement('div');
+          categoryDiv.className = 'mb-3';
+
+          const categoryTitle = document.createElement('h4');
+          categoryTitle.className = 'text-muted mb-2';
+          categoryTitle.style.fontSize = '0.875rem';
+          categoryTitle.style.textTransform = 'capitalize';
+          categoryTitle.textContent = group.category;
+          categoryDiv.appendChild(categoryTitle);
+
+          const row = document.createElement('div');
+          row.className = 'row';
+
+          group.permissions.forEach((permission, index) => {
+            const col = document.createElement('div');
+            col.className = 'col-md-6';
+
+            const isChecked = checkedPermissions.includes(permission.name);
+
+            const label = document.createElement('label');
+            label.className = 'form-check';
+            label.innerHTML = `
+              <input class="form-check-input" type="checkbox" value="${permission.name}" ${isChecked ? 'checked' : ''}>
+              <span class="form-check-label">
+                ${permission.display_name}
+                ${permission.description ? `<br><small class="text-muted">${permission.description}</small>` : ''}
+              </span>
+            `;
+
+            col.appendChild(label);
+            row.appendChild(col);
+          });
+
+          categoryDiv.appendChild(row);
+          container.appendChild(categoryDiv);
+        });
       }
 
       // Data Loading Functions
