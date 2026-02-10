@@ -1169,11 +1169,11 @@ class ReportsController extends Controller
                 if ($product->pack_size && $product->pack_size > 1) {
                     $onHandQty = floor($product->quantity_on_hand / $product->pack_size);
                     $committedQtyDisplay = ceil($committedQty / $product->pack_size);
-                    $availableQty = max(0, $onHandQty - $committedQtyDisplay);
+                    $availableQty = $onHandQty - $committedQtyDisplay; // Allow negative for over-commitment
                 } else {
                     $onHandQty = $product->quantity_on_hand;
                     $committedQtyDisplay = $committedQty;
-                    $availableQty = max(0, $product->quantity_on_hand - $committedQty);
+                    $availableQty = $product->quantity_on_hand - $committedQty; // Allow negative for over-commitment
                 }
 
                 // Calculate available values based on pack quantities displayed
