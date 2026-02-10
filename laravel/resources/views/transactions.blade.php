@@ -162,6 +162,10 @@
                   <option value="issue">Issue (Remove from inventory)</option>
                   <option value="receipt">Receipt (Add to inventory)</option>
                   <option value="return">Return (Add to inventory)</option>
+                  <option value="adjustment">Adjustment (Add to inventory)</option>
+                  <option value="transfer">Transfer (Add to inventory)</option>
+                  <option value="cycle_count">Cycle Count (Add to inventory)</option>
+                  <option value="shipment">Shipment (Remove from inventory)</option>
                 </select>
               </div>
               <div class="col-md-6">
