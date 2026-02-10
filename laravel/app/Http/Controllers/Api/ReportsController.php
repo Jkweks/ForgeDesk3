@@ -501,10 +501,7 @@ class ReportsController extends Controller
                 'transaction_count' => $transactions->count(),
             ];
         })
-        // Only include products with activity or inventory
-        ->filter(function($item) {
-            return $item['transaction_count'] > 0 || $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0;
-        })
+        // Include all active products for complete inventory value reporting
         ->values();
 
         // Calculate summary statistics
