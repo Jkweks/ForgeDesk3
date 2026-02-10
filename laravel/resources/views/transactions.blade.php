@@ -163,9 +163,6 @@
                   <option value="receipt">Receipt (Add to inventory)</option>
                   <option value="return">Return (Add to inventory)</option>
                   <option value="adjustment">Adjustment (Add to inventory)</option>
-                  <option value="transfer">Transfer (Add to inventory)</option>
-                  <option value="cycle_count">Cycle Count (Add to inventory)</option>
-                  <option value="shipment">Shipment (Remove from inventory)</option>
                   <option value="job_issue">Job Issue (Remove for job)</option>
                   <option value="job_material_transfer">Job Material Transfer (Add from completed job)</option>
                 </select>
