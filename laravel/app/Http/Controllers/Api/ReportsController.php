@@ -419,11 +419,26 @@ class ReportsController extends Controller
             $totalAdditions = $receipts + $returns + $jobMaterialTransfers + $positiveAdjustments;
             $totalDeductions = $shipments + $jobIssues + $issues + $negativeAdjustments;
 
-            // Calculate ending inventory
-            $endingInventory = $beginningInventory + $totalAdditions - $totalDeductions;
+            // Calculate ending inventory by finding last transaction on or before end of month
+            // This ensures ending inventory for month N = beginning inventory for month N+1
+            $lastTransactionInOrBeforeMonth = InventoryTransaction::where('product_id', $product->id)
+                ->where('transaction_date', '<=', $endDate)
+                ->orderBy('transaction_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            if ($lastTransactionInOrBeforeMonth) {
+                $endingInventory = $lastTransactionInOrBeforeMonth->quantity_after;
+            } elseif ($beginningInventory > 0) {
+                // No transactions in or before this month, but had beginning inventory
+                // (shouldn't happen if beginning logic is correct, but handle it)
+                $endingInventory = $beginningInventory;
+            } else {
+                $endingInventory = 0;
+            }
 
             // Net change
-            $netChange = $totalAdditions - $totalDeductions;
+            $netChange = $endingInventory - $beginningInventory;
 
             // Use pack-based quantities and pricing if applicable
             $displayQuantity = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
