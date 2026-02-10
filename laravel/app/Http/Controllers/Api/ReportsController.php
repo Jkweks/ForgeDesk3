@@ -378,10 +378,19 @@ class ReportsController extends Controller
             // Use pre-loaded transactions (no additional query)
             $transactions = $product->transactions;
 
-            // Calculate beginning inventory (quantity_before of first transaction, or current if no transactions)
-            $beginningInventory = $transactions->first()
-                ? $transactions->first()->quantity_before
-                : $product->quantity_on_hand;
+            // Calculate beginning inventory as of the end of the previous month
+            // Find the last transaction before the start of this month
+            $lastTransactionBeforeMonth = InventoryTransaction::where('product_id', $product->id)
+                ->where('transaction_date', '<', $startDate)
+                ->orderBy('transaction_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            // Beginning inventory is either the quantity_after of the last transaction before this month,
+            // or 0 if there were no transactions before this month
+            $beginningInventory = $lastTransactionBeforeMonth
+                ? $lastTransactionBeforeMonth->quantity_after
+                : 0;
 
             // Calculate additions (positive quantity changes)
             $receipts = $transactions->where('type', 'receipt')->sum('quantity');
