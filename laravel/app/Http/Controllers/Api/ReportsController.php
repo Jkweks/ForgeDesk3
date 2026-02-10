@@ -362,9 +362,9 @@ class ReportsController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfDay();
         $endDate = $startDate->copy()->endOfMonth()->endOfDay();
 
-        // Eager load products with their transactions for the date range
-        $products = Product::where('is_active', true)
-            ->with([
+        // Load ALL products (active or inactive) to capture complete inventory value
+        // Products are filtered later based on whether they have inventory/transactions
+        $products = Product::with([
                 'category',
                 'supplier',
                 'transactions' => function($query) use ($startDate, $endDate) {
@@ -516,7 +516,11 @@ class ReportsController extends Controller
                 'transaction_count' => $transactions->count(),
             ];
         })
-        // Include all active products for complete inventory value reporting
+        // Filter to only products with inventory or transactions during the period
+        // This ensures clean reports while maintaining month-to-month consistency
+        ->filter(function($item) {
+            return $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0 || $item['transaction_count'] > 0;
+        })
         ->values();
 
         // Calculate summary statistics
