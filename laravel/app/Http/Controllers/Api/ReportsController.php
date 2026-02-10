@@ -1158,7 +1158,11 @@ class ReportsController extends Controller
                 'Qty Committed',
                 'Qty Available',
                 'Unit of Measure',
+                'On Hand Value (List)',
+                'Committed Value (List)',
                 'Available Value (List)',
+                'On Hand Value (Net)',
+                'Committed Value (Net)',
                 'Available Value (Net)',
             ]);
 
@@ -1176,9 +1180,13 @@ class ReportsController extends Controller
                     $availableQty = $product->quantity_on_hand - $committedQty; // Allow negative for over-commitment
                 }
 
-                // Calculate available values based on pack quantities displayed
-                $availableValueList = $product->unit_cost * $availableQty;
-                $availableValueNet = ($product->net_cost ?? 0) * $availableQty;
+                // Calculate values for all quantity types
+                $onHandValueList = $onHandQty * $product->unit_cost;
+                $committedValueList = $committedQtyDisplay * $product->unit_cost;
+                $availableValueList = $availableQty * $product->unit_cost;
+                $onHandValueNet = $onHandQty * ($product->net_cost ?? 0);
+                $committedValueNet = $committedQtyDisplay * ($product->net_cost ?? 0);
+                $availableValueNet = $availableQty * ($product->net_cost ?? 0);
 
                 fputcsv($file, [
                     $product->part_number ?? '',
@@ -1191,7 +1199,11 @@ class ReportsController extends Controller
                     $committedQtyDisplay,
                     $availableQty,
                     $product->unit_of_measure,
+                    number_format($onHandValueList, 2, '.', ''),
+                    number_format($committedValueList, 2, '.', ''),
                     number_format($availableValueList, 2, '.', ''),
+                    number_format($onHandValueNet, 2, '.', ''),
+                    number_format($committedValueNet, 2, '.', ''),
                     number_format($availableValueNet, 2, '.', ''),
                 ]);
             }
@@ -1242,9 +1254,13 @@ class ReportsController extends Controller
                 $availableQty = max(0, $product->quantity_on_hand - $committedQty);
             }
 
-            // Calculate available values
-            $availableValueList = $product->unit_cost * $availableQty;
-            $availableValueNet = ($product->net_cost ?? 0) * $availableQty;
+            // Calculate values for all quantity types
+            $onHandValueList = $onHandQty * $product->unit_cost;
+            $committedValueList = $committedQtyDisplay * $product->unit_cost;
+            $availableValueList = $availableQty * $product->unit_cost;
+            $onHandValueNet = $onHandQty * ($product->net_cost ?? 0);
+            $committedValueNet = $committedQtyDisplay * ($product->net_cost ?? 0);
+            $availableValueNet = $availableQty * ($product->net_cost ?? 0);
 
             return [
                 'part_number' => $product->part_number ?? '',
@@ -1257,16 +1273,26 @@ class ReportsController extends Controller
                 'committed' => $committedQtyDisplay,
                 'available' => $availableQty,
                 'unit_of_measure' => $product->unit_of_measure,
+                'on_hand_value_list' => $onHandValueList,
+                'committed_value_list' => $committedValueList,
                 'available_value_list' => $availableValueList,
+                'on_hand_value_net' => $onHandValueNet,
+                'committed_value_net' => $committedValueNet,
                 'available_value_net' => $availableValueNet,
             ];
         });
 
         $summary = [
             'total_products' => $inventoryData->count(),
-            'total_value_list' => $inventoryData->sum('available_value_list'),
-            'total_value_net' => $inventoryData->sum('available_value_net'),
+            'total_on_hand_qty' => $inventoryData->sum('on_hand'),
+            'total_committed_qty' => $inventoryData->sum('committed'),
             'total_available_qty' => $inventoryData->sum('available'),
+            'total_on_hand_value_list' => $inventoryData->sum('on_hand_value_list'),
+            'total_committed_value_list' => $inventoryData->sum('committed_value_list'),
+            'total_available_value_list' => $inventoryData->sum('available_value_list'),
+            'total_on_hand_value_net' => $inventoryData->sum('on_hand_value_net'),
+            'total_committed_value_net' => $inventoryData->sum('committed_value_net'),
+            'total_available_value_net' => $inventoryData->sum('available_value_net'),
         ];
 
         return response()->json([
@@ -1315,9 +1341,13 @@ class ReportsController extends Controller
                 $availableQty = max(0, $product->quantity_on_hand - $committedQty);
             }
 
-            // Calculate available values
-            $availableValueList = $product->unit_cost * $availableQty;
-            $availableValueNet = ($product->net_cost ?? 0) * $availableQty;
+            // Calculate values for all quantity types
+            $onHandValueList = $onHandQty * $product->unit_cost;
+            $committedValueList = $committedQtyDisplay * $product->unit_cost;
+            $availableValueList = $availableQty * $product->unit_cost;
+            $onHandValueNet = $onHandQty * ($product->net_cost ?? 0);
+            $committedValueNet = $committedQtyDisplay * ($product->net_cost ?? 0);
+            $availableValueNet = $availableQty * ($product->net_cost ?? 0);
 
             return [
                 'part_number' => $product->part_number ?? '',
@@ -1330,16 +1360,26 @@ class ReportsController extends Controller
                 'committed' => $committedQtyDisplay,
                 'available' => $availableQty,
                 'unit_of_measure' => $product->unit_of_measure,
+                'on_hand_value_list' => $onHandValueList,
+                'committed_value_list' => $committedValueList,
                 'available_value_list' => $availableValueList,
+                'on_hand_value_net' => $onHandValueNet,
+                'committed_value_net' => $committedValueNet,
                 'available_value_net' => $availableValueNet,
             ];
         });
 
         $summary = [
             'total_products' => $inventoryData->count(),
-            'total_value_list' => $inventoryData->sum('available_value_list'),
-            'total_value_net' => $inventoryData->sum('available_value_net'),
+            'total_on_hand_qty' => $inventoryData->sum('on_hand'),
+            'total_committed_qty' => $inventoryData->sum('committed'),
             'total_available_qty' => $inventoryData->sum('available'),
+            'total_on_hand_value_list' => $inventoryData->sum('on_hand_value_list'),
+            'total_committed_value_list' => $inventoryData->sum('committed_value_list'),
+            'total_available_value_list' => $inventoryData->sum('available_value_list'),
+            'total_on_hand_value_net' => $inventoryData->sum('on_hand_value_net'),
+            'total_committed_value_net' => $inventoryData->sum('committed_value_net'),
+            'total_available_value_net' => $inventoryData->sum('available_value_net'),
         ];
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdfs.inventory-report', [
