@@ -190,6 +190,7 @@ class InventoryTransactionController extends Controller
             'cycle_count' => 'Cycle Count',
             'job_issue' => 'Job Issue',
             'issue' => 'Issue',
+            'job_material_transfer' => 'Job Material Transfer',
         ]);
     }
 
@@ -328,7 +329,7 @@ class InventoryTransactionController extends Controller
     public function createManual(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:issue,return,receipt,adjustment,transfer,cycle_count,shipment',
+            'type' => 'required|in:issue,return,receipt,adjustment,transfer,cycle_count,shipment,job_issue,job_material_transfer',
             'transaction_date' => 'required|date',
             'reference_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
@@ -350,9 +351,9 @@ class InventoryTransactionController extends Controller
                 $quantityBefore = $product->quantity_on_hand;
 
                 // Determine if transaction removes or adds inventory
-                // Issue and shipment remove from inventory (negative)
+                // Issue, shipment, and job_issue remove from inventory (negative)
                 // All others add to inventory (positive)
-                $removesInventory = in_array($validated['type'], ['issue', 'shipment']);
+                $removesInventory = in_array($validated['type'], ['issue', 'shipment', 'job_issue']);
                 $quantityChange = $removesInventory ? -$productData['quantity'] : $productData['quantity'];
 
                 // Update product quantity

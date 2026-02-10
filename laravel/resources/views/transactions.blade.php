@@ -166,6 +166,8 @@
                   <option value="transfer">Transfer (Add to inventory)</option>
                   <option value="cycle_count">Cycle Count (Add to inventory)</option>
                   <option value="shipment">Shipment (Remove from inventory)</option>
+                  <option value="job_issue">Job Issue (Remove for job)</option>
+                  <option value="job_material_transfer">Job Material Transfer (Add from completed job)</option>
                 </select>
               </div>
               <div class="col-md-6">
@@ -360,7 +362,8 @@
           'return': 'danger',
           'cycle_count': 'azure',
           'job_issue': 'orange',
-          'issue': 'red'
+          'issue': 'red',
+          'job_material_transfer': 'teal'
         };
         const typeColor = typeColors[trans.type] || 'secondary';
 
@@ -469,7 +472,8 @@
           'return': 'danger',
           'cycle_count': 'azure',
           'job_issue': 'orange',
-          'issue': 'red'
+          'issue': 'red',
+          'job_material_transfer': 'teal'
         };
         const typeColor = typeColors[trans.type] || 'secondary';
         const quantityClass = trans.quantity >= 0 ? 'text-success' : 'text-danger';
@@ -554,7 +558,8 @@
         'return': 'Return',
         'cycle_count': 'Cycle Count',
         'job_issue': 'Job Issue',
-        'issue': 'Issue'
+        'issue': 'Issue',
+        'job_material_transfer': 'Job Material Transfer'
       };
       return types[type] || type;
     }
