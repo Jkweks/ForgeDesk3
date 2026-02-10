@@ -386,11 +386,18 @@ class ReportsController extends Controller
                 ->orderBy('id', 'desc')
                 ->first();
 
-            // Beginning inventory is either the quantity_after of the last transaction before this month,
-            // or 0 if there were no transactions before this month
-            $beginningInventory = $lastTransactionBeforeMonth
-                ? $lastTransactionBeforeMonth->quantity_after
-                : 0;
+            // Determine beginning inventory:
+            // 1. If there's a transaction before this month, use its quantity_after
+            // 2. If not, but there's a transaction in this month, use quantity_before of first transaction
+            //    (this captures initial inventory for products in their first active month)
+            // 3. If no transactions at all, use 0
+            if ($lastTransactionBeforeMonth) {
+                $beginningInventory = $lastTransactionBeforeMonth->quantity_after;
+            } elseif ($transactions->isNotEmpty()) {
+                $beginningInventory = $transactions->first()->quantity_before;
+            } else {
+                $beginningInventory = 0;
+            }
 
             // Calculate additions (positive quantity changes)
             $receipts = $transactions->where('type', 'receipt')->sum('quantity');
