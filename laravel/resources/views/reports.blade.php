@@ -1469,7 +1469,16 @@ async function exportInventoryPdf() {
 // Export report
 async function exportReport(type) {
   try {
-    const response = await fetch(`${API_BASE}/reports/export?type=${type}`, {
+    let url = `${API_BASE}/reports/export?type=${type}`;
+
+    // Add month/year parameters for monthly statement report
+    if (type === 'monthly_statement') {
+      const month = document.getElementById('statementMonth').value;
+      const year = document.getElementById('statementYear').value;
+      url += `&month=${month}&year=${year}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${authToken}`,
@@ -1485,14 +1494,14 @@ async function exportReport(type) {
     const blob = await response.blob();
 
     // Create download link
-    const url = window.URL.createObjectURL(blob);
+    const url2 = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = url2;
     a.download = `${type}_report_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    window.URL.revokeObjectURL(url2);
 
     showNotification('Report exported successfully', 'success');
   } catch (error) {

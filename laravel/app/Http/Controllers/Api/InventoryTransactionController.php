@@ -190,6 +190,7 @@ class InventoryTransactionController extends Controller
             'cycle_count' => 'Cycle Count',
             'job_issue' => 'Job Issue',
             'issue' => 'Issue',
+            'job_material_transfer' => 'Job Material Transfer',
         ]);
     }
 
@@ -328,7 +329,7 @@ class InventoryTransactionController extends Controller
     public function createManual(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|in:issue,return,receipt,job_material_transfer',
+            'type' => 'required|in:issue,return,receipt,adjustment,transfer,cycle_count,shipment,job_issue,job_material_transfer',
             'transaction_date' => 'required|date',
             'reference_number' => 'required|string|max:255',
             'notes' => 'nullable|string',
@@ -349,21 +350,83 @@ class InventoryTransactionController extends Controller
                 // Record quantity before
                 $quantityBefore = $product->quantity_on_hand;
 
-                // For 'issue' type, negate the quantity (removing from inventory)
-                // For receipt, return, and job_material_transfer, add to inventory (positive)
-                $quantityChange = $validated['type'] === 'issue' ? -$productData['quantity'] : $productData['quantity'];
+                // Determine if transaction removes or adds inventory
+                // Issue, shipment, and job_issue remove from inventory (negative)
+                // All others add to inventory (positive)
+                $removesInventory = in_array($validated['type'], ['issue', 'shipment', 'job_issue']);
+                $quantityChange = $removesInventory ? -$productData['quantity'] : $productData['quantity'];
 
-                // Update product quantity
-                $product->quantity_on_hand += $quantityChange;
+                // Update inventory locations (source of truth)
+                if ($quantityChange > 0) {
+                    // Adding inventory - add to primary location (or create if doesn't exist)
+                    $primaryLocation = $product->inventoryLocations()->where('is_primary', true)->first();
+
+                    if (!$primaryLocation) {
+                        // Get or create a default primary location
+                        $defaultLocation = \App\Models\StorageLocation::firstOrCreate(
+                            ['code' => 'DEFAULT'],
+                            ['name' => 'Default Storage', 'type' => 'warehouse', 'is_active' => true]
+                        );
+
+                        $primaryLocation = $product->inventoryLocations()->create([
+                            'storage_location_id' => $defaultLocation->id,
+                            'quantity' => 0,
+                            'quantity_committed' => 0,
+                            'is_primary' => true,
+                        ]);
+                    }
+
+                    $primaryLocation->quantity += $quantityChange;
+                    $primaryLocation->save();
+
+                } elseif ($quantityChange < 0) {
+                    // Removing inventory - remove from primary first, then secondary locations
+                    $remainingToRemove = abs($quantityChange);
+
+                    // Get locations ordered by primary first, then by available quantity
+                    $locations = $product->inventoryLocations()
+                        ->orderByRaw('is_primary DESC')
+                        ->orderByRaw('(quantity - quantity_committed) DESC')
+                        ->get();
+
+                    foreach ($locations as $location) {
+                        if ($remainingToRemove <= 0) break;
+
+                        $availableAtLocation = $location->quantity - $location->quantity_committed;
+                        $toRemoveFromLocation = min($remainingToRemove, $availableAtLocation);
+
+                        if ($toRemoveFromLocation > 0) {
+                            $location->quantity -= $toRemoveFromLocation;
+                            $location->save();
+                            $remainingToRemove -= $toRemoveFromLocation;
+                        }
+                    }
+
+                    // If still have remaining to remove, force remove from locations with inventory
+                    if ($remainingToRemove > 0) {
+                        foreach ($locations as $location) {
+                            if ($remainingToRemove <= 0) break;
+
+                            if ($location->quantity > 0) {
+                                $toRemoveFromLocation = min($remainingToRemove, $location->quantity);
+                                $location->quantity -= $toRemoveFromLocation;
+                                $location->save();
+                                $remainingToRemove -= $toRemoveFromLocation;
+                            }
+                        }
+                    }
+                }
+
+                // Recalculate product totals from locations (source of truth)
+                $product->recalculateQuantitiesFromLocations();
+                $product->refresh();
+                $quantityAfter = $product->quantity_on_hand;
 
                 // Prevent negative inventory
-                if ($product->quantity_on_hand < 0) {
+                if ($quantityAfter < 0) {
                     $errors[] = "Insufficient inventory for {$product->sku}. Available: {$quantityBefore}, Requested: {$productData['quantity']}";
                     continue;
                 }
-
-                $product->save();
-                $quantityAfter = $product->quantity_on_hand;
 
                 // Create transaction record for this product
                 $transaction = InventoryTransaction::create([
@@ -397,11 +460,16 @@ class InventoryTransactionController extends Controller
 
             DB::commit();
 
+            // Load relationships on each transaction
+            foreach ($transactions as $transaction) {
+                $transaction->load(['product', 'user']);
+            }
+
             return response()->json([
                 'message' => count($transactions) > 1
                     ? count($transactions) . ' transactions created successfully'
                     : 'Transaction created successfully',
-                'transactions' => collect($transactions)->load(['product', 'user'])
+                'transactions' => $transactions
             ], 201);
 
         } catch (\Exception $e) {

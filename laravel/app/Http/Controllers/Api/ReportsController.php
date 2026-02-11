@@ -362,9 +362,9 @@ class ReportsController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfDay();
         $endDate = $startDate->copy()->endOfMonth()->endOfDay();
 
-        // Eager load products with their transactions for the date range
-        $products = Product::where('is_active', true)
-            ->with([
+        // Load ALL products (active or inactive) to capture complete inventory value
+        // Products are filtered later based on whether they have inventory/transactions
+        $products = Product::with([
                 'category',
                 'supplier',
                 'transactions' => function($query) use ($startDate, $endDate) {
@@ -378,10 +378,45 @@ class ReportsController extends Controller
             // Use pre-loaded transactions (no additional query)
             $transactions = $product->transactions;
 
-            // Calculate beginning inventory (quantity_before of first transaction, or current if no transactions)
-            $beginningInventory = $transactions->first()
-                ? $transactions->first()->quantity_before
-                : $product->quantity_on_hand;
+            // Calculate beginning inventory as of the end of the previous month
+            // Find the last transaction before the start of this month
+            $lastTransactionBeforeMonth = InventoryTransaction::where('product_id', $product->id)
+                ->where('transaction_date', '<', $startDate)
+                ->orderBy('transaction_date', 'desc')
+                ->orderBy('id', 'desc')
+                ->first();
+
+            // Determine beginning inventory:
+            // 1. If there's a transaction before this month, use its quantity_after
+            // 2. If not, but there's a transaction in this month, use quantity_before of first transaction
+            //    (this captures initial inventory for products in their first active month)
+            // 3. If no transactions before or in month, check if product was created before this month
+            //    and has a future transaction (captures initial inventory from products created earlier)
+            // 4. If no transactions at all, use 0
+            if ($lastTransactionBeforeMonth) {
+                $beginningInventory = $lastTransactionBeforeMonth->quantity_after;
+            } elseif ($transactions->isNotEmpty()) {
+                $beginningInventory = $transactions->first()->quantity_before;
+            } else {
+                // Check if product was created before this month and has any future transactions
+                $firstTransactionEver = InventoryTransaction::where('product_id', $product->id)
+                    ->orderBy('transaction_date', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->first();
+
+                if ($firstTransactionEver && $product->created_at < $startDate) {
+                    // Product was created before this month and has a future transaction
+                    // Use quantity_before of first transaction as beginning inventory
+                    $beginningInventory = $firstTransactionEver->quantity_before;
+                } elseif (!$firstTransactionEver && $product->created_at < $startDate && $product->quantity_on_hand > 0) {
+                    // Product was created before this month, has no transactions at all,
+                    // but has current inventory - use current quantity_on_hand
+                    // This captures products created with initial inventory but no transaction history yet
+                    $beginningInventory = $product->quantity_on_hand;
+                } else {
+                    $beginningInventory = 0;
+                }
+            }
 
             // Calculate additions (positive quantity changes)
             $receipts = $transactions->where('type', 'receipt')->sum('quantity');
@@ -393,7 +428,7 @@ class ReportsController extends Controller
 
             // Calculate deductions (negative quantity changes)
             $shipments = abs($transactions->where('type', 'shipment')->sum('quantity'));
-            $jobIssues = abs($transactions->where('type', 'job_issue')->sum('quantity'));
+            $jobIssues = abs($transactions->whereIn('type', ['job_issue', 'fulfillment'])->sum('quantity'));
             $issues = abs($transactions->where('type', 'issue')->sum('quantity'));
             $negativeAdjustments = abs($transactions->where('type', 'adjustment')->filter(function($t) {
                 return $t->quantity < 0;
@@ -404,10 +439,53 @@ class ReportsController extends Controller
             $totalDeductions = $shipments + $jobIssues + $issues + $negativeAdjustments;
 
             // Calculate ending inventory
-            $endingInventory = $beginningInventory + $totalAdditions - $totalDeductions;
+            // For current/future months: use actual quantity_on_hand (source of truth)
+            // For past months: use transaction history for month-to-month consistency
+            $now = Carbon::now()->endOfDay();
+
+            if ($endDate >= $now) {
+                // Viewing current or future month - use actual current inventory
+                $endingInventory = $product->quantity_on_hand;
+            } else {
+                // Viewing past month - use transaction history
+                $lastTransactionInOrBeforeMonth = InventoryTransaction::where('product_id', $product->id)
+                    ->where('transaction_date', '<=', $endDate)
+                    ->orderBy('transaction_date', 'desc')
+                    ->orderBy('id', 'desc')
+                    ->first();
+
+                if ($lastTransactionInOrBeforeMonth) {
+                    $endingInventory = $lastTransactionInOrBeforeMonth->quantity_after;
+                } elseif ($beginningInventory > 0) {
+                    // No transactions in or before this month, but had beginning inventory
+                    // Ending = beginning (no changes during the month)
+                    $endingInventory = $beginningInventory;
+                } else {
+                    // No transactions in/before month, and no beginning inventory
+                    // Check if product was created during/before this month and has future transactions
+                    // This captures initial inventory for products created in this month with delayed first transaction
+                    $firstTransactionEver = InventoryTransaction::where('product_id', $product->id)
+                        ->orderBy('transaction_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->first();
+
+                    if ($firstTransactionEver && $product->created_at <= $endDate) {
+                        // Product was created during/before this month and has a future transaction
+                        // Use quantity_before of first transaction as ending inventory
+                        $endingInventory = $firstTransactionEver->quantity_before;
+                    } elseif (!$firstTransactionEver && $product->created_at <= $endDate && $product->quantity_on_hand > 0) {
+                        // Product was created before/during this month, has no transactions at all,
+                        // but has current inventory - use current quantity_on_hand
+                        // This captures products created with initial inventory but no transaction history yet
+                        $endingInventory = $product->quantity_on_hand;
+                    } else {
+                        $endingInventory = 0;
+                    }
+                }
+            }
 
             // Net change
-            $netChange = $totalAdditions - $totalDeductions;
+            $netChange = $endingInventory - $beginningInventory;
 
             // Use pack-based quantities and pricing if applicable
             $displayQuantity = $product->hasPackSize() ? $product->quantity_on_hand_packs : $product->quantity_on_hand;
@@ -485,18 +563,20 @@ class ReportsController extends Controller
                 'transaction_count' => $transactions->count(),
             ];
         })
-        // Only include products with activity or inventory
+        // First, filter to products with inventory or activity to ensure complete financial calculations
         ->filter(function($item) {
-            return $item['transaction_count'] > 0 || $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0;
+            return $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0 || $item['transaction_count'] > 0;
         })
         ->values();
 
-        // Calculate summary statistics
+        // Calculate summary statistics from ALL products (includes products with inventory but no transactions)
+        // This ensures accurate financial totals including static inventory
         $summary = [
             'month' => $startDate->format('F Y'),
             'start_date' => $startDate->format('Y-m-d'),
             'end_date' => $endDate->format('Y-m-d'),
             'products_count' => $statementData->count(),
+            'products_with_transactions' => $statementData->where('transaction_count', '>', 0)->count(),
             'total_beginning_value' => $statementData->sum('beginning_value'),
             'total_ending_value' => $statementData->sum('ending_value'),
             'total_value_change' => $statementData->sum('value_change'),
@@ -509,6 +589,12 @@ class ReportsController extends Controller
             'total_adjustments_positive' => $statementData->sum('positive_adjustments_display'),
             'total_adjustments_negative' => $statementData->sum('negative_adjustments_display'),
         ];
+
+        // Filter displayed list to only show products with transactions during the month
+        // Financial totals still include all inventory
+        $statementData = $statementData->filter(function($item) {
+            return $item['transaction_count'] > 0;
+        })->values();
 
         return response()->json([
             'statement' => $statementData,
@@ -1109,11 +1195,11 @@ class ReportsController extends Controller
                 if ($product->pack_size && $product->pack_size > 1) {
                     $onHandQty = floor($product->quantity_on_hand / $product->pack_size);
                     $committedQtyDisplay = ceil($committedQty / $product->pack_size);
-                    $availableQty = max(0, $onHandQty - $committedQtyDisplay);
+                    $availableQty = $onHandQty - $committedQtyDisplay; // Allow negative for over-commitment
                 } else {
                     $onHandQty = $product->quantity_on_hand;
                     $committedQtyDisplay = $committedQty;
-                    $availableQty = max(0, $product->quantity_on_hand - $committedQty);
+                    $availableQty = $product->quantity_on_hand - $committedQty; // Allow negative for over-commitment
                 }
 
                 // Calculate available values based on pack quantities displayed

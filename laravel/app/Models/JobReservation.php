@@ -26,6 +26,52 @@ class JobReservation extends Model
     ];
 
     /**
+     * Boot method to add model event listeners
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // When reservation status changes, recalculate committed quantities for all products
+        static::updated(function ($reservation) {
+            // If status changed, sync all products in this reservation
+            if ($reservation->isDirty('status')) {
+                $reservation->syncAllProductCommittedQuantities();
+            }
+        });
+
+        // When reservation is deleted, sync all products
+        static::deleted(function ($reservation) {
+            $reservation->syncAllProductCommittedQuantities();
+        });
+    }
+
+    /**
+     * Sync committed quantities for all products in this reservation
+     */
+    public function syncAllProductCommittedQuantities()
+    {
+        // Get all product IDs from this reservation's items
+        $productIds = $this->items()->pluck('product_id')->unique();
+
+        foreach ($productIds as $productId) {
+            $product = Product::find($productId);
+            if (!$product) continue;
+
+            // Calculate total committed from all ACTIVE reservations for this product
+            $totalCommitted = JobReservationItem::where('product_id', $productId)
+                ->whereHas('reservation', function($query) {
+                    $query->whereIn('status', ['active', 'in_progress', 'on_hold'])
+                          ->whereNull('deleted_at');
+                })
+                ->sum('committed_qty');
+
+            $product->quantity_committed = $totalCommitted;
+            $product->save();
+        }
+    }
+
+    /**
      * Get the reservation items
      */
     public function items()
