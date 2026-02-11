@@ -408,6 +408,11 @@ class ReportsController extends Controller
                     // Product was created before this month and has a future transaction
                     // Use quantity_before of first transaction as beginning inventory
                     $beginningInventory = $firstTransactionEver->quantity_before;
+                } elseif (!$firstTransactionEver && $product->created_at < $startDate && $product->quantity_on_hand > 0) {
+                    // Product was created before this month, has no transactions at all,
+                    // but has current inventory - use current quantity_on_hand
+                    // This captures products created with initial inventory but no transaction history yet
+                    $beginningInventory = $product->quantity_on_hand;
                 } else {
                     $beginningInventory = 0;
                 }
@@ -460,6 +465,11 @@ class ReportsController extends Controller
                     // Product was created during/before this month and has a future transaction
                     // Use quantity_before of first transaction as ending inventory
                     $endingInventory = $firstTransactionEver->quantity_before;
+                } elseif (!$firstTransactionEver && $product->created_at <= $endDate && $product->quantity_on_hand > 0) {
+                    // Product was created before/during this month, has no transactions at all,
+                    // but has current inventory - use current quantity_on_hand
+                    // This captures products created with initial inventory but no transaction history yet
+                    $endingInventory = $product->quantity_on_hand;
                 } else {
                     $endingInventory = 0;
                 }
