@@ -438,40 +438,49 @@ class ReportsController extends Controller
             $totalAdditions = $receipts + $returns + $jobMaterialTransfers + $positiveAdjustments;
             $totalDeductions = $shipments + $jobIssues + $issues + $negativeAdjustments;
 
-            // Calculate ending inventory by finding last transaction on or before end of month
-            // This ensures ending inventory for month N = beginning inventory for month N+1
-            $lastTransactionInOrBeforeMonth = InventoryTransaction::where('product_id', $product->id)
-                ->where('transaction_date', '<=', $endDate)
-                ->orderBy('transaction_date', 'desc')
-                ->orderBy('id', 'desc')
-                ->first();
+            // Calculate ending inventory
+            // For current/future months: use actual quantity_on_hand (source of truth)
+            // For past months: use transaction history for month-to-month consistency
+            $now = Carbon::now()->endOfDay();
 
-            if ($lastTransactionInOrBeforeMonth) {
-                $endingInventory = $lastTransactionInOrBeforeMonth->quantity_after;
-            } elseif ($beginningInventory > 0) {
-                // No transactions in or before this month, but had beginning inventory
-                // Ending = beginning (no changes during the month)
-                $endingInventory = $beginningInventory;
+            if ($endDate >= $now) {
+                // Viewing current or future month - use actual current inventory
+                $endingInventory = $product->quantity_on_hand;
             } else {
-                // No transactions in/before month, and no beginning inventory
-                // Check if product was created during/before this month and has future transactions
-                // This captures initial inventory for products created in this month with delayed first transaction
-                $firstTransactionEver = InventoryTransaction::where('product_id', $product->id)
-                    ->orderBy('transaction_date', 'asc')
-                    ->orderBy('id', 'asc')
+                // Viewing past month - use transaction history
+                $lastTransactionInOrBeforeMonth = InventoryTransaction::where('product_id', $product->id)
+                    ->where('transaction_date', '<=', $endDate)
+                    ->orderBy('transaction_date', 'desc')
+                    ->orderBy('id', 'desc')
                     ->first();
 
-                if ($firstTransactionEver && $product->created_at <= $endDate) {
-                    // Product was created during/before this month and has a future transaction
-                    // Use quantity_before of first transaction as ending inventory
-                    $endingInventory = $firstTransactionEver->quantity_before;
-                } elseif (!$firstTransactionEver && $product->created_at <= $endDate && $product->quantity_on_hand > 0) {
-                    // Product was created before/during this month, has no transactions at all,
-                    // but has current inventory - use current quantity_on_hand
-                    // This captures products created with initial inventory but no transaction history yet
-                    $endingInventory = $product->quantity_on_hand;
+                if ($lastTransactionInOrBeforeMonth) {
+                    $endingInventory = $lastTransactionInOrBeforeMonth->quantity_after;
+                } elseif ($beginningInventory > 0) {
+                    // No transactions in or before this month, but had beginning inventory
+                    // Ending = beginning (no changes during the month)
+                    $endingInventory = $beginningInventory;
                 } else {
-                    $endingInventory = 0;
+                    // No transactions in/before month, and no beginning inventory
+                    // Check if product was created during/before this month and has future transactions
+                    // This captures initial inventory for products created in this month with delayed first transaction
+                    $firstTransactionEver = InventoryTransaction::where('product_id', $product->id)
+                        ->orderBy('transaction_date', 'asc')
+                        ->orderBy('id', 'asc')
+                        ->first();
+
+                    if ($firstTransactionEver && $product->created_at <= $endDate) {
+                        // Product was created during/before this month and has a future transaction
+                        // Use quantity_before of first transaction as ending inventory
+                        $endingInventory = $firstTransactionEver->quantity_before;
+                    } elseif (!$firstTransactionEver && $product->created_at <= $endDate && $product->quantity_on_hand > 0) {
+                        // Product was created before/during this month, has no transactions at all,
+                        // but has current inventory - use current quantity_on_hand
+                        // This captures products created with initial inventory but no transaction history yet
+                        $endingInventory = $product->quantity_on_hand;
+                    } else {
+                        $endingInventory = 0;
+                    }
                 }
             }
 
