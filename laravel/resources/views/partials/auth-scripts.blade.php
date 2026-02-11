@@ -33,6 +33,12 @@
       if (userEmail) {
         userEmail.textContent = currentUser.email || '';
       }
+
+      // Apply navigation permissions
+      applyNavigationPermissions();
+
+      // Apply action permissions (buttons, forms, etc.)
+      applyActionPermissions();
     }
   }
 
@@ -54,6 +60,216 @@
   // Pricing visibility helper
   function canViewPricing() {
     return hasPermission('pricing.view');
+  }
+
+  // Apply navigation permissions - hide nav items user doesn't have access to
+  function applyNavigationPermissions() {
+    if (!currentUser || !currentUser.permissions) {
+      // If no user or permissions, hide all navigation (will show login page)
+      return;
+    }
+
+    // Check if navigation permissions exist in the system
+    // If no nav.* permissions exist at all, assume migration hasn't run yet - show all navigation
+    const hasAnyNavPermissions = currentUser.permissions.some(p => p.startsWith('nav.'));
+
+    if (!hasAnyNavPermissions) {
+      // Navigation permissions not yet set up - show all navigation for backwards compatibility
+      console.log('Navigation permissions not found - showing all navigation items');
+      return;
+    }
+
+    // Find all navigation items with permission requirements
+    const navItems = document.querySelectorAll('[data-nav-permission]');
+
+    navItems.forEach(item => {
+      const requiredPermission = item.getAttribute('data-nav-permission');
+
+      // Check if user has the required permission
+      if (!hasPermission(requiredPermission)) {
+        // Hide the entire nav item
+        item.style.display = 'none';
+      } else {
+        // Ensure it's visible (in case it was previously hidden)
+        item.style.display = '';
+      }
+    });
+  }
+
+  // Apply action permissions - hide buttons/actions user doesn't have permission for
+  function applyActionPermissions() {
+    if (!currentUser || !currentUser.permissions) {
+      return;
+    }
+
+    // Find all elements with permission requirements
+    const permissionElements = document.querySelectorAll('[data-permission]');
+
+    permissionElements.forEach(element => {
+      const requiredPermission = element.getAttribute('data-permission');
+
+      // Check if user has the required permission
+      if (!hasPermission(requiredPermission)) {
+        // Hide the element
+        element.style.display = 'none';
+
+        // Also disable it if it's an input/button to prevent keyboard access
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = true;
+          element.setAttribute('aria-hidden', 'true');
+          element.tabIndex = -1;
+        }
+      } else {
+        // Ensure it's visible and enabled
+        element.style.display = '';
+
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = false;
+          element.removeAttribute('aria-hidden');
+          element.tabIndex = 0;
+        }
+      }
+    });
+
+    // Also check for multiple permissions (any match)
+    const anyPermissionElements = document.querySelectorAll('[data-permission-any]');
+
+    anyPermissionElements.forEach(element => {
+      const permissionsStr = element.getAttribute('data-permission-any');
+      const permissions = permissionsStr.split(',').map(p => p.trim());
+
+      // Check if user has ANY of the required permissions
+      const hasAnyPermission = permissions.some(perm => hasPermission(perm));
+
+      if (!hasAnyPermission) {
+        element.style.display = 'none';
+
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = true;
+          element.setAttribute('aria-hidden', 'true');
+          element.tabIndex = -1;
+        }
+      } else {
+        element.style.display = '';
+
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = false;
+          element.removeAttribute('aria-hidden');
+          element.tabIndex = 0;
+        }
+      }
+    });
+
+    // Check for elements requiring ALL permissions
+    const allPermissionElements = document.querySelectorAll('[data-permission-all]');
+
+    allPermissionElements.forEach(element => {
+      const permissionsStr = element.getAttribute('data-permission-all');
+      const permissions = permissionsStr.split(',').map(p => p.trim());
+
+      // Check if user has ALL of the required permissions
+      const hasAllPermissions = permissions.every(perm => hasPermission(perm));
+
+      if (!hasAllPermissions) {
+        element.style.display = 'none';
+
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = true;
+          element.setAttribute('aria-hidden', 'true');
+          element.tabIndex = -1;
+        }
+      } else {
+        element.style.display = '';
+
+        if (element.tagName === 'BUTTON' || element.tagName === 'INPUT' || element.tagName === 'A') {
+          element.disabled = false;
+          element.removeAttribute('aria-hidden');
+          element.tabIndex = 0;
+        }
+      }
+    });
+  }
+
+  // Helper functions for common permission checks
+  function canCreate(resource) {
+    return hasPermission(`${resource}.create`);
+  }
+
+  function canEdit(resource) {
+    return hasPermission(`${resource}.edit`);
+  }
+
+  function canDelete(resource) {
+    return hasPermission(`${resource}.delete`);
+  }
+
+  function canView(resource) {
+    return hasPermission(`${resource}.view`);
+  }
+
+  function canManage(resource) {
+    return hasPermission(`${resource}.manage`);
+  }
+
+  function canAdjust(resource) {
+    return hasPermission(`${resource}.adjust`);
+  }
+
+  function canExport(resource) {
+    return hasPermission(`${resource}.export`);
+  }
+
+  // Watch for dynamically added content and apply permissions
+  function initPermissionWatcher() {
+    if (!currentUser || !currentUser.permissions) {
+      return;
+    }
+
+    // Create a MutationObserver to watch for DOM changes
+    const observer = new MutationObserver((mutations) => {
+      let shouldReapply = false;
+
+      mutations.forEach((mutation) => {
+        // Check if nodes were added
+        if (mutation.addedNodes.length > 0) {
+          mutation.addedNodes.forEach((node) => {
+            // Check if the added node or its children have permission attributes
+            if (node.nodeType === 1) { // Element node
+              if (node.hasAttribute && (
+                  node.hasAttribute('data-permission') ||
+                  node.hasAttribute('data-permission-any') ||
+                  node.hasAttribute('data-permission-all')
+                )) {
+                shouldReapply = true;
+              } else if (node.querySelector) {
+                const hasPermissionElements = node.querySelector('[data-permission], [data-permission-any], [data-permission-all]');
+                if (hasPermissionElements) {
+                  shouldReapply = true;
+                }
+              }
+            }
+          });
+        }
+      });
+
+      // Reapply permissions if needed
+      if (shouldReapply) {
+        applyActionPermissions();
+      }
+    });
+
+    // Start observing the document body for changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  // Initialize permission watcher after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPermissionWatcher);
+  } else {
+    initPermissionWatcher();
   }
 
   // Format price with masking if no permission

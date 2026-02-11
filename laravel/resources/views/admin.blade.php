@@ -92,7 +92,7 @@
                     <div class="tab-pane active show" id="tab-users" role="tabpanel">
                       <div class="mb-3 d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">Users</h3>
-                        <button class="btn btn-primary" onclick="showAddUserModal()">
+                        <button class="btn btn-primary" onclick="showAddUserModal()" data-permission="users.create">
                           <i class="ti ti-plus me-1"></i>Add User
                         </button>
                       </div>
@@ -101,10 +101,7 @@
                         <div class="col-md-3">
                           <select class="form-select" id="filterRole">
                             <option value="">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="manager">Manager</option>
-                            <option value="fabricator">Fabricator</option>
-                            <option value="viewer">Viewer</option>
+                            <!-- Populated dynamically from roles -->
                           </select>
                         </div>
                         <div class="col-md-3">
@@ -147,7 +144,7 @@
                     <div class="tab-pane" id="tab-permissions" role="tabpanel">
                       <div class="mb-3 d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">Roles & Permissions</h3>
-                        <button class="btn btn-primary" onclick="showAddRoleModal()">
+                        <button class="btn btn-primary" onclick="showAddRoleModal()" data-permission="roles.create">
                           <i class="ti ti-plus me-1"></i>Add Role
                         </button>
                       </div>
@@ -411,10 +408,7 @@
               <label class="form-label required">Role</label>
               <select class="form-select" id="addUserRole">
                 <option value="">Select role...</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="fabricator">Fabricator</option>
-                <option value="viewer">Viewer</option>
+                <!-- Populated dynamically from roles -->
               </select>
             </div>
             <div class="mb-3">
@@ -463,10 +457,7 @@
             <div class="mb-3">
               <label class="form-label required">Role</label>
               <select class="form-select" id="editUserRole">
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="fabricator">Fabricator</option>
-                <option value="viewer">Viewer</option>
+                <!-- Populated dynamically from roles -->
               </select>
             </div>
             <div class="mb-3">
@@ -638,6 +629,12 @@
         document.getElementById('addUserPassword').value = '';
         document.getElementById('addUserRole').value = '';
         document.getElementById('addUserActive').checked = true;
+
+        // Ensure role dropdown is populated
+        if (roles.length > 0) {
+          populateRoleDropdowns();
+        }
+
         showModal(document.getElementById('addUserModal'));
       }
 
@@ -1038,10 +1035,10 @@
               <td>${lastLogin}</td>
               <td>${createdAt}</td>
               <td>
-                <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit">
+                <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit" data-permission="users.edit">
                   <i class="ti ti-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteUser(${user.id})" title="Delete">
+                <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteUser(${user.id})" title="Delete" data-permission="users.delete">
                   <i class="ti ti-trash"></i>
                 </button>
               </td>
@@ -1049,6 +1046,11 @@
           `;
           tbody.innerHTML += row;
         });
+
+        // Apply action permissions to dynamically created buttons
+        if (typeof applyActionPermissions === 'function') {
+          applyActionPermissions();
+        }
       }
 
       async function loadRoles() {
@@ -1076,7 +1078,7 @@
           const systemBadge = role.is_system ? '<span class="badge bg-info ms-2">System</span>' : '';
           const deleteOption = role.is_system
             ? ''
-            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
+            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;" data-permission="roles.delete">
                  <i class="ti ti-trash me-2"></i>Delete
                </a>`;
 
@@ -1094,7 +1096,7 @@
                         <i class="ti ti-dots-vertical"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;">
+                        <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;" data-permission="roles.edit">
                           <i class="ti ti-edit me-2"></i>Edit
                         </a>
                         ${deleteOption}
@@ -1119,6 +1121,48 @@
           `;
           container.innerHTML += card;
         });
+
+        // Update role dropdowns after loading roles
+        populateRoleDropdowns();
+
+        // Apply action permissions to dynamically created buttons
+        if (typeof applyActionPermissions === 'function') {
+          applyActionPermissions();
+        }
+      }
+
+      // Populate all role dropdowns with loaded roles
+      function populateRoleDropdowns() {
+        // Populate filter dropdown
+        const filterRole = document.getElementById('filterRole');
+        if (filterRole) {
+          const currentFilter = filterRole.value;
+          filterRole.innerHTML = '<option value="">All Roles</option>';
+          roles.forEach(role => {
+            filterRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+          filterRole.value = currentFilter; // Restore previous selection
+        }
+
+        // Populate add user role dropdown
+        const addUserRole = document.getElementById('addUserRole');
+        if (addUserRole) {
+          addUserRole.innerHTML = '<option value="">Select role...</option>';
+          roles.forEach(role => {
+            addUserRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+        }
+
+        // Populate edit user role dropdown
+        const editUserRole = document.getElementById('editUserRole');
+        if (editUserRole) {
+          const currentRole = editUserRole.value;
+          editUserRole.innerHTML = '';
+          roles.forEach(role => {
+            editUserRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+          editUserRole.value = currentRole; // Restore previous selection
+        }
       }
 
       // Initialize on page load
