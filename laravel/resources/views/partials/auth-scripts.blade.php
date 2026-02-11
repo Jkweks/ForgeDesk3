@@ -13,6 +13,36 @@
     console.error('Error parsing user data:', e);
   }
 
+  // Update user badge in header
+  function updateUserBadge() {
+    if (currentUser) {
+      // Update avatar initial
+      const userAvatar = document.getElementById('userAvatar');
+      if (userAvatar && currentUser.name) {
+        userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+      }
+
+      // Update user name
+      const userName = document.getElementById('userName');
+      if (userName) {
+        userName.textContent = currentUser.name || 'User';
+      }
+
+      // Update user email
+      const userEmail = document.getElementById('userEmail');
+      if (userEmail) {
+        userEmail.textContent = currentUser.email || '';
+      }
+    }
+  }
+
+  // Update user badge on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', updateUserBadge);
+  } else {
+    updateUserBadge();
+  }
+
   // Permission helper
   function hasPermission(permission) {
     if (!currentUser || !currentUser.permissions) {
@@ -216,6 +246,7 @@
         currentUser = data.user;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('userData', JSON.stringify(data.user));
+        updateUserBadge(); // Update badge before reload
         location.reload(); // Reload to initialize the app
       } else {
         document.getElementById('loginError').textContent = 'Invalid credentials';
