@@ -101,10 +101,7 @@
                         <div class="col-md-3">
                           <select class="form-select" id="filterRole">
                             <option value="">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="manager">Manager</option>
-                            <option value="fabricator">Fabricator</option>
-                            <option value="viewer">Viewer</option>
+                            <!-- Populated dynamically from roles -->
                           </select>
                         </div>
                         <div class="col-md-3">
@@ -411,10 +408,7 @@
               <label class="form-label required">Role</label>
               <select class="form-select" id="addUserRole">
                 <option value="">Select role...</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="fabricator">Fabricator</option>
-                <option value="viewer">Viewer</option>
+                <!-- Populated dynamically from roles -->
               </select>
             </div>
             <div class="mb-3">
@@ -463,10 +457,7 @@
             <div class="mb-3">
               <label class="form-label required">Role</label>
               <select class="form-select" id="editUserRole">
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="fabricator">Fabricator</option>
-                <option value="viewer">Viewer</option>
+                <!-- Populated dynamically from roles -->
               </select>
             </div>
             <div class="mb-3">
@@ -638,6 +629,12 @@
         document.getElementById('addUserPassword').value = '';
         document.getElementById('addUserRole').value = '';
         document.getElementById('addUserActive').checked = true;
+
+        // Ensure role dropdown is populated
+        if (roles.length > 0) {
+          populateRoleDropdowns();
+        }
+
         showModal(document.getElementById('addUserModal'));
       }
 
@@ -1119,6 +1116,43 @@
           `;
           container.innerHTML += card;
         });
+
+        // Update role dropdowns after loading roles
+        populateRoleDropdowns();
+      }
+
+      // Populate all role dropdowns with loaded roles
+      function populateRoleDropdowns() {
+        // Populate filter dropdown
+        const filterRole = document.getElementById('filterRole');
+        if (filterRole) {
+          const currentFilter = filterRole.value;
+          filterRole.innerHTML = '<option value="">All Roles</option>';
+          roles.forEach(role => {
+            filterRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+          filterRole.value = currentFilter; // Restore previous selection
+        }
+
+        // Populate add user role dropdown
+        const addUserRole = document.getElementById('addUserRole');
+        if (addUserRole) {
+          addUserRole.innerHTML = '<option value="">Select role...</option>';
+          roles.forEach(role => {
+            addUserRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+        }
+
+        // Populate edit user role dropdown
+        const editUserRole = document.getElementById('editUserRole');
+        if (editUserRole) {
+          const currentRole = editUserRole.value;
+          editUserRole.innerHTML = '';
+          roles.forEach(role => {
+            editUserRole.innerHTML += `<option value="${role.name}">${role.display_name}</option>`;
+          });
+          editUserRole.value = currentRole; // Restore previous selection
+        }
       }
 
       // Initialize on page load

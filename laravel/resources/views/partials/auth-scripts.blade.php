@@ -33,6 +33,9 @@
       if (userEmail) {
         userEmail.textContent = currentUser.email || '';
       }
+
+      // Apply navigation permissions
+      applyNavigationPermissions();
     }
   }
 
@@ -54,6 +57,30 @@
   // Pricing visibility helper
   function canViewPricing() {
     return hasPermission('pricing.view');
+  }
+
+  // Apply navigation permissions - hide nav items user doesn't have access to
+  function applyNavigationPermissions() {
+    if (!currentUser || !currentUser.permissions) {
+      // If no user or permissions, hide all navigation (will show login page)
+      return;
+    }
+
+    // Find all navigation items with permission requirements
+    const navItems = document.querySelectorAll('[data-nav-permission]');
+
+    navItems.forEach(item => {
+      const requiredPermission = item.getAttribute('data-nav-permission');
+
+      // Check if user has the required permission
+      if (!hasPermission(requiredPermission)) {
+        // Hide the entire nav item
+        item.style.display = 'none';
+      } else {
+        // Ensure it's visible (in case it was previously hidden)
+        item.style.display = '';
+      }
+    });
   }
 
   // Format price with masking if no permission
