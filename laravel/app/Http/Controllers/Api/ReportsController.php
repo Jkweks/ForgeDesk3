@@ -428,7 +428,7 @@ class ReportsController extends Controller
 
             // Calculate deductions (negative quantity changes)
             $shipments = abs($transactions->where('type', 'shipment')->sum('quantity'));
-            $jobIssues = abs($transactions->where('type', 'job_issue')->sum('quantity'));
+            $jobIssues = abs($transactions->whereIn('type', ['job_issue', 'fulfillment'])->sum('quantity'));
             $issues = abs($transactions->where('type', 'issue')->sum('quantity'));
             $negativeAdjustments = abs($transactions->where('type', 'adjustment')->filter(function($t) {
                 return $t->quantity < 0;
