@@ -14,16 +14,16 @@
             <div class="col-auto ms-auto d-print-none">
               <div class="btn-list">
                 <span class="d-none d-sm-inline">
-                  <button class="btn" onclick="exportProducts()">
+                  <button class="btn" onclick="exportProducts()" data-permission="reports.export">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
                     Export
                   </button>
                 </span>
-                <button class="btn btn-primary d-none d-sm-inline-block" onclick="showAddProductModal()">
+                <button class="btn btn-primary d-none d-sm-inline-block" onclick="showAddProductModal()" data-permission="inventory.create">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
                   Add Product
                 </button>
-                <button class="btn btn-primary d-sm-none btn-icon" onclick="showAddProductModal()" aria-label="Add product">
+                <button class="btn btn-primary d-sm-none btn-icon" onclick="showAddProductModal()" aria-label="Add product" data-permission="inventory.create">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-2"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
                 </button>
               </div>
@@ -193,11 +193,11 @@
             <div class="tab-pane fade show active" id="details" role="tabpanel">
               <div class="mb-3">
                 <div class="d-flex justify-content-end">
-                  <button class="btn btn-primary" id="editProductBtn" onclick="toggleEditMode()">
+                  <button class="btn btn-primary" id="editProductBtn" onclick="toggleEditMode()" data-permission="inventory.edit">
                     <i class="ti ti-edit me-1"></i>Edit Product
                   </button>
                   <div id="editProductActions" style="display: none;">
-                    <button class="btn btn-primary me-2" onclick="saveProductChanges()">
+                    <button class="btn btn-primary me-2" onclick="saveProductChanges()" data-permission="inventory.edit">
                       <i class="ti ti-check me-1"></i>Save Changes
                     </button>
                     <button class="btn btn-link" onclick="cancelEditMode()">Cancel</button>
@@ -217,13 +217,13 @@
                     <p class="text-muted mb-0">Manage stock distribution across multiple locations</p>
                   </div>
                   <div class="col-auto">
-                    <button class="btn btn-warning ms-2" onclick="showIssueToJobForm()">
+                    <button class="btn btn-warning ms-2" onclick="showIssueToJobForm()" data-permission="inventory.adjust">
                       <i class="ti ti-package-export me-1"></i>Issue to Job
                     </button>
-                    <button class="btn btn-primary" onclick="showAddLocationForm()">
+                    <button class="btn btn-primary" onclick="showAddLocationForm()" data-permission="inventory.edit">
                       <i class="ti ti-plus me-1"></i>Add Location
                     </button>
-                    <button class="btn btn-outline-primary ms-2" onclick="showTransferForm()">
+                    <button class="btn btn-outline-primary ms-2" onclick="showTransferForm()" data-permission="inventory.adjust">
                       <i class="ti ti-arrows-transfer-down me-1"></i>Transfer
                     </button>
                   </div>
@@ -399,7 +399,7 @@
                     <p class="text-muted mb-0">Reserve inventory for jobs and track commitments</p>
                   </div>
                   <div class="col-auto">
-                    <button class="btn btn-primary" onclick="showAddReservationForm()">
+                    <button class="btn btn-primary" onclick="showAddReservationForm()" data-permission="orders.create">
                       <i class="ti ti-plus me-1"></i>Reserve Inventory
                     </button>
                   </div>
@@ -640,13 +640,13 @@
                     <p class="text-muted mb-0">Parts required to build this product</p>
                   </div>
                   <div class="col-auto">
-                    <button class="btn btn-sm btn-primary" onclick="showAddRequiredPartForm()">
+                    <button class="btn btn-sm btn-primary" onclick="showAddRequiredPartForm()" data-permission="inventory.edit">
                       <i class="ti ti-plus me-1"></i>Add Part
                     </button>
-                    <button class="btn btn-sm btn-info" onclick="checkBOMAvailability(currentProductId)">
+                    <button class="btn btn-sm btn-info" onclick="checkBOMAvailability(currentProductId)" data-permission="inventory.view">
                       <i class="ti ti-check me-1"></i>Check Availability
                     </button>
-                    <button class="btn btn-sm btn-secondary" onclick="explodeBOM(currentProductId)">
+                    <button class="btn btn-sm btn-secondary" onclick="explodeBOM(currentProductId)" data-permission="inventory.view">
                       <i class="ti ti-sitemap me-1"></i>Explode BOM
                     </button>
                   </div>
@@ -2207,10 +2207,10 @@
               ${location.quantity > 0 ? '<span class="badge text-bg-success">Active</span>' : '<span class="badge text-bg-secondary">Empty</span>'}
             </td>
             <td class="table-actions">
-              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editLocation(${location.id})" title="Edit">
+              <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editLocation(${location.id})" title="Edit" data-permission="inventory.edit">
                 <i class="ti ti-edit"></i>
               </button>
-              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${location.id})" title="Delete">
+              <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteLocation(${location.id})" title="Delete" data-permission="inventory.delete">
                 <i class="ti ti-trash"></i>
               </button>
             </td>
@@ -2221,6 +2221,11 @@
 
       // Update transfer dropdowns
       updateTransferDropdowns();
+
+      // Apply action permissions to dynamically created buttons
+      if (typeof applyActionPermissions === 'function') {
+        applyActionPermissions();
+      }
     }
 
     function handleStorageLocationSelect() {
@@ -2738,10 +2743,10 @@
             <td><small>${part.notes ? escapeHtml(part.notes) : '-'}</small></td>
             <td>
               <div class="btn-group">
-                <button class="btn btn-sm btn-ghost-primary" onclick="editRequiredPart(${part.id})">
+                <button class="btn btn-sm btn-ghost-primary" onclick="editRequiredPart(${part.id})" data-permission="inventory.edit">
                   <i class="ti ti-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-ghost-danger" onclick="deleteRequiredPart(${part.id})">
+                <button class="btn btn-sm btn-ghost-danger" onclick="deleteRequiredPart(${part.id})" data-permission="inventory.delete">
                   <i class="ti ti-trash"></i>
                 </button>
               </div>
@@ -2749,6 +2754,11 @@
           </tr>
         `;
       }).join('');
+
+      // Apply action permissions to dynamically created buttons
+      if (typeof applyActionPermissions === 'function') {
+        applyActionPermissions();
+      }
     }
 
     function getFinishPolicyBadge(policy, specificFinish) {
@@ -3071,18 +3081,18 @@
             <td class="table-actions">
               <div class="btn-group">
                 ${(reservation.status === 'active' || reservation.status === 'partially_fulfilled') ? `
-                  <button class="btn btn-sm btn-icon btn-ghost-success" onclick="showFulfillModal(${reservation.id})" title="Fulfill">
+                  <button class="btn btn-sm btn-icon btn-ghost-success" onclick="showFulfillModal(${reservation.id})" title="Fulfill" data-permission="orders.edit">
                     <i class="ti ti-check"></i>
                   </button>
-                  <button class="btn btn-sm btn-icon btn-ghost-warning" onclick="releaseReservation(${reservation.id})" title="Release/Cancel">
+                  <button class="btn btn-sm btn-icon btn-ghost-warning" onclick="releaseReservation(${reservation.id})" title="Release/Cancel" data-permission="orders.edit">
                     <i class="ti ti-x"></i>
                   </button>
-                  <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editReservation(${reservation.id})" title="Edit">
+                  <button class="btn btn-sm btn-icon btn-ghost-primary" onclick="editReservation(${reservation.id})" title="Edit" data-permission="orders.edit">
                     <i class="ti ti-edit"></i>
                   </button>
                 ` : ''}
                 ${(reservation.status === 'fulfilled' || reservation.status === 'cancelled') ? `
-                  <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteReservation(${reservation.id})" title="Delete">
+                  <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteReservation(${reservation.id})" title="Delete" data-permission="orders.delete">
                     <i class="ti ti-trash"></i>
                   </button>
                 ` : ''}
@@ -3092,6 +3102,11 @@
         `;
         tbody.innerHTML += row;
       });
+
+      // Apply action permissions to dynamically created buttons
+      if (typeof applyActionPermissions === 'function') {
+        applyActionPermissions();
+      }
     }
 
     function getReservationStatusBadge(status) {
