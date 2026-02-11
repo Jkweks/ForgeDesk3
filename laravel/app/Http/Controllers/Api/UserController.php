@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -114,7 +115,7 @@ class UserController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role' => 'required|in:admin,manager,fabricator,viewer',
+            'role' => ['required', Rule::exists('roles', 'name')],
             'is_active' => 'sometimes|boolean',
         ]);
 
@@ -147,7 +148,7 @@ class UserController extends Controller
             'last_name' => 'sometimes|required|string|max:255',
             'email' => ['sometimes', 'required', 'email', Rule::unique('users')->ignore($user->id)],
             'password' => 'sometimes|nullable|string|min:8',
-            'role' => 'sometimes|required|in:admin,manager,fabricator,viewer',
+            'role' => ['sometimes', 'required', Rule::exists('roles', 'name')],
             'is_active' => 'sometimes|boolean',
         ]);
 
