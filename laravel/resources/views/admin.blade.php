@@ -92,7 +92,7 @@
                     <div class="tab-pane active show" id="tab-users" role="tabpanel">
                       <div class="mb-3 d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">Users</h3>
-                        <button class="btn btn-primary" onclick="showAddUserModal()">
+                        <button class="btn btn-primary" onclick="showAddUserModal()" data-permission="users.create">
                           <i class="ti ti-plus me-1"></i>Add User
                         </button>
                       </div>
@@ -144,7 +144,7 @@
                     <div class="tab-pane" id="tab-permissions" role="tabpanel">
                       <div class="mb-3 d-flex justify-content-between align-items-center">
                         <h3 class="mb-0">Roles & Permissions</h3>
-                        <button class="btn btn-primary" onclick="showAddRoleModal()">
+                        <button class="btn btn-primary" onclick="showAddRoleModal()" data-permission="roles.create">
                           <i class="ti ti-plus me-1"></i>Add Role
                         </button>
                       </div>
@@ -1035,10 +1035,10 @@
               <td>${lastLogin}</td>
               <td>${createdAt}</td>
               <td>
-                <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit">
+                <button class="btn btn-sm btn-icon btn-ghost-secondary" onclick="editUser(${user.id})" title="Edit" data-permission="users.edit">
                   <i class="ti ti-edit"></i>
                 </button>
-                <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteUser(${user.id})" title="Delete">
+                <button class="btn btn-sm btn-icon btn-ghost-danger" onclick="deleteUser(${user.id})" title="Delete" data-permission="users.delete">
                   <i class="ti ti-trash"></i>
                 </button>
               </td>
@@ -1046,6 +1046,11 @@
           `;
           tbody.innerHTML += row;
         });
+
+        // Apply action permissions to dynamically created buttons
+        if (typeof applyActionPermissions === 'function') {
+          applyActionPermissions();
+        }
       }
 
       async function loadRoles() {
@@ -1073,7 +1078,7 @@
           const systemBadge = role.is_system ? '<span class="badge bg-info ms-2">System</span>' : '';
           const deleteOption = role.is_system
             ? ''
-            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;">
+            : `<a class="dropdown-item text-danger" href="#" onclick="deleteRole(${role.id}); return false;" data-permission="roles.delete">
                  <i class="ti ti-trash me-2"></i>Delete
                </a>`;
 
@@ -1091,7 +1096,7 @@
                         <i class="ti ti-dots-vertical"></i>
                       </button>
                       <div class="dropdown-menu dropdown-menu-end">
-                        <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;">
+                        <a class="dropdown-item" href="#" onclick="editRole(${role.id}); return false;" data-permission="roles.edit">
                           <i class="ti ti-edit me-2"></i>Edit
                         </a>
                         ${deleteOption}
@@ -1119,6 +1124,11 @@
 
         // Update role dropdowns after loading roles
         populateRoleDropdowns();
+
+        // Apply action permissions to dynamically created buttons
+        if (typeof applyActionPermissions === 'function') {
+          applyActionPermissions();
+        }
       }
 
       // Populate all role dropdowns with loaded roles
