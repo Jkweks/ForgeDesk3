@@ -42,10 +42,10 @@
       </div>
       <div class="nav-item dropdown">
         <a href="#" class="nav-link d-flex lh-1 p-0 px-2" data-bs-toggle="dropdown" aria-label="Open user menu">
-          <span class="avatar avatar-sm" id="userAvatar">A</span>
+          <span class="avatar avatar-sm" id="userAvatar">{{ strtoupper(substr(Auth::user()->name ?? 'A', 0, 1)) }}</span>
           <div class="d-none d-xl-block ps-2">
-            <div id="userName">Admin</div>
-            <div class="mt-1 small text-secondary" id="userEmail">admin@forgedesk.local</div>
+            <div id="userName">{{ Auth::user()->name ?? 'Admin' }}</div>
+            <div class="mt-1 small text-secondary" id="userEmail">{{ Auth::user()->email ?? 'admin@forgedesk.local' }}</div>
           </div>
         </a>
         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
