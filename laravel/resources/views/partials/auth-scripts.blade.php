@@ -69,6 +69,16 @@
       return;
     }
 
+    // Check if navigation permissions exist in the system
+    // If no nav.* permissions exist at all, assume migration hasn't run yet - show all navigation
+    const hasAnyNavPermissions = currentUser.permissions.some(p => p.startsWith('nav.'));
+
+    if (!hasAnyNavPermissions) {
+      // Navigation permissions not yet set up - show all navigation for backwards compatibility
+      console.log('Navigation permissions not found - showing all navigation items');
+      return;
+    }
+
     // Find all navigation items with permission requirements
     const navItems = document.querySelectorAll('[data-nav-permission]');
 
