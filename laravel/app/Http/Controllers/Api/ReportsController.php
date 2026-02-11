@@ -563,19 +563,20 @@ class ReportsController extends Controller
                 'transaction_count' => $transactions->count(),
             ];
         })
-        // Filter to only products with inventory or transactions during the period
-        // This ensures clean reports while maintaining month-to-month consistency
+        // First, filter to products with inventory or activity to ensure complete financial calculations
         ->filter(function($item) {
             return $item['beginning_inventory'] > 0 || $item['ending_inventory'] > 0 || $item['transaction_count'] > 0;
         })
         ->values();
 
-        // Calculate summary statistics
+        // Calculate summary statistics from ALL products (includes products with inventory but no transactions)
+        // This ensures accurate financial totals including static inventory
         $summary = [
             'month' => $startDate->format('F Y'),
             'start_date' => $startDate->format('Y-m-d'),
             'end_date' => $endDate->format('Y-m-d'),
             'products_count' => $statementData->count(),
+            'products_with_transactions' => $statementData->where('transaction_count', '>', 0)->count(),
             'total_beginning_value' => $statementData->sum('beginning_value'),
             'total_ending_value' => $statementData->sum('ending_value'),
             'total_value_change' => $statementData->sum('value_change'),
@@ -588,6 +589,12 @@ class ReportsController extends Controller
             'total_adjustments_positive' => $statementData->sum('positive_adjustments_display'),
             'total_adjustments_negative' => $statementData->sum('negative_adjustments_display'),
         ];
+
+        // Filter displayed list to only show products with transactions during the month
+        // Financial totals still include all inventory
+        $statementData = $statementData->filter(function($item) {
+            return $item['transaction_count'] > 0;
+        })->values();
 
         return response()->json([
             'statement' => $statementData,
