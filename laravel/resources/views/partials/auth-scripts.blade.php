@@ -406,8 +406,14 @@
       if (response.status === 401) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        localStorage.removeItem('tokenExpiresAt');
+        localStorage.removeItem('tokenExpiresIn');
+        localStorage.removeItem('rememberMe');
         authToken = null;
         currentUser = null;
+        if (tokenRefreshTimer) {
+          clearInterval(tokenRefreshTimer);
+        }
         showLogin();
         showNotification('Session expired. Please login again.', 'warning');
         throw new Error('Session expired');
@@ -448,12 +454,13 @@
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const remember = document.getElementById('loginRemember').checked;
 
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, remember })
       });
 
       if (response.ok) {
@@ -462,7 +469,11 @@
         currentUser = data.user;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('userData', JSON.stringify(data.user));
+        localStorage.setItem('tokenExpiresAt', data.expires_at);
+        localStorage.setItem('tokenExpiresIn', data.expires_in);
+        localStorage.setItem('rememberMe', data.remember);
         updateUserBadge(); // Update badge before reload
+        startTokenRefreshTimer(); // Start automatic refresh
         location.reload(); // Reload to initialize the app
       } else {
         document.getElementById('loginError').textContent = 'Invalid credentials';
@@ -480,10 +491,114 @@
     e.preventDefault();
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    localStorage.removeItem('tokenExpiresAt');
+    localStorage.removeItem('tokenExpiresIn');
+    localStorage.removeItem('rememberMe');
     authToken = null;
     currentUser = null;
     location.reload();
   });
+
+  // Token Refresh Mechanism
+  let tokenRefreshTimer = null;
+
+  async function refreshToken() {
+    if (!authToken) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/token/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userData', JSON.stringify(data.user));
+        localStorage.setItem('tokenExpiresAt', data.expires_at);
+        localStorage.setItem('tokenExpiresIn', data.expires_in);
+        localStorage.setItem('rememberMe', data.remember);
+        console.log('Token refreshed successfully');
+        return true;
+      } else {
+        console.error('Token refresh failed:', response.status);
+        if (response.status === 401) {
+          // Token invalid - logout
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('tokenExpiresAt');
+          localStorage.removeItem('tokenExpiresIn');
+          localStorage.removeItem('rememberMe');
+          authToken = null;
+          currentUser = null;
+          showLogin();
+          showNotification('Session expired. Please login again.', 'warning');
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
+  }
+
+  function startTokenRefreshTimer() {
+    // Clear existing timer
+    if (tokenRefreshTimer) {
+      clearInterval(tokenRefreshTimer);
+    }
+
+    const tokenExpiresIn = parseInt(localStorage.getItem('tokenExpiresIn') || '0');
+
+    if (tokenExpiresIn > 0) {
+      // Refresh token when it has 5 minutes left (or 1/10th of lifetime, whichever is less)
+      const refreshThreshold = Math.min(300, tokenExpiresIn / 10); // 5 minutes or 10% of lifetime
+      const checkInterval = Math.max(60000, refreshThreshold * 1000 / 2); // Check every minute or half the threshold
+
+      console.log(`Token refresh timer started. Will check every ${checkInterval / 1000} seconds.`);
+
+      tokenRefreshTimer = setInterval(async () => {
+        const expiresAt = localStorage.getItem('tokenExpiresAt');
+        if (!expiresAt) {
+          return;
+        }
+
+        const expiresAtDate = new Date(expiresAt);
+        const now = new Date();
+        const timeUntilExpiry = (expiresAtDate - now) / 1000; // in seconds
+
+        // Refresh if less than threshold seconds remaining
+        if (timeUntilExpiry < refreshThreshold && timeUntilExpiry > 0) {
+          console.log(`Token expiring in ${Math.floor(timeUntilExpiry)} seconds. Refreshing...`);
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            startTokenRefreshTimer(); // Restart timer with new expiration
+          }
+        } else if (timeUntilExpiry <= 0) {
+          // Token already expired
+          console.log('Token expired. Logging out...');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('tokenExpiresAt');
+          localStorage.removeItem('tokenExpiresIn');
+          localStorage.removeItem('rememberMe');
+          authToken = null;
+          currentUser = null;
+          showLogin();
+          showNotification('Session expired. Please login again.', 'warning');
+          clearInterval(tokenRefreshTimer);
+        }
+      }, checkInterval);
+    }
+  }
 
   // Validate session on page load
   async function validateSession() {
@@ -497,6 +612,9 @@
       if (!response.ok) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        localStorage.removeItem('tokenExpiresAt');
+        localStorage.removeItem('tokenExpiresIn');
+        localStorage.removeItem('rememberMe');
         authToken = null;
         currentUser = null;
         showLogin();
@@ -506,9 +624,11 @@
         return;
       }
       showApp();
+      startTokenRefreshTimer(); // Start automatic token refresh
     } catch (error) {
       // Network error - show app optimistically (API calls will handle 401s)
       showApp();
+      startTokenRefreshTimer(); // Start automatic token refresh even on network error
     }
   }
 

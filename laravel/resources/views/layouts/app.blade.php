@@ -212,6 +212,12 @@
             <label class="form-label">Password</label>
             <input type="password" class="form-control" id="loginPassword" value="password" required>
           </div>
+          <div class="mb-3">
+            <label class="form-check">
+              <input type="checkbox" class="form-check-input" id="loginRemember">
+              <span class="form-check-label">Keep me logged in (30 days)</span>
+            </label>
+          </div>
           <div id="loginError" class="alert alert-danger" style="display: none;"></div>
           <button type="submit" class="btn btn-primary w-100">Login</button>
           <div class="text-center mt-3">

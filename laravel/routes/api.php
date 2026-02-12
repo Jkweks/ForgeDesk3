@@ -44,6 +44,7 @@ Route::post('/login', function (Request $request) {
     $request->validate([
         'email' => 'required|email',
         'password' => 'required',
+        'remember' => 'sometimes|boolean',
     ]);
 
     $user = \App\Models\User::where('email', $request->email)->first();
@@ -60,7 +61,14 @@ Route::post('/login', function (Request $request) {
     // Update last login timestamp
     $user->updateLastLogin();
 
-    $token = $user->createToken('auth-token')->plainTextToken;
+    // Token expiration based on remember me
+    $remember = $request->boolean('remember', false);
+    $expirationMinutes = $remember ? 43200 : config('sanctum.expiration', 480); // 30 days or 8 hours
+    $expiresAt = now()->addMinutes($expirationMinutes);
+
+    // Create token with expiration
+    $tokenResult = $user->createToken('auth-token', ['*'], $expiresAt);
+    $token = $tokenResult->plainTextToken;
 
     // Get user permissions
     $permissions = [];
@@ -73,6 +81,9 @@ Route::post('/login', function (Request $request) {
 
     return response()->json([
         'token' => $token,
+        'expires_at' => $expiresAt->toIso8601String(),
+        'expires_in' => $expirationMinutes * 60, // in seconds
+        'remember' => $remember,
         'user' => [
             'id' => $user->id,
             'name' => $user->full_name ?: $user->name,
@@ -87,6 +98,61 @@ Route::post('/login', function (Request $request) {
 Route::post('/logout', function (Request $request) {
     $request->user()->currentAccessToken()->delete();
     return response()->json(['message' => 'Logged out']);
+})->middleware('auth:sanctum');
+
+// Token Refresh (authenticated)
+Route::post('/token/refresh', function (Request $request) {
+    $user = $request->user();
+    $currentToken = $request->user()->currentAccessToken();
+
+    // Get current token's abilities to check for remember me
+    $abilities = $currentToken->abilities ?? ['*'];
+    $tokenName = $currentToken->name;
+
+    // Check if this was a "remember me" token by checking expiration
+    $currentExpiration = $currentToken->expires_at;
+    $isRememberToken = false;
+
+    if ($currentExpiration) {
+        $minutesUntilExpiry = now()->diffInMinutes($currentExpiration, false);
+        // If token has more than 24 hours left, it's likely a remember me token
+        $isRememberToken = $minutesUntilExpiry > 1440;
+    }
+
+    // Set expiration based on token type
+    $expirationMinutes = $isRememberToken ? 43200 : config('sanctum.expiration', 480);
+    $expiresAt = now()->addMinutes($expirationMinutes);
+
+    // Delete old token
+    $currentToken->delete();
+
+    // Create new token
+    $tokenResult = $user->createToken($tokenName, $abilities, $expiresAt);
+    $token = $tokenResult->plainTextToken;
+
+    // Get user permissions
+    $permissions = [];
+    if ($user->role) {
+        $role = \App\Models\Role::where('name', $user->role)->first();
+        if ($role) {
+            $permissions = $role->permissions->pluck('name')->toArray();
+        }
+    }
+
+    return response()->json([
+        'token' => $token,
+        'expires_at' => $expiresAt->toIso8601String(),
+        'expires_in' => $expirationMinutes * 60, // in seconds
+        'remember' => $isRememberToken,
+        'user' => [
+            'id' => $user->id,
+            'name' => $user->full_name ?: $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+            'permissions' => $permissions,
+        ]
+    ]);
 })->middleware('auth:sanctum');
 
 // Password Reset routes (public)
