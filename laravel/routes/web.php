@@ -29,6 +29,10 @@ Route::get('/critical-stock', function () {
 });
 
 // Operations
+Route::get('/jobs', function () {
+    return view('jobs');
+});
+
 Route::get('/purchase-orders', function () {
     return view('purchase-orders');
 });
