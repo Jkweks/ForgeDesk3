@@ -17,6 +17,11 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Temporarily drop the unique constraint to allow updates
+        Schema::table('job_reservations', function (Blueprint $table) {
+            $table->dropUnique('unique_job_reservation_id');
+        });
+
         // Get all unique job_numbers from reservations without a business_job_id
         $jobNumbers = DB::table('job_reservations')
             ->whereNull('business_job_id')
@@ -144,6 +149,13 @@ return new class extends Migration
         }
 
         echo "\nJob creation from reservations completed!\n";
+
+        // Recreate the unique constraint
+        Schema::table('job_reservations', function (Blueprint $table) {
+            $table->unique(['business_job_id', 'reservation_id'], 'unique_job_reservation_id');
+        });
+
+        echo "Unique constraint recreated successfully.\n";
     }
 
     /**
