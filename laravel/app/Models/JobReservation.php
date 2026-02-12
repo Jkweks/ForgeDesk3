@@ -11,6 +11,8 @@ class JobReservation extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'business_job_id',
+        'reservation_id',
         'job_number',
         'release_number',
         'job_name',
@@ -31,6 +33,16 @@ class JobReservation extends Model
     protected static function boot()
     {
         parent::boot();
+
+        // Auto-generate sequential reservation_id per job when creating
+        static::creating(function ($reservation) {
+            if (!$reservation->reservation_id && $reservation->business_job_id) {
+                // Get the next reservation_id for this job
+                $maxReservationId = static::where('business_job_id', $reservation->business_job_id)
+                    ->max('reservation_id') ?? 0;
+                $reservation->reservation_id = $maxReservationId + 1;
+            }
+        });
 
         // When reservation status changes, recalculate committed quantities for all products
         static::updated(function ($reservation) {
@@ -69,6 +81,14 @@ class JobReservation extends Model
             $product->quantity_committed = $totalCommitted;
             $product->save();
         }
+    }
+
+    /**
+     * Get the business job this reservation belongs to
+     */
+    public function businessJob()
+    {
+        return $this->belongsTo(BusinessJob::class, 'business_job_id');
     }
 
     /**

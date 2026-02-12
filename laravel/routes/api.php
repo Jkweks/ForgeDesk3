@@ -319,6 +319,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Business Jobs (Project Management)
         Route::apiResource('business-jobs', BusinessJobController::class);
 
+        // Job-specific Reservations
+        Route::get('/business-jobs/{jobId}/reservations', [BusinessJobController::class, 'getReservations']);
+        Route::post('/business-jobs/{jobId}/reservations', [BusinessJobController::class, 'createReservation']);
+        Route::get('/business-jobs/{jobId}/reservations/{reservationId}', [BusinessJobController::class, 'getReservation']);
+        Route::post('/business-jobs/{jobId}/reservations/{reservationId}/status', [BusinessJobController::class, 'updateReservationStatus']);
+        Route::delete('/business-jobs/{jobId}/reservations/{reservationId}', [BusinessJobController::class, 'deleteReservation']);
+
         // Door/Frame Configurator
         Route::get('/door-frame-configurations', [DoorFrameConfigurationController::class, 'index']);
         Route::post('/door-frame-configurations', [DoorFrameConfigurationController::class, 'store']);
