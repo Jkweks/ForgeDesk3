@@ -490,8 +490,7 @@
             document.getElementById('jobId').value = '';
             document.getElementById('status').value = 'active';
 
-            const modal = new bootstrap.Modal(document.getElementById('jobModal'));
-            modal.show();
+            showModal(document.getElementById('jobModal'));
         }
 
         async function editJob(id) {
@@ -523,8 +522,7 @@
                 document.getElementById('targetCompletionDate').value = currentJob.target_completion_date || '';
                 document.getElementById('notes').value = currentJob.notes || '';
 
-                const modal = new bootstrap.Modal(document.getElementById('jobModal'));
-                modal.show();
+                showModal(document.getElementById('jobModal'));
             } catch (error) {
                 console.error('Error loading job:', error);
                 alert('Failed to load job details');
@@ -567,8 +565,7 @@
                     throw new Error(error.message || 'Failed to save job');
                 }
 
-                const modal = bootstrap.Modal.getInstance(document.getElementById('jobModal'));
-                modal.hide();
+                hideModal(document.getElementById('jobModal'));
 
                 await loadJobs();
                 alert(isEdit ? 'Job updated successfully' : 'Job created successfully');
@@ -650,8 +647,7 @@
                 `${currentJobForReservations.job_number} - ${currentJobForReservations.job_name}`;
 
             // Show modal and loading state
-            const modal = new bootstrap.Modal(document.getElementById('reservationsModal'));
-            modal.show();
+            showModal(document.getElementById('reservationsModal'));
 
             document.getElementById('reservationsLoading').style.display = 'block';
             document.getElementById('reservationsContent').style.display = 'none';
@@ -738,8 +734,7 @@
             reservationItems = [];
             updateReservationItemsDisplay();
 
-            const modal = new bootstrap.Modal(document.getElementById('addReservationModal'));
-            modal.show();
+            showModal(document.getElementById('addReservationModal'));
         }
 
         function showAddItemToReservation() {
@@ -878,8 +873,7 @@
                 const data = await response.json();
 
                 // Close add modal
-                const addModal = bootstrap.Modal.getInstance(document.getElementById('addReservationModal'));
-                addModal.hide();
+                hideModal(document.getElementById('addReservationModal'));
 
                 // Refresh reservations list
                 await viewJobReservations(jobId);
