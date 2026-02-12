@@ -74,16 +74,66 @@ return new class extends Migration
                     echo "Created job '{$jobNumber}' (ID: {$jobId})\n";
                 }
 
-                // Update all reservations with this job_number to link to the BusinessJob
-                $updatedCount = DB::table('job_reservations')
+                // Get all reservation IDs for this job_number that need to be linked
+                $reservationIds = DB::table('job_reservations')
                     ->where('job_number', $jobNumber)
                     ->whereNull('business_job_id')
-                    ->update([
-                        'business_job_id' => $jobId,
-                        'updated_at' => now(),
-                    ]);
+                    ->orderBy('id', 'asc')
+                    ->pluck('id');
 
-                echo "Linked {$updatedCount} reservation(s) to job '{$jobNumber}'\n";
+                if ($reservationIds->count() > 0) {
+                    // Update business_job_id for all these reservations
+                    DB::table('job_reservations')
+                        ->whereIn('id', $reservationIds)
+                        ->update([
+                            'business_job_id' => $jobId,
+                            'updated_at' => now(),
+                        ]);
+
+                    // Renumber reservation_ids sequentially for this job
+                    $driver = DB::connection()->getDriverName();
+
+                    if ($driver === 'pgsql') {
+                        // PostgreSQL: Use ROW_NUMBER to renumber
+                        DB::statement("
+                            WITH numbered AS (
+                                SELECT id,
+                                       ROW_NUMBER() OVER (ORDER BY id) as rn
+                                FROM job_reservations
+                                WHERE business_job_id = ?
+                            )
+                            UPDATE job_reservations
+                            SET reservation_id = numbered.rn
+                            FROM numbered
+                            WHERE job_reservations.id = numbered.id
+                        ", [$jobId]);
+                    } elseif ($driver === 'sqlite') {
+                        // SQLite: Update with subquery
+                        DB::statement("
+                            UPDATE job_reservations
+                            SET reservation_id = (
+                                SELECT COUNT(*) + 1
+                                FROM job_reservations AS jr2
+                                WHERE jr2.business_job_id = job_reservations.business_job_id
+                                AND jr2.id < job_reservations.id
+                            )
+                            WHERE business_job_id = ?
+                        ", [$jobId]);
+                    } else {
+                        // MySQL: Use variables
+                        DB::statement("SET @rn := 0");
+                        DB::statement("
+                            UPDATE job_reservations
+                            SET reservation_id = (@rn := @rn + 1)
+                            WHERE business_job_id = ?
+                            ORDER BY id
+                        ", [$jobId]);
+                    }
+
+                    echo "Linked {$reservationIds->count()} reservation(s) to job '{$jobNumber}'\n";
+                } else {
+                    echo "No reservations to link for job '{$jobNumber}'\n";
+                }
 
                 DB::commit();
             } catch (\Exception $e) {
