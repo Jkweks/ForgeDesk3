@@ -883,14 +883,25 @@
             document.getElementById('detailStatus').innerHTML =
                 `<span class="badge bg-${getStatusColor(currentJobForReservations.status)}">${currentJobForReservations.status_label}</span>`;
 
-            // Show modal and reset to first tab
+            // Show modal
             const modal = document.getElementById('jobDetailsModal');
             showModal(modal);
 
-            // Reset to reservations tab
+            // Reset to reservations tab (activate first tab)
             const reservationsTab = document.getElementById('reservations-tab');
-            const tab = new bootstrap.Tab(reservationsTab);
-            tab.show();
+            const reservationsPane = document.getElementById('reservations');
+
+            // Remove active from all tabs
+            document.querySelectorAll('#jobTabs .nav-link').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('#jobTabContent .tab-pane').forEach(pane => {
+                pane.classList.remove('show', 'active');
+            });
+
+            // Activate reservations tab
+            reservationsTab.classList.add('active');
+            reservationsPane.classList.add('show', 'active');
 
             // Load reservations
             await loadJobReservations(jobId);
