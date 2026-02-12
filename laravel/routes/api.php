@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\MaterialCheckController;
 use App\Http\Controllers\Api\StatusController;
 use App\Http\Controllers\Api\BusinessJobController;
 use App\Http\Controllers\Api\DoorFrameConfigurationController;
+use App\Http\Controllers\Api\PasswordResetController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -87,6 +88,11 @@ Route::post('/logout', function (Request $request) {
     $request->user()->currentAccessToken()->delete();
     return response()->json(['message' => 'Logged out']);
 })->middleware('auth:sanctum');
+
+// Password Reset routes (public)
+Route::post('/password/forgot', [PasswordResetController::class, 'forgotPassword']);
+Route::post('/password/reset', [PasswordResetController::class, 'resetPassword']);
+Route::post('/password/verify-token', [PasswordResetController::class, 'verifyToken']);
 
 // Fulfillment routes (public for internal use)
 Route::prefix('v1')->group(function () {

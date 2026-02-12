@@ -214,7 +214,64 @@
           </div>
           <div id="loginError" class="alert alert-danger" style="display: none;"></div>
           <button type="submit" class="btn btn-primary w-100">Login</button>
+          <div class="text-center mt-3">
+            <a href="#" id="forgotPasswordLink" class="text-muted">Forgot Password?</a>
+          </div>
         </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Reset Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted">Enter your email address and we'll send you a link to reset your password.</p>
+          <form id="forgotPasswordForm">
+            <div class="mb-3">
+              <label class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="forgotPasswordEmail" required>
+            </div>
+            <div id="forgotPasswordError" class="alert alert-danger" style="display: none;"></div>
+            <div id="forgotPasswordSuccess" class="alert alert-success" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary w-100">Send Reset Link</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Password Modal -->
+  <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Set New Password</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="resetPasswordForm">
+            <input type="hidden" id="resetToken">
+            <input type="hidden" id="resetEmail">
+            <div class="mb-3">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="newPassword" minlength="8" required>
+              <small class="form-hint">Must be at least 8 characters long</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-control" id="confirmPassword" minlength="8" required>
+            </div>
+            <div id="resetPasswordError" class="alert alert-danger" style="display: none;"></div>
+            <div id="resetPasswordSuccess" class="alert alert-success" style="display: none;"></div>
+            <button type="submit" class="btn btn-primary w-100">Reset Password</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
