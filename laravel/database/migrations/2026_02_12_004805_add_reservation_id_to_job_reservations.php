@@ -42,6 +42,13 @@ return new class extends Migration
                 )
                 WHERE business_job_id IS NOT NULL
             ");
+
+            // For records without business_job_id, set to 1 (orphaned records)
+            DB::statement("
+                UPDATE job_reservations
+                SET reservation_id = 1
+                WHERE business_job_id IS NULL
+            ");
         } elseif ($driver === 'pgsql') {
             // PostgreSQL approach: Use ROW_NUMBER
             DB::statement("
@@ -55,6 +62,13 @@ return new class extends Migration
                 SET reservation_id = numbered.rn
                 FROM numbered
                 WHERE job_reservations.id = numbered.id
+            ");
+
+            // For records without business_job_id, set to 1 (orphaned records)
+            DB::statement("
+                UPDATE job_reservations
+                SET reservation_id = 1
+                WHERE business_job_id IS NULL
             ");
         } else {
             // MySQL approach: Use variables
@@ -73,6 +87,13 @@ return new class extends Migration
                     ORDER BY business_job_id, id
                 ) AS numbered ON job_reservations.id = numbered.id
                 SET job_reservations.reservation_id = numbered.rn
+            ");
+
+            // For records without business_job_id, set to 1 (orphaned records)
+            DB::statement("
+                UPDATE job_reservations
+                SET reservation_id = 1
+                WHERE business_job_id IS NULL
             ");
         }
 
