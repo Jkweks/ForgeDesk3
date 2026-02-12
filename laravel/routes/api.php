@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\CycleCountController;
 use App\Http\Controllers\Api\MachineToolingController;
 use App\Http\Controllers\Api\MaterialCheckController;
 use App\Http\Controllers\Api\StatusController;
+use App\Http\Controllers\Api\BusinessJobController;
+use App\Http\Controllers\Api\DoorFrameConfigurationController;
 
 // Public test route (no auth required)
 Route::get('/test', function () {
@@ -313,5 +315,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/machine-tooling/{id}/update-life', [MachineToolingController::class, 'updateToolLife']);
         Route::post('/machine-tooling/{id}/replace', [MachineToolingController::class, 'replace']);
         Route::post('/machine-tooling/{id}/remove', [MachineToolingController::class, 'remove']);
+
+        // Business Jobs (Project Management)
+        Route::apiResource('business-jobs', BusinessJobController::class);
+
+        // Job-specific Reservations
+        Route::get('/business-jobs/{jobId}/reservations', [BusinessJobController::class, 'getReservations']);
+        Route::post('/business-jobs/{jobId}/reservations', [BusinessJobController::class, 'createReservation']);
+        Route::get('/business-jobs/{jobId}/reservations/{reservationId}', [BusinessJobController::class, 'getReservation']);
+        Route::post('/business-jobs/{jobId}/reservations/{reservationId}/status', [BusinessJobController::class, 'updateReservationStatus']);
+        Route::delete('/business-jobs/{jobId}/reservations/{reservationId}', [BusinessJobController::class, 'deleteReservation']);
+
+        // Door/Frame Configurator
+        Route::get('/door-frame-configurations', [DoorFrameConfigurationController::class, 'index']);
+        Route::post('/door-frame-configurations', [DoorFrameConfigurationController::class, 'store']);
+        Route::get('/door-frame-configurations/{id}', [DoorFrameConfigurationController::class, 'show']);
+        Route::put('/door-frame-configurations/{id}/opening-specs', [DoorFrameConfigurationController::class, 'updateOpeningSpecs']);
+        Route::put('/door-frame-configurations/{id}/frame-config', [DoorFrameConfigurationController::class, 'updateFrameConfig']);
+        Route::put('/door-frame-configurations/{id}/frame-parts', [DoorFrameConfigurationController::class, 'updateFrameParts']);
+        Route::put('/door-frame-configurations/{id}/door-config', [DoorFrameConfigurationController::class, 'updateDoorConfig']);
+        Route::post('/door-frame-configurations/{id}/release', [DoorFrameConfigurationController::class, 'release']);
     });
 });

@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -18,17 +19,35 @@ return new class extends Migration
         });
 
         // Optionally sync existing data: match inventory_locations.location strings to storage_locations.name
-        DB::statement("
-            UPDATE inventory_locations il
-            SET storage_location_id = (
-                SELECT id FROM storage_locations sl
-                WHERE sl.name = il.location
-                LIMIT 1
-            )
-            WHERE EXISTS (
-                SELECT 1 FROM storage_locations sl WHERE sl.name = il.location
-            )
-        ");
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            // SQLite doesn't support table aliases in UPDATE
+            DB::statement("
+                UPDATE inventory_locations
+                SET storage_location_id = (
+                    SELECT id FROM storage_locations
+                    WHERE storage_locations.name = inventory_locations.location
+                    LIMIT 1
+                )
+                WHERE EXISTS (
+                    SELECT 1 FROM storage_locations WHERE storage_locations.name = inventory_locations.location
+                )
+            ");
+        } else {
+            // PostgreSQL/MySQL syntax with aliases
+            DB::statement("
+                UPDATE inventory_locations il
+                SET storage_location_id = (
+                    SELECT id FROM storage_locations sl
+                    WHERE sl.name = il.location
+                    LIMIT 1
+                )
+                WHERE EXISTS (
+                    SELECT 1 FROM storage_locations sl WHERE sl.name = il.location
+                )
+            ");
+        }
     }
 
     /**

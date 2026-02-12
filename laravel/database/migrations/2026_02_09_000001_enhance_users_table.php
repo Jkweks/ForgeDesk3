@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -21,13 +22,40 @@ return new class extends Migration
         });
 
         // Update existing users to split name into first_name/last_name
-        DB::statement("
-            UPDATE users
-            SET
-                first_name = SPLIT_PART(name, ' ', 1),
-                last_name = REVERSE(SPLIT_PART(REVERSE(name), ' ', 1))
-            WHERE first_name IS NULL
-        ");
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement("
+                UPDATE users
+                SET
+                    first_name = SPLIT_PART(name, ' ', 1),
+                    last_name = REVERSE(SPLIT_PART(REVERSE(name), ' ', 1))
+                WHERE first_name IS NULL
+            ");
+        } elseif ($driver === 'mysql') {
+            DB::statement("
+                UPDATE users
+                SET
+                    first_name = SUBSTRING_INDEX(name, ' ', 1),
+                    last_name = SUBSTRING_INDEX(name, ' ', -1)
+                WHERE first_name IS NULL
+            ");
+        } else {
+            // SQLite - use simple substr and instr
+            DB::statement("
+                UPDATE users
+                SET
+                    first_name = CASE
+                        WHEN INSTR(name, ' ') > 0 THEN SUBSTR(name, 1, INSTR(name, ' ') - 1)
+                        ELSE name
+                    END,
+                    last_name = CASE
+                        WHEN INSTR(name, ' ') > 0 THEN SUBSTR(name, INSTR(name, ' ') + 1)
+                        ELSE NULL
+                    END
+                WHERE first_name IS NULL
+            ");
+        }
     }
 
     /**

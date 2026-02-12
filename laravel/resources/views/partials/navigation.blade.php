@@ -58,6 +58,10 @@
                     <span class="nav-link-title">Fulfillment</span>
                   </a>
                   <div class="dropdown-menu">
+                    <a class="dropdown-item" href="/fulfillment/jobs">
+                      <i class="ti ti-briefcase me-2"></i>Jobs Dashboard
+                    </a>
+                    <div class="dropdown-divider"></div>
                     <a class="dropdown-item" href="/fulfillment/material-check">
                       <i class="ti ti-checklist me-2"></i>Material Check
                     </a>
