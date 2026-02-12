@@ -39,6 +39,7 @@ class BusinessJobController extends Controller
 
             $jobs = $query
                 ->with('createdBy')
+                ->withCount('jobReservations')
                 ->orderByRaw("CASE WHEN status IN ('completed', 'cancelled') THEN 1 ELSE 0 END")
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -53,6 +54,7 @@ class BusinessJobController extends Controller
                         'start_date' => $job->start_date?->format('Y-m-d'),
                         'target_completion_date' => $job->target_completion_date?->format('Y-m-d'),
                         'days_until_completion' => $job->days_until_completion,
+                        'reservations_count' => $job->job_reservations_count,
                         'created_by' => $job->createdBy ? [
                             'id' => $job->createdBy->id,
                             'name' => $job->createdBy->name,
