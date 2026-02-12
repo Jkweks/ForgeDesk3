@@ -384,7 +384,7 @@
 
                 const response = await fetch('/api/v1/business-jobs', {
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
@@ -498,7 +498,7 @@
             try {
                 const response = await fetch(`/api/v1/business-jobs/${id}`, {
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
@@ -557,7 +557,7 @@
                     method: method,
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                     body: JSON.stringify(jobData),
                 });
@@ -587,7 +587,7 @@
                 const response = await fetch(`/api/v1/business-jobs/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
@@ -660,7 +660,7 @@
             try {
                 const response = await fetch(`/api/v1/business-jobs/${jobId}/reservations`, {
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
@@ -749,7 +749,7 @@
             // Search for product by SKU
             fetch(`/api/v1/job-reservations/search-product?sku=${encodeURIComponent(sku)}`, {
                 headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                    'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 },
             })
@@ -856,7 +856,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                     body: JSON.stringify({
                         requested_by: requestedBy,
@@ -897,7 +897,7 @@
             try {
                 const response = await fetch(`/api/v1/business-jobs/${currentJobForReservations.id}/reservations/${reservationId}`, {
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
@@ -924,7 +924,7 @@
                 const response = await fetch(`/api/v1/business-jobs/${currentJobForReservations.id}/reservations/${reservationId}`, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': 'Bearer ' + localStorage.getItem('token'),
+                        'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
                     },
                 });
 
