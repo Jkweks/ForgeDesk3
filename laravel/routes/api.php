@@ -236,6 +236,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Categories
         Route::apiResource('categories', CategoryController::class);
         Route::get('/categories-tree', [CategoryController::class, 'tree']);
+        Route::get('/category-tree', [CategoryController::class, 'tree']); // Alias for frontend compatibility
         Route::get('/category-systems', [CategoryController::class, 'systems']);
         Route::post('/categories/sort-order', [CategoryController::class, 'updateSortOrder']);
         Route::post('/categories/bulk-action', [CategoryController::class, 'bulkAction']);
