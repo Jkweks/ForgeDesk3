@@ -479,16 +479,18 @@ class ProductController extends Controller
                 ],
                 'active_reservations' => $product->activeReservationItems()
                     ->with(['reservation' => function($query) {
-                        $query->select('id', 'job_name', 'status', 'reserved_date');
+                        $query->select('id', 'job_name', 'job_number', 'status', 'needed_by', 'created_at');
                     }])
                     ->get()
                     ->map(function($item) {
                         return [
                             'reservation_id' => $item->reservation_id,
+                            'job_number' => $item->reservation->job_number ?? null,
                             'job_name' => $item->reservation->job_name ?? null,
                             'reservation_status' => $item->reservation->status ?? null,
                             'committed_qty' => $item->committed_qty,
-                            'reserved_date' => $item->reservation->reserved_date ?? null,
+                            'needed_by' => $item->reservation->needed_by ?? null,
+                            'created_at' => $item->reservation->created_at ?? null,
                         ];
                     }),
             ];
