@@ -251,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/products/{product}/issue-to-job', [ProductController::class, 'issueToJob']);
         Route::get('/products/{product}/transactions', [ProductController::class, 'getTransactions']);
         Route::get('/products/{product}/calculate-reorder', [ProductController::class, 'calculateReorderPoint']);
+        Route::get('/products/test/status-calculations', [ProductController::class, 'testStatusCalculations']);
         Route::get('/finish-codes', [ProductController::class, 'getFinishCodes']);
         Route::get('/unit-of-measures', [ProductController::class, 'getUnitOfMeasures']);
 
