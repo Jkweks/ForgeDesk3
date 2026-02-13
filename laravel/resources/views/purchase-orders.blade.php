@@ -429,6 +429,33 @@ function safeHideModal(modalId) {
   if (backdrop) backdrop.remove();
 }
 
+// Global click handler for search results and closing dropdowns
+document.addEventListener('click', (e) => {
+  // Handle product selection from search results
+  const searchResult = e.target.closest('.product-search-result');
+  if (searchResult) {
+    const itemId = searchResult.dataset.itemId;
+    const productId = searchResult.dataset.productId;
+    const sku = searchResult.dataset.sku;
+    const description = searchResult.dataset.description;
+    const unitCost = searchResult.dataset.unitCost;
+
+    selectProduct(itemId, productId, sku, description, unitCost);
+    return;
+  }
+
+  // Close all search result dropdowns when clicking outside
+  document.querySelectorAll('[id^="searchResults"]').forEach(resultsDiv => {
+    const lineItemId = resultsDiv.id.replace('searchResults', '');
+    const lineItem = document.getElementById(`lineItem${lineItemId}`);
+
+    // Only hide if the line item exists and click was outside it
+    if (lineItem && !e.target.closest(`#lineItem${lineItemId}`)) {
+      resultsDiv.style.display = 'none';
+    }
+  });
+});
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadSuppliers();
@@ -626,13 +653,6 @@ function addPOLineItem() {
   `;
 
   tbody.appendChild(row);
-
-  // Close search results when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest(`#lineItem${lineItemCounter}`)) {
-      document.getElementById(`searchResults${lineItemCounter}`).style.display = 'none';
-    }
-  });
 }
 
 // Remove PO line item
@@ -684,8 +704,12 @@ async function searchProducts(itemId) {
       }
 
       resultsDiv.innerHTML = products.map(product => `
-        <div class="p-2 border-bottom cursor-pointer hover-bg-light"
-             onclick="selectProduct(${itemId}, ${product.id}, '${escapeHtml(product.sku)}', '${escapeHtml(product.description)}', ${product.unit_cost})"
+        <div class="p-2 border-bottom cursor-pointer hover-bg-light product-search-result"
+             data-item-id="${itemId}"
+             data-product-id="${product.id}"
+             data-sku="${escapeHtml(product.sku)}"
+             data-description="${escapeHtml(product.description)}"
+             data-unit-cost="${product.unit_cost}"
              style="cursor: pointer;">
           <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
           <small class="text-muted">Cost: ${formatCurrency(product.unit_cost)}</small>
