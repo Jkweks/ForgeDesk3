@@ -584,14 +584,14 @@ class ProductController extends Controller
             $query->where('supplier_id', $validated['supplier_id']);
         }
 
-        // Search by SKU, description, or part number
+        // Search by SKU, description, or part number (case-insensitive)
         if (!empty($validated['q'])) {
             $search = $validated['q'];
             $query->where(function($q) use ($search) {
-                $q->where('sku', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
-                  ->orWhere('part_number', 'like', "%{$search}%")
-                  ->orWhere('supplier_sku', 'like', "%{$search}%");
+                $q->where('sku', 'ilike', "%{$search}%")
+                  ->orWhere('description', 'ilike', "%{$search}%")
+                  ->orWhere('part_number', 'ilike', "%{$search}%")
+                  ->orWhere('supplier_sku', 'ilike', "%{$search}%");
             });
         }
 
