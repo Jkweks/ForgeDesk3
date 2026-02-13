@@ -210,7 +210,6 @@ class StatusController extends Controller
             'in_stock' => Product::where('status', 'in_stock')->count(),
             'low_stock' => Product::where('status', 'low_stock')->count(),
             'critical' => Product::where('status', 'critical')->count(),
-            'out_of_stock' => Product::where('status', 'out_of_stock')->count(),
             'categories' => Category::count(),
             'suppliers' => Supplier::count(),
             'storage_locations' => StorageLocation::count(),

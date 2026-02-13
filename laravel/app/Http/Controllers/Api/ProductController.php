@@ -12,7 +12,9 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::query()->with(['inventoryLocations.storageLocation', 'supplier', 'category']);
+        $query = Product::query()
+            ->visible()
+            ->with(['inventoryLocations.storageLocation', 'supplier', 'category']);
 
         if ($request->has('search')) {
             $search = $request->search;
@@ -98,6 +100,7 @@ class ProductController extends Controller
 
             // Status
             'is_active' => 'nullable|boolean',
+            'product_type' => 'nullable|in:active,inactive,special_order,obsolete',
         ]);
 
         // Auto-generate SKU if part_number is provided but not SKU
@@ -218,6 +221,7 @@ class ProductController extends Controller
 
             // Status
             'is_active' => 'nullable|boolean',
+            'product_type' => 'nullable|in:active,inactive,special_order,obsolete',
         ]);
 
         // Auto-generate SKU if part_number changed
