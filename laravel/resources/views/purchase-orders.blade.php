@@ -455,7 +455,7 @@ document.addEventListener('click', (e) => {
     const productId = searchResult.dataset.productId;
     const sku = searchResult.dataset.sku;
     const description = searchResult.dataset.description;
-    const unitCost = searchResult.dataset.unitCost;
+    const unitCost = searchResult.dataset.netCost;
 
     selectProduct(itemId, productId, sku, description, unitCost);
     return;
@@ -726,10 +726,10 @@ async function searchProducts(itemId) {
              data-product-id="${product.id}"
              data-sku="${escapeHtml(product.sku)}"
              data-description="${escapeHtml(product.description)}"
-             data-unit-cost="${product.unit_cost}"
+             data-net-cost="${product.net_cost}"
              style="cursor: pointer;">
           <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
-          <small class="text-muted">Cost: ${formatCurrency(product.unit_cost)}</small>
+          <small class="text-muted">Cost: ${formatCurrency(product.net_cost)}</small>
         </div>
       `).join('');
       resultsDiv.style.display = 'block';

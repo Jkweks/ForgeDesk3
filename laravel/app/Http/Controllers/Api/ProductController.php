@@ -598,7 +598,7 @@ class ProductController extends Controller
         $limit = $validated['limit'] ?? 20;
 
         $products = $query
-            ->select('id', 'sku', 'description', 'part_number', 'unit_cost', 'supplier_id', 'supplier_sku')
+            ->select('id', 'sku', 'description', 'part_number', 'net_cost', 'supplier_id', 'supplier_sku')
             ->with('supplier:id,name')
             ->orderBy('sku')
             ->limit($limit)
