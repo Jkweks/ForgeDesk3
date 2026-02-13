@@ -189,6 +189,9 @@ Route::prefix('v1')->group(function () {
     Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
     Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
     Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);
+
+    // Test endpoint for inventory status calculations (public for testing)
+    Route::get('/products/test/status-calculations', [ProductController::class, 'testStatusCalculations']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -251,7 +254,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/products/{product}/issue-to-job', [ProductController::class, 'issueToJob']);
         Route::get('/products/{product}/transactions', [ProductController::class, 'getTransactions']);
         Route::get('/products/{product}/calculate-reorder', [ProductController::class, 'calculateReorderPoint']);
-        Route::get('/products/test/status-calculations', [ProductController::class, 'testStatusCalculations']);
         Route::get('/finish-codes', [ProductController::class, 'getFinishCodes']);
         Route::get('/unit-of-measures', [ProductController::class, 'getUnitOfMeasures']);
 
