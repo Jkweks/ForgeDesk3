@@ -406,8 +406,14 @@
       if (response.status === 401) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        localStorage.removeItem('tokenExpiresAt');
+        localStorage.removeItem('tokenExpiresIn');
+        localStorage.removeItem('rememberMe');
         authToken = null;
         currentUser = null;
+        if (tokenRefreshTimer) {
+          clearInterval(tokenRefreshTimer);
+        }
         showLogin();
         showNotification('Session expired. Please login again.', 'warning');
         throw new Error('Session expired');
@@ -448,12 +454,13 @@
     e.preventDefault();
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
+    const remember = document.getElementById('loginRemember').checked;
 
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, remember })
       });
 
       if (response.ok) {
@@ -462,7 +469,11 @@
         currentUser = data.user;
         localStorage.setItem('authToken', authToken);
         localStorage.setItem('userData', JSON.stringify(data.user));
+        localStorage.setItem('tokenExpiresAt', data.expires_at);
+        localStorage.setItem('tokenExpiresIn', data.expires_in);
+        localStorage.setItem('rememberMe', data.remember);
         updateUserBadge(); // Update badge before reload
+        startTokenRefreshTimer(); // Start automatic refresh
         location.reload(); // Reload to initialize the app
       } else {
         document.getElementById('loginError').textContent = 'Invalid credentials';
@@ -480,10 +491,114 @@
     e.preventDefault();
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
+    localStorage.removeItem('tokenExpiresAt');
+    localStorage.removeItem('tokenExpiresIn');
+    localStorage.removeItem('rememberMe');
     authToken = null;
     currentUser = null;
     location.reload();
   });
+
+  // Token Refresh Mechanism
+  let tokenRefreshTimer = null;
+
+  async function refreshToken() {
+    if (!authToken) {
+      return false;
+    }
+
+    try {
+      const response = await fetch('/api/token/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        authToken = data.token;
+        currentUser = data.user;
+        localStorage.setItem('authToken', authToken);
+        localStorage.setItem('userData', JSON.stringify(data.user));
+        localStorage.setItem('tokenExpiresAt', data.expires_at);
+        localStorage.setItem('tokenExpiresIn', data.expires_in);
+        localStorage.setItem('rememberMe', data.remember);
+        console.log('Token refreshed successfully');
+        return true;
+      } else {
+        console.error('Token refresh failed:', response.status);
+        if (response.status === 401) {
+          // Token invalid - logout
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('tokenExpiresAt');
+          localStorage.removeItem('tokenExpiresIn');
+          localStorage.removeItem('rememberMe');
+          authToken = null;
+          currentUser = null;
+          showLogin();
+          showNotification('Session expired. Please login again.', 'warning');
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return false;
+    }
+  }
+
+  function startTokenRefreshTimer() {
+    // Clear existing timer
+    if (tokenRefreshTimer) {
+      clearInterval(tokenRefreshTimer);
+    }
+
+    const tokenExpiresIn = parseInt(localStorage.getItem('tokenExpiresIn') || '0');
+
+    if (tokenExpiresIn > 0) {
+      // Refresh token when it has 5 minutes left (or 1/10th of lifetime, whichever is less)
+      const refreshThreshold = Math.min(300, tokenExpiresIn / 10); // 5 minutes or 10% of lifetime
+      const checkInterval = Math.max(60000, refreshThreshold * 1000 / 2); // Check every minute or half the threshold
+
+      console.log(`Token refresh timer started. Will check every ${checkInterval / 1000} seconds.`);
+
+      tokenRefreshTimer = setInterval(async () => {
+        const expiresAt = localStorage.getItem('tokenExpiresAt');
+        if (!expiresAt) {
+          return;
+        }
+
+        const expiresAtDate = new Date(expiresAt);
+        const now = new Date();
+        const timeUntilExpiry = (expiresAtDate - now) / 1000; // in seconds
+
+        // Refresh if less than threshold seconds remaining
+        if (timeUntilExpiry < refreshThreshold && timeUntilExpiry > 0) {
+          console.log(`Token expiring in ${Math.floor(timeUntilExpiry)} seconds. Refreshing...`);
+          const refreshed = await refreshToken();
+          if (refreshed) {
+            startTokenRefreshTimer(); // Restart timer with new expiration
+          }
+        } else if (timeUntilExpiry <= 0) {
+          // Token already expired
+          console.log('Token expired. Logging out...');
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('userData');
+          localStorage.removeItem('tokenExpiresAt');
+          localStorage.removeItem('tokenExpiresIn');
+          localStorage.removeItem('rememberMe');
+          authToken = null;
+          currentUser = null;
+          showLogin();
+          showNotification('Session expired. Please login again.', 'warning');
+          clearInterval(tokenRefreshTimer);
+        }
+      }, checkInterval);
+    }
+  }
 
   // Validate session on page load
   async function validateSession() {
@@ -497,6 +612,9 @@
       if (!response.ok) {
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
+        localStorage.removeItem('tokenExpiresAt');
+        localStorage.removeItem('tokenExpiresIn');
+        localStorage.removeItem('rememberMe');
         authToken = null;
         currentUser = null;
         showLogin();
@@ -506,9 +624,11 @@
         return;
       }
       showApp();
+      startTokenRefreshTimer(); // Start automatic token refresh
     } catch (error) {
       // Network error - show app optimistically (API calls will handle 401s)
       showApp();
+      startTokenRefreshTimer(); // Start automatic token refresh even on network error
     }
   }
 
@@ -522,5 +642,180 @@
     alertDiv.textContent = message;
     document.body.appendChild(alertDiv);
     setTimeout(() => alertDiv.remove(), 3000);
+  }
+
+  // Password Reset Handlers
+
+  // Forgot Password Link
+  document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const modal = new bootstrap.Modal(document.getElementById('forgotPasswordModal'));
+    modal.show();
+  });
+
+  // Forgot Password Form
+  document.getElementById('forgotPasswordForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('forgotPasswordEmail').value;
+    const errorDiv = document.getElementById('forgotPasswordError');
+    const successDiv = document.getElementById('forgotPasswordSuccess');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    // Reset alerts
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    // Disable button during request
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending...';
+
+    try {
+      const response = await fetch('/api/password/forgot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        successDiv.textContent = data.message;
+        successDiv.style.display = 'block';
+        document.getElementById('forgotPasswordForm').reset();
+
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('forgotPasswordModal'));
+          modal?.hide();
+        }, 3000);
+      } else {
+        errorDiv.textContent = data.message || 'Failed to send reset link';
+        errorDiv.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      errorDiv.textContent = 'An error occurred. Please try again.';
+      errorDiv.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send Reset Link';
+    }
+  });
+
+  // Reset Password Form
+  document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const token = document.getElementById('resetToken').value;
+    const email = document.getElementById('resetEmail').value;
+    const password = document.getElementById('newPassword').value;
+    const passwordConfirmation = document.getElementById('confirmPassword').value;
+    const errorDiv = document.getElementById('resetPasswordError');
+    const successDiv = document.getElementById('resetPasswordSuccess');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+
+    // Reset alerts
+    errorDiv.style.display = 'none';
+    successDiv.style.display = 'none';
+
+    // Validate passwords match
+    if (password !== passwordConfirmation) {
+      errorDiv.textContent = 'Passwords do not match';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 8) {
+      errorDiv.textContent = 'Password must be at least 8 characters long';
+      errorDiv.style.display = 'block';
+      return;
+    }
+
+    // Disable button during request
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Resetting...';
+
+    try {
+      const response = await fetch('/api/password/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          token,
+          password,
+          password_confirmation: passwordConfirmation
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        successDiv.textContent = data.message;
+        successDiv.style.display = 'block';
+        document.getElementById('resetPasswordForm').reset();
+
+        // Close modal and show login after 2 seconds
+        setTimeout(() => {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+          modal?.hide();
+          showNotification('Password reset successful! You can now login.', 'success');
+
+          // Clear URL parameters
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }, 2000);
+      } else {
+        const errorMessage = data.message || data.errors?.email?.[0] || 'Failed to reset password';
+        errorDiv.textContent = errorMessage;
+        errorDiv.style.display = 'block';
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      errorDiv.textContent = 'An error occurred. Please try again.';
+      errorDiv.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Reset Password';
+    }
+  });
+
+  // Check for password reset token in URL on page load
+  function checkPasswordResetToken() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const email = urlParams.get('email');
+
+    if (token && email) {
+      // Verify token is valid
+      fetch('/api/password/verify-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.valid) {
+          // Show reset password modal
+          document.getElementById('resetToken').value = token;
+          document.getElementById('resetEmail').value = email;
+          const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+          modal.show();
+        } else {
+          showNotification(data.message || 'Invalid or expired reset link', 'danger');
+          // Clear URL parameters
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      })
+      .catch(error => {
+        console.error('Token verification error:', error);
+        showNotification('Failed to verify reset link', 'danger');
+      });
+    }
+  }
+
+  // Check for reset token on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkPasswordResetToken);
+  } else {
+    checkPasswordResetToken();
   }
 </script>
