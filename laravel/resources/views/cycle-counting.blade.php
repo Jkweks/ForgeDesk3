@@ -1,6 +1,138 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+/* Tablet/iPad Modal Optimizations */
+@media (min-width: 768px) and (max-width: 1366px) {
+  /* Modal sizing for tablets in landscape */
+  .modal-xl .modal-dialog {
+    max-width: 95vw !important;
+    margin: 0.5rem auto;
+  }
+
+  .modal-lg .modal-dialog {
+    max-width: 85vw !important;
+    margin: 0.5rem auto;
+  }
+
+  /* Optimize modal body for scrolling on smaller screens */
+  .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch-friendly buttons - minimum 44px touch target */
+  .modal-footer .btn,
+  .modal-header .btn,
+  .btn {
+    min-height: 44px;
+    padding: 0.625rem 1rem;
+  }
+
+  /* Larger close button for touch */
+  .btn-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 1rem;
+  }
+
+  /* Form inputs optimized for touch */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.625rem 0.75rem;
+  }
+
+  /* Checkboxes and radio buttons - larger touch targets */
+  .form-check-input {
+    width: 24px;
+    height: 24px;
+    margin-top: 0;
+  }
+
+  /* Table optimizations for tablets */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table td,
+  .table th {
+    padding: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Select multiple - better sizing for tablets */
+  select[multiple] {
+    min-height: 200px;
+    font-size: 16px;
+  }
+
+  /* Better spacing for form groups on tablets */
+  .mb-3,
+  .my-3 {
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Modal footer buttons - stack on smaller tablets */
+  @media (max-width: 900px) {
+    .modal-footer {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+      flex: 1 1 auto;
+      min-width: calc(50% - 0.25rem);
+    }
+  }
+}
+
+/* Portrait tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .modal-xl .modal-dialog,
+  .modal-lg .modal-dialog {
+    max-width: 90vw !important;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 240px);
+  }
+
+  /* Stack form columns in portrait */
+  .modal-body .row .col-md-6,
+  .modal-body .row .col-md-4,
+  .modal-body .row .col-md-3 {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+}
+
+/* Landscape tablet optimizations (iPad landscape, Android tablets) */
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Full width utilization in landscape */
+  .modal-xl .modal-dialog {
+    max-width: 96vw !important;
+  }
+
+  /* Optimize vertical space */
+  .modal-header,
+  .modal-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  .modal-title {
+    font-size: 1.125rem;
+  }
+
+  /* Compact table for better fit */
+  .table-sm td,
+  .table-sm th {
+    padding: 0.5rem;
+  }
+}
+</style>
 <div class="container-xl">
   <!-- Page header -->
   <div class="page-header d-print-none">
