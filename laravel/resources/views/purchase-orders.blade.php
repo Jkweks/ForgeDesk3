@@ -2,8 +2,25 @@
 
 @section('content')
 <style>
-.hover-bg-light:hover {
-  background-color: #f8f9fa;
+/* Product search result hover - compatible with light and dark mode */
+.product-search-result:hover {
+  background-color: var(--tblr-bg-surface-tertiary, rgba(var(--tblr-primary-rgb), 0.06));
+}
+
+/* Search results dropdown - theme-aware */
+.search-results-dropdown {
+  background-color: var(--tblr-bg-surface, #ffffff);
+  border-color: var(--tblr-border-color, #d9dfe4);
+  color: var(--tblr-body-color, #182433);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  [data-bs-theme="dark"] .search-results-dropdown,
+  .theme-dark .search-results-dropdown {
+    background-color: var(--tblr-bg-surface, #1d273b);
+    border-color: var(--tblr-border-color-dark, #384256);
+  }
 }
 </style>
 <div class="container-xl">
@@ -627,7 +644,7 @@ function addPOLineItem() {
                onkeyup="searchProducts(${lineItemCounter})"
                onfocus="searchProducts(${lineItemCounter})"
                autocomplete="off" required>
-        <div id="searchResults${lineItemCounter}" class="position-absolute w-100 bg-white border rounded shadow-sm"
+        <div id="searchResults${lineItemCounter}" class="position-absolute w-100 search-results-dropdown rounded shadow-sm"
              style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;">
         </div>
       </div>
@@ -704,7 +721,7 @@ async function searchProducts(itemId) {
       }
 
       resultsDiv.innerHTML = products.map(product => `
-        <div class="p-2 border-bottom cursor-pointer hover-bg-light product-search-result"
+        <div class="p-2 border-bottom product-search-result"
              data-item-id="${itemId}"
              data-product-id="${product.id}"
              data-sku="${escapeHtml(product.sku)}"
