@@ -192,6 +192,7 @@ Route::prefix('v1')->group(function () {
 
     // Test endpoint for inventory status calculations (public for testing)
     Route::get('/products/test/status-calculations', [ProductController::class, 'testStatusCalculations']);
+    Route::post('/products/recalculate-statuses', [ProductController::class, 'recalculateStatuses']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {

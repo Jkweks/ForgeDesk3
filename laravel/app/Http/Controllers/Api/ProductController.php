@@ -408,6 +408,66 @@ class ProductController extends Controller
     }
 
     /**
+     * Recalculate inventory status for products
+     * Can recalculate all products or specific SKUs
+     */
+    public function recalculateStatuses(Request $request)
+    {
+        $validated = $request->validate([
+            'skus' => 'nullable|array',
+            'skus.*' => 'string',
+        ]);
+
+        $query = Product::query();
+
+        if (!empty($validated['skus'])) {
+            $query->whereIn('sku', $validated['skus']);
+        }
+
+        $products = $query->get();
+
+        if ($products->isEmpty()) {
+            return response()->json([
+                'message' => 'No products found',
+                'products_updated' => 0,
+            ]);
+        }
+
+        $statusChanges = [];
+        $statusCounts = [
+            'in_stock' => 0,
+            'low_stock' => 0,
+            'critical' => 0,
+        ];
+
+        foreach ($products as $product) {
+            $oldStatus = $product->status;
+            $product->updateStatus();
+            $newStatus = $product->status;
+
+            $statusCounts[$newStatus]++;
+
+            if ($oldStatus !== $newStatus) {
+                $statusChanges[] = [
+                    'sku' => $product->sku,
+                    'description' => $product->description,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'quantity_available' => $product->quantity_available,
+                    'reorder_point' => $product->reorder_point,
+                ];
+            }
+        }
+
+        return response()->json([
+            'message' => 'Status recalculation complete',
+            'products_updated' => $products->count(),
+            'status_changes' => $statusChanges,
+            'status_summary' => $statusCounts,
+        ]);
+    }
+
+    /**
      * Test inventory status calculations for specific SKUs
      * Returns detailed status calculation breakdown for testing
      */
