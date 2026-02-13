@@ -562,4 +562,48 @@ class ProductController extends Controller
             'results' => $results,
         ]);
     }
+
+    /**
+     * Search products for autocomplete/typeahead
+     * Optimized for quick product lookup by supplier
+     */
+    public function search(Request $request)
+    {
+        $validated = $request->validate([
+            'q' => 'nullable|string|max:255',
+            'supplier_id' => 'nullable|exists:suppliers,id',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        $query = Product::query()
+            ->visible()
+            ->where('is_active', true);
+
+        // Filter by supplier if provided
+        if (!empty($validated['supplier_id'])) {
+            $query->where('supplier_id', $validated['supplier_id']);
+        }
+
+        // Search by SKU, description, or part number
+        if (!empty($validated['q'])) {
+            $search = $validated['q'];
+            $query->where(function($q) use ($search) {
+                $q->where('sku', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('part_number', 'like', "%{$search}%")
+                  ->orWhere('supplier_sku', 'like', "%{$search}%");
+            });
+        }
+
+        $limit = $validated['limit'] ?? 20;
+
+        $products = $query
+            ->select('id', 'sku', 'description', 'part_number', 'unit_cost', 'supplier_id', 'supplier_sku')
+            ->with('supplier:id,name')
+            ->orderBy('sku')
+            ->limit($limit)
+            ->get();
+
+        return response()->json($products);
+    }
 }

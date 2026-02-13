@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+.hover-bg-light:hover {
+  background-color: #f8f9fa;
+}
+</style>
 <div class="container-xl">
   <!-- Page header -->
   <div class="page-header d-print-none">
@@ -360,7 +365,6 @@
 
 <script>
 let currentPO = null;
-let allProducts = [];
 let allSuppliers = [];
 let lineItemCounter = 0;
 let searchTimeout = null;
@@ -428,7 +432,6 @@ function safeHideModal(modalId) {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadSuppliers();
-  loadProducts();
   loadPurchaseOrders();
   loadStatistics();
 
@@ -541,16 +544,6 @@ async function loadSuppliers() {
   }
 }
 
-// Load products
-async function loadProducts() {
-  try {
-    const response = await authenticatedFetch('/products?is_active=1&per_page=all');
-    allProducts = response.data || response;
-  } catch (error) {
-    console.error('Error loading products:', error);
-  }
-}
-
 // Load statistics
 async function loadStatistics() {
   try {
@@ -580,6 +573,13 @@ function showCreatePOModal() {
 
 // Add PO line item
 function addPOLineItem() {
+  // Check if supplier is selected
+  const supplierId = document.getElementById('poSupplier').value;
+  if (!supplierId) {
+    showNotification('Please select a supplier first', 'warning');
+    return;
+  }
+
   lineItemCounter++;
   const tbody = document.getElementById('poLineItems');
 
@@ -592,10 +592,19 @@ function addPOLineItem() {
   row.id = `lineItem${lineItemCounter}`;
   row.innerHTML = `
     <td>
-      <select class="form-select form-select-sm" id="product${lineItemCounter}" onchange="updateLineItemCost(${lineItemCounter})" required>
-        <option value="">Select product...</option>
-        ${allProducts.map(p => `<option value="${p.id}" data-cost="${p.unit_cost}">${escapeHtml(p.sku)} - ${escapeHtml(p.description)}</option>`).join('')}
-      </select>
+      <input type="hidden" id="productId${lineItemCounter}">
+      <input type="hidden" id="productCost${lineItemCounter}">
+      <div class="position-relative">
+        <input type="text" class="form-control form-control-sm" id="productSearch${lineItemCounter}"
+               placeholder="Search by SKU or description..."
+               onkeyup="searchProducts(${lineItemCounter})"
+               onfocus="searchProducts(${lineItemCounter})"
+               autocomplete="off" required>
+        <div id="searchResults${lineItemCounter}" class="position-absolute w-100 bg-white border rounded shadow-sm"
+             style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;">
+        </div>
+      </div>
+      <small class="text-muted" id="selectedProduct${lineItemCounter}" style="display: none;"></small>
     </td>
     <td>
       <input type="number" class="form-control form-control-sm" id="quantity${lineItemCounter}" min="1" value="1" onchange="updateLineItemCost(${lineItemCounter})" required>
@@ -617,6 +626,13 @@ function addPOLineItem() {
   `;
 
   tbody.appendChild(row);
+
+  // Close search results when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest(`#lineItem${lineItemCounter}`)) {
+      document.getElementById(`searchResults${lineItemCounter}`).style.display = 'none';
+    }
+  });
 }
 
 // Remove PO line item
@@ -631,19 +647,82 @@ function removePOLineItem(itemId) {
   }
 }
 
+// Search products for autocomplete
+let productSearchTimeouts = {};
+async function searchProducts(itemId) {
+  const searchInput = document.getElementById(`productSearch${itemId}`);
+  const resultsDiv = document.getElementById(`searchResults${itemId}`);
+  const searchQuery = searchInput.value.trim();
+  const supplierId = document.getElementById('poSupplier').value;
+
+  // Clear previous timeout
+  if (productSearchTimeouts[itemId]) {
+    clearTimeout(productSearchTimeouts[itemId]);
+  }
+
+  // If search is empty, hide results
+  if (searchQuery.length < 2) {
+    resultsDiv.style.display = 'none';
+    return;
+  }
+
+  // Debounce search
+  productSearchTimeouts[itemId] = setTimeout(async () => {
+    try {
+      const params = new URLSearchParams({
+        q: searchQuery,
+        supplier_id: supplierId,
+        limit: 20
+      });
+
+      const products = await authenticatedFetch(`/products/search?${params.toString()}`);
+
+      if (products.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-2 text-muted">No products found from this supplier</div>';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+
+      resultsDiv.innerHTML = products.map(product => `
+        <div class="p-2 border-bottom cursor-pointer hover-bg-light"
+             onclick="selectProduct(${itemId}, ${product.id}, '${escapeHtml(product.sku)}', '${escapeHtml(product.description)}', ${product.unit_cost})"
+             style="cursor: pointer;">
+          <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
+          <small class="text-muted">Cost: ${formatCurrency(product.unit_cost)}</small>
+        </div>
+      `).join('');
+      resultsDiv.style.display = 'block';
+    } catch (error) {
+      console.error('Error searching products:', error);
+      resultsDiv.innerHTML = '<div class="p-2 text-danger">Error loading products</div>';
+      resultsDiv.style.display = 'block';
+    }
+  }, 300);
+}
+
+// Select a product from search results
+function selectProduct(itemId, productId, sku, description, unitCost) {
+  document.getElementById(`productId${itemId}`).value = productId;
+  document.getElementById(`productCost${itemId}`).value = unitCost;
+  document.getElementById(`productSearch${itemId}`).value = `${sku} - ${description}`;
+  document.getElementById(`selectedProduct${itemId}`).textContent = `SKU: ${sku}`;
+  document.getElementById(`selectedProduct${itemId}`).style.display = 'block';
+  document.getElementById(`searchResults${itemId}`).style.display = 'none';
+
+  // Auto-fill unit cost if empty
+  const unitCostInput = document.getElementById(`unitCost${itemId}`);
+  if (!unitCostInput.value) {
+    unitCostInput.value = unitCost;
+  }
+
+  updateLineItemCost(itemId);
+}
+
 // Update line item cost
 function updateLineItemCost(itemId) {
-  const productSelect = document.getElementById(`product${itemId}`);
   const quantityInput = document.getElementById(`quantity${itemId}`);
   const unitCostInput = document.getElementById(`unitCost${itemId}`);
   const lineTotalInput = document.getElementById(`lineTotal${itemId}`);
-
-  // Auto-fill unit cost from product
-  if (productSelect.value && !unitCostInput.value) {
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    const cost = selectedOption.getAttribute('data-cost');
-    unitCostInput.value = cost;
-  }
 
   // Calculate line total
   const quantity = parseFloat(quantityInput.value) || 0;
@@ -661,7 +740,7 @@ function updatePOTotal() {
   const tbody = document.getElementById('poLineItems');
 
   Array.from(tbody.children).forEach(row => {
-    if (row.querySelector('.form-select')) {
+    if (row.querySelector('input[id^="productId"]')) {
       const itemId = row.id.replace('lineItem', '');
       const quantity = parseFloat(document.getElementById(`quantity${itemId}`).value) || 0;
       const unitCost = parseFloat(document.getElementById(`unitCost${itemId}`).value) || 0;
@@ -680,9 +759,9 @@ async function savePurchaseOrder() {
 
     // Collect line items
     Array.from(tbody.children).forEach(row => {
-      if (row.querySelector('.form-select')) {
+      if (row.querySelector('input[id^="productId"]')) {
         const itemId = row.id.replace('lineItem', '');
-        const productId = document.getElementById(`product${itemId}`).value;
+        const productId = document.getElementById(`productId${itemId}`).value;
         const quantity = document.getElementById(`quantity${itemId}`).value;
         const unitCost = document.getElementById(`unitCost${itemId}`).value;
         const location = document.getElementById(`location${itemId}`).value;

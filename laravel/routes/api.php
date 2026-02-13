@@ -251,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/suppliers/bulk-action', [SupplierController::class, 'bulkAction']);
 
         // Products
+        Route::get('/products/search', [ProductController::class, 'search']); // Must be before apiResource
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);
         Route::post('/products/{product}/issue-to-job', [ProductController::class, 'issueToJob']);
