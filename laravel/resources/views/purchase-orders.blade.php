@@ -675,7 +675,7 @@ async function searchProducts(itemId) {
         limit: 20
       });
 
-      const products = await authenticatedFetch(`/products/search?${params.toString()}`);
+      const products = await authenticatedFetch(`/products-search?${params.toString()}`);
 
       if (products.length === 0) {
         resultsDiv.innerHTML = '<div class="p-2 text-muted">No products found from this supplier</div>';
