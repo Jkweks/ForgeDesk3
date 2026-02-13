@@ -542,7 +542,7 @@
 
 <script>
 let currentSession = null;
-let countSortBy = null;
+let countSortBy = 'location';
 let countSortDir = 'asc';
 let allCategories = [];
 let allProducts = [];
@@ -937,8 +937,8 @@ async function enterCounts(sessionId) {
       cancelButton.style.display = 'none';
     }
 
-    // Render the count items table
-    renderCountItems(session);
+    // Apply initial sort by location
+    sortCountItems('location');
 
     safeShowModal('countEntryModal');
   } catch (error) {
@@ -997,8 +997,8 @@ function sortCountItems(column) {
         bVal = b.product?.description || '';
         break;
       case 'location':
-        aVal = a.location?.location || '';
-        bVal = b.location?.location || '';
+        aVal = a.location?.storage_location?.name || a.location?.location || '';
+        bVal = b.location?.storage_location?.name || b.location?.location || '';
         break;
       case 'system_quantity':
         aVal = a.system_quantity || 0;
