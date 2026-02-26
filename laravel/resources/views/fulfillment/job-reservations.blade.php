@@ -1269,11 +1269,7 @@
                     return;
                 }
 
-                // Check available inventory
-                if (committedQty > product.quantity_available) {
-                    alert(`Only ${product.quantity_available} available. Cannot commit ${committedQty}.`);
-                    return;
-                }
+                // Allow over-commitment - no frontend blocking
 
                 // Add to items array
                 editingItems.push({

@@ -620,13 +620,7 @@ class JobReservationController extends Controller
                     ], 422);
                 }
 
-                // Validate committed quantity doesn't exceed available
-                if ($request->committed_qty > $product->quantity_available) {
-                    return response()->json([
-                        'error' => 'Insufficient inventory',
-                        'message' => "Only {$product->quantity_available} available. Cannot commit {$request->committed_qty}.",
-                    ], 422);
-                }
+                // Allow over-commitment - no validation against available quantity
 
                 // Create new item
                 $item = JobReservationItem::create([
@@ -728,16 +722,7 @@ class JobReservationController extends Controller
                     ], 422);
                 }
 
-                // Check available inventory if increasing committed_qty
-                if ($request->has('committed_qty') && $request->committed_qty > $item->committed_qty) {
-                    $increase = $request->committed_qty - $item->committed_qty;
-                    if ($increase > $item->product->quantity_available) {
-                        return response()->json([
-                            'error' => 'Insufficient inventory',
-                            'message' => "Only {$item->product->quantity_available} available. Cannot increase by {$increase}.",
-                        ], 422);
-                    }
-                }
+                // Allow over-commitment - no validation against available quantity
 
                 // Update quantities
                 if ($request->has('requested_qty')) {
