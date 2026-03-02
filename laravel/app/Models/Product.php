@@ -507,7 +507,7 @@ class Product extends Model
     {
         $onHandPacks = $this->quantity_on_hand_packs;
         $committedPacks = $this->committed_packs_from_reservations;
-        return $onHandPacks - $committedPacks;
+        return max(0, $onHandPacks - $committedPacks);
     }
 
     /**

@@ -154,34 +154,35 @@
         const category = document.getElementById('categoryFilter').value;
         const statusFilter = document.getElementById('statusFilter').value;
 
-        const params = new URLSearchParams({
-          per_page: 100
-        });
-
-        // If specific status selected, use it; otherwise get both critical and out_of_stock
-        if (statusFilter) {
-          params.append('status', statusFilter);
-        } else {
-          params.append('status', 'critical,out_of_stock');
-        }
-
+        const params = new URLSearchParams({ per_page: 100 });
         if (search) params.append('search', search);
         if (category) params.append('category_id', category);
 
-        const data = await authenticatedFetch(`/products?${params}`);
+        let products;
+        if (statusFilter) {
+          const data = await authenticatedFetch(`/dashboard/inventory/${statusFilter}?${params}`);
+          products = data.data;
+        } else {
+          // Fetch both critical and out_of_stock in parallel and merge
+          const [criticalData, outOfStockData] = await Promise.all([
+            authenticatedFetch(`/dashboard/inventory/critical?${params}`),
+            authenticatedFetch(`/dashboard/inventory/out_of_stock?${params}`)
+          ]);
+          products = [...criticalData.data, ...outOfStockData.data];
+        }
 
         // Calculate stats
-        const criticalCount = data.data.filter(p => p.status === 'critical').length;
-        const outOfStockCount = data.data.filter(p => p.status === 'out_of_stock').length;
-        const totalValue = data.data.reduce((sum, p) => sum + (p.quantity_available * p.unit_price), 0);
-        const emergencyPO = data.data.reduce((sum, p) => sum + ((p.suggested_order_qty || 0) * p.unit_cost), 0);
+        const criticalCount = products.filter(p => p.status === 'critical').length;
+        const outOfStockCount = products.filter(p => p.status === 'out_of_stock').length;
+        const totalValue = products.reduce((sum, p) => sum + (p.quantity_available * p.unit_price), 0);
+        const emergencyPO = products.reduce((sum, p) => sum + ((p.suggested_order_qty || 0) * p.unit_cost), 0);
 
         document.getElementById('statCriticalCount').textContent = criticalCount.toLocaleString();
         document.getElementById('statOutOfStock').textContent = outOfStockCount.toLocaleString();
         document.getElementById('statTotalValue').textContent = `$${totalValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
         document.getElementById('statEmergencyPO').textContent = `$${emergencyPO.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
-        renderInventoryTable(data.data);
+        renderInventoryTable(products);
 
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('inventoryTableContainer').style.display = 'block';
