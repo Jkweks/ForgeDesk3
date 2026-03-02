@@ -189,6 +189,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/ez-estimate/upload', [\App\Http\Controllers\Api\EzEstimateController::class, 'upload']);
     Route::get('/ez-estimate/current-file', [\App\Http\Controllers\Api\EzEstimateController::class, 'getCurrentFile']);
     Route::get('/ez-estimate/stats', [\App\Http\Controllers\Api\EzEstimateController::class, 'getStats']);
+
+    // Test endpoint for inventory status calculations (public for testing)
+    Route::get('/products/test/status-calculations', [ProductController::class, 'testStatusCalculations']);
+    Route::post('/products/recalculate-statuses', [ProductController::class, 'recalculateStatuses']);
 });
 
 Route::middleware('auth:sanctum')->group(function () {
@@ -232,6 +236,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Categories
         Route::apiResource('categories', CategoryController::class);
         Route::get('/categories-tree', [CategoryController::class, 'tree']);
+        Route::get('/category-tree', [CategoryController::class, 'tree']); // Alias for frontend compatibility
         Route::get('/category-systems', [CategoryController::class, 'systems']);
         Route::post('/categories/sort-order', [CategoryController::class, 'updateSortOrder']);
         Route::post('/categories/bulk-action', [CategoryController::class, 'bulkAction']);
@@ -246,6 +251,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/suppliers/bulk-action', [SupplierController::class, 'bulkAction']);
 
         // Products
+        Route::get('/products-search', [ProductController::class, 'search']); // Non-conflicting route
         Route::apiResource('products', ProductController::class);
         Route::post('/products/{product}/adjust', [ProductController::class, 'adjustInventory']);
         Route::post('/products/{product}/issue-to-job', [ProductController::class, 'issueToJob']);

@@ -1,6 +1,160 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+/* Product search result hover - compatible with light and dark mode */
+.product-search-result:hover {
+  background-color: var(--tblr-bg-surface-tertiary, rgba(var(--tblr-primary-rgb), 0.06));
+}
+
+/* Search results dropdown - theme-aware */
+.search-results-dropdown {
+  background-color: var(--tblr-bg-surface, #ffffff);
+  border-color: var(--tblr-border-color, #d9dfe4);
+  color: var(--tblr-body-color, #182433);
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  [data-bs-theme="dark"] .search-results-dropdown,
+  .theme-dark .search-results-dropdown {
+    background-color: var(--tblr-bg-surface, #1d273b);
+    border-color: var(--tblr-border-color-dark, #384256);
+  }
+}
+
+/* Tablet/iPad Modal Optimizations */
+@media (min-width: 768px) and (max-width: 1366px) {
+  /* Modal sizing for tablets in landscape */
+  .modal-xl .modal-dialog {
+    max-width: 95vw !important;
+    margin: 0.5rem auto;
+  }
+
+  .modal-lg .modal-dialog {
+    max-width: 85vw !important;
+    margin: 0.5rem auto;
+  }
+
+  /* Optimize modal body for scrolling on smaller screens */
+  .modal-body {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Touch-friendly buttons - minimum 44px touch target */
+  .modal-footer .btn,
+  .modal-header .btn,
+  .btn {
+    min-height: 44px;
+    padding: 0.625rem 1rem;
+  }
+
+  /* Larger close button for touch */
+  .btn-close {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 1rem;
+  }
+
+  /* Form inputs optimized for touch */
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 0.625rem 0.75rem;
+  }
+
+  /* Checkboxes and radio buttons - larger touch targets */
+  .form-check-input {
+    width: 24px;
+    height: 24px;
+    margin-top: 0;
+  }
+
+  /* Table optimizations for tablets */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table td,
+  .table th {
+    padding: 0.75rem;
+    white-space: nowrap;
+  }
+
+  /* Better spacing for form groups on tablets */
+  .mb-3,
+  .my-3 {
+    margin-bottom: 1.25rem !important;
+  }
+
+  /* Modal footer buttons - stack on smaller tablets */
+  @media (max-width: 900px) {
+    .modal-footer {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+      flex: 1 1 auto;
+      min-width: calc(50% - 0.25rem);
+    }
+  }
+
+  /* Line items table in create PO modal */
+  .line-items-container {
+    max-height: 40vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Portrait tablet adjustments */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .modal-xl .modal-dialog,
+  .modal-lg .modal-dialog {
+    max-width: 90vw !important;
+  }
+
+  .modal-body {
+    max-height: calc(100vh - 240px);
+  }
+
+  /* Stack form columns in portrait */
+  .modal-body .row .col-md-6,
+  .modal-body .row .col-md-4,
+  .modal-body .row .col-md-3 {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+}
+
+/* Landscape tablet optimizations (iPad landscape, Android tablets) */
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+  /* Full width utilization in landscape */
+  .modal-xl .modal-dialog {
+    max-width: 96vw !important;
+  }
+
+  /* Optimize vertical space */
+  .modal-header,
+  .modal-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  .modal-title {
+    font-size: 1.125rem;
+  }
+
+  /* Compact table for better fit */
+  .table-sm td,
+  .table-sm th {
+    padding: 0.5rem;
+  }
+}
+</style>
 <div class="container-xl">
   <!-- Page header -->
   <div class="page-header d-print-none">
@@ -360,7 +514,6 @@
 
 <script>
 let currentPO = null;
-let allProducts = [];
 let allSuppliers = [];
 let lineItemCounter = 0;
 let searchTimeout = null;
@@ -425,10 +578,36 @@ function safeHideModal(modalId) {
   if (backdrop) backdrop.remove();
 }
 
+// Global click handler for search results and closing dropdowns
+document.addEventListener('click', (e) => {
+  // Handle product selection from search results
+  const searchResult = e.target.closest('.product-search-result');
+  if (searchResult) {
+    const itemId = searchResult.dataset.itemId;
+    const productId = searchResult.dataset.productId;
+    const sku = searchResult.dataset.sku;
+    const description = searchResult.dataset.description;
+    const unitCost = searchResult.dataset.netCost;
+
+    selectProduct(itemId, productId, sku, description, unitCost);
+    return;
+  }
+
+  // Close all search result dropdowns when clicking outside
+  document.querySelectorAll('[id^="searchResults"]').forEach(resultsDiv => {
+    const lineItemId = resultsDiv.id.replace('searchResults', '');
+    const lineItem = document.getElementById(`lineItem${lineItemId}`);
+
+    // Only hide if the line item exists and click was outside it
+    if (lineItem && !e.target.closest(`#lineItem${lineItemId}`)) {
+      resultsDiv.style.display = 'none';
+    }
+  });
+});
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadSuppliers();
-  loadProducts();
   loadPurchaseOrders();
   loadStatistics();
 
@@ -541,16 +720,6 @@ async function loadSuppliers() {
   }
 }
 
-// Load products
-async function loadProducts() {
-  try {
-    const response = await authenticatedFetch('/products?is_active=1&per_page=all');
-    allProducts = response.data || response;
-  } catch (error) {
-    console.error('Error loading products:', error);
-  }
-}
-
 // Load statistics
 async function loadStatistics() {
   try {
@@ -580,6 +749,13 @@ function showCreatePOModal() {
 
 // Add PO line item
 function addPOLineItem() {
+  // Check if supplier is selected
+  const supplierId = document.getElementById('poSupplier').value;
+  if (!supplierId) {
+    showNotification('Please select a supplier first', 'warning');
+    return;
+  }
+
   lineItemCounter++;
   const tbody = document.getElementById('poLineItems');
 
@@ -592,10 +768,19 @@ function addPOLineItem() {
   row.id = `lineItem${lineItemCounter}`;
   row.innerHTML = `
     <td>
-      <select class="form-select form-select-sm" id="product${lineItemCounter}" onchange="updateLineItemCost(${lineItemCounter})" required>
-        <option value="">Select product...</option>
-        ${allProducts.map(p => `<option value="${p.id}" data-cost="${p.unit_cost}">${escapeHtml(p.sku)} - ${escapeHtml(p.description)}</option>`).join('')}
-      </select>
+      <input type="hidden" id="productId${lineItemCounter}">
+      <input type="hidden" id="productCost${lineItemCounter}">
+      <div class="position-relative">
+        <input type="text" class="form-control form-control-sm" id="productSearch${lineItemCounter}"
+               placeholder="Search by SKU or description..."
+               onkeyup="searchProducts(${lineItemCounter})"
+               onfocus="searchProducts(${lineItemCounter})"
+               autocomplete="off" required>
+        <div id="searchResults${lineItemCounter}" class="position-absolute w-100 search-results-dropdown rounded shadow-sm"
+             style="display: none; max-height: 200px; overflow-y: auto; z-index: 1000;">
+        </div>
+      </div>
+      <small class="text-muted" id="selectedProduct${lineItemCounter}" style="display: none;"></small>
     </td>
     <td>
       <input type="number" class="form-control form-control-sm" id="quantity${lineItemCounter}" min="1" value="1" onchange="updateLineItemCost(${lineItemCounter})" required>
@@ -631,19 +816,86 @@ function removePOLineItem(itemId) {
   }
 }
 
+// Search products for autocomplete
+let productSearchTimeouts = {};
+async function searchProducts(itemId) {
+  const searchInput = document.getElementById(`productSearch${itemId}`);
+  const resultsDiv = document.getElementById(`searchResults${itemId}`);
+  const searchQuery = searchInput.value.trim();
+  const supplierId = document.getElementById('poSupplier').value;
+
+  // Clear previous timeout
+  if (productSearchTimeouts[itemId]) {
+    clearTimeout(productSearchTimeouts[itemId]);
+  }
+
+  // If search is empty, hide results
+  if (searchQuery.length < 2) {
+    resultsDiv.style.display = 'none';
+    return;
+  }
+
+  // Debounce search
+  productSearchTimeouts[itemId] = setTimeout(async () => {
+    try {
+      const params = new URLSearchParams({
+        q: searchQuery,
+        supplier_id: supplierId,
+        limit: 20
+      });
+
+      const products = await authenticatedFetch(`/products-search?${params.toString()}`);
+
+      if (products.length === 0) {
+        resultsDiv.innerHTML = '<div class="p-2 text-muted">No products found from this supplier</div>';
+        resultsDiv.style.display = 'block';
+        return;
+      }
+
+      resultsDiv.innerHTML = products.map(product => `
+        <div class="p-2 border-bottom product-search-result"
+             data-item-id="${itemId}"
+             data-product-id="${product.id}"
+             data-sku="${escapeHtml(product.sku)}"
+             data-description="${escapeHtml(product.description)}"
+             data-net-cost="${product.net_cost}"
+             style="cursor: pointer;">
+          <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
+          <small class="text-muted">Cost: ${formatCurrency(product.net_cost)}</small>
+        </div>
+      `).join('');
+      resultsDiv.style.display = 'block';
+    } catch (error) {
+      console.error('Error searching products:', error);
+      resultsDiv.innerHTML = '<div class="p-2 text-danger">Error loading products</div>';
+      resultsDiv.style.display = 'block';
+    }
+  }, 300);
+}
+
+// Select a product from search results
+function selectProduct(itemId, productId, sku, description, unitCost) {
+  document.getElementById(`productId${itemId}`).value = productId;
+  document.getElementById(`productCost${itemId}`).value = unitCost;
+  document.getElementById(`productSearch${itemId}`).value = `${sku} - ${description}`;
+  document.getElementById(`selectedProduct${itemId}`).textContent = `SKU: ${sku}`;
+  document.getElementById(`selectedProduct${itemId}`).style.display = 'block';
+  document.getElementById(`searchResults${itemId}`).style.display = 'none';
+
+  // Auto-fill unit cost if empty
+  const unitCostInput = document.getElementById(`unitCost${itemId}`);
+  if (!unitCostInput.value) {
+    unitCostInput.value = unitCost;
+  }
+
+  updateLineItemCost(itemId);
+}
+
 // Update line item cost
 function updateLineItemCost(itemId) {
-  const productSelect = document.getElementById(`product${itemId}`);
   const quantityInput = document.getElementById(`quantity${itemId}`);
   const unitCostInput = document.getElementById(`unitCost${itemId}`);
   const lineTotalInput = document.getElementById(`lineTotal${itemId}`);
-
-  // Auto-fill unit cost from product
-  if (productSelect.value && !unitCostInput.value) {
-    const selectedOption = productSelect.options[productSelect.selectedIndex];
-    const cost = selectedOption.getAttribute('data-cost');
-    unitCostInput.value = cost;
-  }
 
   // Calculate line total
   const quantity = parseFloat(quantityInput.value) || 0;
@@ -661,7 +913,7 @@ function updatePOTotal() {
   const tbody = document.getElementById('poLineItems');
 
   Array.from(tbody.children).forEach(row => {
-    if (row.querySelector('.form-select')) {
+    if (row.querySelector('input[id^="productId"]')) {
       const itemId = row.id.replace('lineItem', '');
       const quantity = parseFloat(document.getElementById(`quantity${itemId}`).value) || 0;
       const unitCost = parseFloat(document.getElementById(`unitCost${itemId}`).value) || 0;
@@ -680,9 +932,9 @@ async function savePurchaseOrder() {
 
     // Collect line items
     Array.from(tbody.children).forEach(row => {
-      if (row.querySelector('.form-select')) {
+      if (row.querySelector('input[id^="productId"]')) {
         const itemId = row.id.replace('lineItem', '');
-        const productId = document.getElementById(`product${itemId}`).value;
+        const productId = document.getElementById(`productId${itemId}`).value;
         const quantity = document.getElementById(`quantity${itemId}`).value;
         const unitCost = document.getElementById(`unitCost${itemId}`).value;
         const location = document.getElementById(`location${itemId}`).value;

@@ -297,10 +297,45 @@ class PurchaseOrderController extends Controller
                 // Note: destination_location is a text field for reference, not updated here
                 $poItem->save();
 
-                // Update product inventory
+                // Determine storage location to use
                 $product = $poItem->product;
+                $storageLocationId = $itemData['storage_location_id'] ?? null;
+
+                // If no location specified, use primary location
+                if (!$storageLocationId) {
+                    $primaryLocation = $product->inventoryLocations()
+                        ->where('is_primary', true)
+                        ->first();
+
+                    if (!$primaryLocation) {
+                        throw new \Exception("No storage location specified and product {$product->sku} has no primary location configured");
+                    }
+
+                    $storageLocationId = $primaryLocation->storage_location_id;
+                }
+
+                // Update or create inventory location record
+                $location = $product->inventoryLocations()
+                    ->where('storage_location_id', $storageLocationId)
+                    ->first();
+
                 $quantityBefore = $product->quantity_on_hand;
-                $product->quantity_on_hand += $quantityToReceive;
+
+                if ($location) {
+                    $location->quantity += $quantityToReceive;
+                    $location->save();
+                } else {
+                    $product->inventoryLocations()->create([
+                        'storage_location_id' => $storageLocationId,
+                        'quantity' => $quantityToReceive,
+                        'is_primary' => false,
+                    ]);
+                }
+
+                // Recalculate product totals from all locations (source of truth)
+                $product->recalculateQuantitiesFromLocations();
+
+                // Update on_order_qty
                 $product->on_order_qty = max(0, ($product->on_order_qty ?? 0) - $quantityToReceive);
                 $product->save();
 
@@ -318,24 +353,6 @@ class PurchaseOrderController extends Controller
                     'user_id' => auth()->id(),
                     'transaction_date' => $receivedDate,
                 ]);
-
-                // Update storage location quantity if specified
-                if (isset($itemData['storage_location_id'])) {
-                    $location = $product->inventoryLocations()
-                        ->where('storage_location_id', $itemData['storage_location_id'])
-                        ->first();
-
-                    if ($location) {
-                        $location->quantity += $quantityToReceive;
-                        $location->save();
-                    } else {
-                        $product->inventoryLocations()->create([
-                            'storage_location_id' => $itemData['storage_location_id'],
-                            'quantity' => $quantityToReceive,
-                            'is_primary' => false,
-                        ]);
-                    }
-                }
             }
 
             // Update PO status

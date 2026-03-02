@@ -21,7 +21,7 @@ class Product extends Model
         'pack_size', 'purchase_uom', 'stock_uom', 'min_order_qty', 'order_multiple',
         'supplier_id', 'supplier_sku', 'supplier_contact', 'lead_time_days',
         'manufacturer', 'manufacturer_part_number',
-        'is_active', 'is_discontinued', 'status',
+        'is_active', 'is_discontinued', 'status', 'product_type',
         'configurator_available', 'configurator_type', 'configurator_use_path',
         'dimension_height', 'dimension_depth',
         'tool_type', 'tool_life_max', 'tool_life_unit', 'tool_life_warning_threshold',
@@ -90,6 +90,14 @@ class Product extends Model
         'cycles' => 'Cycles',
         'parts' => 'Parts',
         'meters' => 'Meters',
+    ];
+
+    // Product type configuration
+    public static $productTypes = [
+        'active' => 'Active',
+        'inactive' => 'Inactive',
+        'special_order' => 'Special Order',
+        'obsolete' => 'Obsolete',
     ];
 
     public function inventoryTransactions()
@@ -279,17 +287,20 @@ class Product extends Model
     public function updateStatus()
     {
         $available = $this->quantity_available;
-        
-        if ($available <= 0) {
-            $this->status = 'out_of_stock';
-        } elseif ($available <= ($this->minimum_quantity * 0.5)) {
+
+        // Critical: Over-committed (negative available quantity)
+        if ($available < 0) {
             $this->status = 'critical';
-        } elseif ($available <= $this->minimum_quantity) {
+        }
+        // Low Stock: Between reorder point and 0 (or below reorder point if set)
+        elseif ($this->reorder_point && $available < $this->reorder_point) {
             $this->status = 'low_stock';
-        } else {
+        }
+        // In Stock: Above reorder point, or positive quantity if no reorder point set
+        else {
             $this->status = 'in_stock';
         }
-        
+
         $this->save();
     }
 
@@ -669,5 +680,52 @@ class Product extends Model
         }
 
         return implode(' | ', $specs);
+    }
+
+    /**
+     * Check if product is obsolete
+     */
+    public function isObsolete()
+    {
+        return $this->product_type === 'obsolete';
+    }
+
+    /**
+     * Check if product should be hidden from display
+     * Obsolete products with 0 on_hand and 0 available should be hidden
+     */
+    public function shouldBeHidden()
+    {
+        return $this->isObsolete()
+            && $this->quantity_on_hand == 0
+            && $this->quantity_available == 0;
+    }
+
+    /**
+     * Get product type name
+     */
+    public function getProductTypeNameAttribute()
+    {
+        if ($this->product_type && isset(self::$productTypes[$this->product_type])) {
+            return self::$productTypes[$this->product_type];
+        }
+        return $this->product_type;
+    }
+
+    /**
+     * Scope to exclude hidden products (obsolete with 0 quantity)
+     */
+    public function scopeVisible($query)
+    {
+        return $query->where(function($q) {
+            $q->where('product_type', '!=', 'obsolete')
+              ->orWhere(function($subQ) {
+                  $subQ->where('product_type', 'obsolete')
+                       ->where(function($zeroCheck) {
+                           $zeroCheck->where('quantity_on_hand', '!=', 0)
+                                     ->orWhereRaw('(quantity_on_hand - COALESCE((SELECT SUM(committed_qty) FROM job_reservation_items WHERE job_reservation_items.product_id = products.id AND EXISTS (SELECT 1 FROM job_reservations WHERE job_reservations.id = job_reservation_items.reservation_id AND job_reservations.status IN (?, ?, ?))), 0)) != 0', ['active', 'in_progress', 'on_hold']);
+                       });
+              });
+        });
     }
 }
