@@ -829,23 +829,35 @@ async function searchProducts(itemId) {
     clearTimeout(productSearchTimeouts[itemId]);
   }
 
-  // Require at least 2 chars to type-search, but allow empty to browse all supplier items
+  // Guard: need a supplier selected to search
+  if (!supplierId) {
+    resultsDiv.innerHTML = '<div class="p-2 text-muted">Please select a supplier first</div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+
+  // Single char — hide and wait for more input
   if (searchQuery.length === 1) {
     resultsDiv.style.display = 'none';
     return;
   }
 
-  // Show loading indicator while debouncing
   const debounceMs = searchQuery.length === 0 ? 0 : 300;
 
   productSearchTimeouts[itemId] = setTimeout(async () => {
     try {
-      const params = new URLSearchParams({ supplier_id: supplierId, limit: 20 });
-      if (searchQuery.length >= 2) {
-        params.set('q', searchQuery);
+      let products;
+      if (searchQuery.length === 0) {
+        // For empty query on focus, use the supplier's products endpoint
+        // (/products-search without q param returns 404; supplier endpoint is reliable)
+        const response = await authenticatedFetch(`/suppliers/${supplierId}/products`);
+        // Supplier endpoint returns paginated response; extract data array
+        products = Array.isArray(response) ? response : (response.data || []);
+      } else {
+        // For typed queries, use products-search with q param
+        const params = new URLSearchParams({ q: searchQuery, supplier_id: supplierId, limit: 20 });
+        products = await authenticatedFetch(`/products-search?${params.toString()}`);
       }
-
-      const products = await authenticatedFetch(`/products-search?${params.toString()}`);
 
       if (products.length === 0) {
         resultsDiv.innerHTML = searchQuery.length >= 2
