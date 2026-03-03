@@ -109,14 +109,20 @@ Route::post('/token/refresh', function (Request $request) {
     $abilities = $currentToken->abilities ?? ['*'];
     $tokenName = $currentToken->name;
 
-    // Check if this was a "remember me" token by checking expiration
+    // Detect "remember me" by comparing the token's original lifespan (created_at → expires_at).
+    // Checking remaining time would always fail near expiry, so we use the original duration instead.
     $currentExpiration = $currentToken->expires_at;
     $isRememberToken = false;
 
     if ($currentExpiration) {
-        $minutesUntilExpiry = now()->diffInMinutes($currentExpiration, false);
-        // If token has more than 24 hours left, it's likely a remember me token
-        $isRememberToken = $minutesUntilExpiry > 1440;
+        $originalDurationMinutes = $currentToken->created_at->diffInMinutes($currentExpiration);
+        // Original duration > 24 hours means this was a "remember me" token
+        $isRememberToken = $originalDurationMinutes > 1440;
+    }
+
+    // Also accept an explicit hint from the client (fallback for tokens created before this fix)
+    if (!$isRememberToken && $request->has('remember')) {
+        $isRememberToken = $request->boolean('remember', false);
     }
 
     // Set expiration based on token type

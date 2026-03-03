@@ -829,25 +829,28 @@ async function searchProducts(itemId) {
     clearTimeout(productSearchTimeouts[itemId]);
   }
 
-  // If search is empty, hide results
-  if (searchQuery.length < 2) {
+  // Require at least 2 chars to type-search, but allow empty to browse all supplier items
+  if (searchQuery.length === 1) {
     resultsDiv.style.display = 'none';
     return;
   }
 
-  // Debounce search
+  // Show loading indicator while debouncing
+  const debounceMs = searchQuery.length === 0 ? 0 : 300;
+
   productSearchTimeouts[itemId] = setTimeout(async () => {
     try {
-      const params = new URLSearchParams({
-        q: searchQuery,
-        supplier_id: supplierId,
-        limit: 20
-      });
+      const params = new URLSearchParams({ supplier_id: supplierId, limit: 20 });
+      if (searchQuery.length >= 2) {
+        params.set('q', searchQuery);
+      }
 
       const products = await authenticatedFetch(`/products-search?${params.toString()}`);
 
       if (products.length === 0) {
-        resultsDiv.innerHTML = '<div class="p-2 text-muted">No products found from this supplier</div>';
+        resultsDiv.innerHTML = searchQuery.length >= 2
+          ? '<div class="p-2 text-muted">No products found matching your search for this supplier</div>'
+          : '<div class="p-2 text-muted">No products found for this supplier</div>';
         resultsDiv.style.display = 'block';
         return;
       }
@@ -858,10 +861,10 @@ async function searchProducts(itemId) {
              data-product-id="${product.id}"
              data-sku="${escapeHtml(product.sku)}"
              data-description="${escapeHtml(product.description)}"
-             data-net-cost="${product.net_cost}"
+             data-net-cost="${product.net_cost || 0}"
              style="cursor: pointer;">
           <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
-          <small class="text-muted">Cost: ${formatCurrency(product.net_cost)}</small>
+          <small class="text-muted">Cost: ${formatCurrency(product.net_cost || 0)}</small>
         </div>
       `).join('');
       resultsDiv.style.display = 'block';
@@ -870,7 +873,7 @@ async function searchProducts(itemId) {
       resultsDiv.innerHTML = '<div class="p-2 text-danger">Error loading products</div>';
       resultsDiv.style.display = 'block';
     }
-  }, 300);
+  }, debounceMs);
 }
 
 // Select a product from search results

@@ -508,13 +508,15 @@
     }
 
     try {
+      const rememberMe = localStorage.getItem('rememberMe') === 'true';
       const response = await fetch('/api/token/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
+        },
+        body: JSON.stringify({ remember: rememberMe })
       });
 
       if (response.ok) {

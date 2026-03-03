@@ -1648,6 +1648,14 @@
 
     async function viewProduct(id) {
       try {
+        // Always reset to view mode when opening a product to prevent stale edit form from showing
+        isEditMode = false;
+        document.getElementById('editProductBtn').style.display = 'block';
+        document.getElementById('editProductActions').style.display = 'none';
+        document.getElementById('productDetailsView').style.display = 'block';
+        document.getElementById('productEditForm').style.display = 'none';
+        document.getElementById('productEditForm').innerHTML = '';
+
         currentProductId = id;
         const response = await apiCall(`/products/${id}`);
         const product = await response.json();

@@ -183,7 +183,7 @@ class ProductController extends Controller
             'location' => 'nullable|max:255',
 
             // Pricing
-            'unit_cost' => 'required|numeric|min:0',
+            'unit_cost' => 'nullable|numeric|min:0',
             'unit_price' => 'nullable|numeric|min:0',
             'net_cost' => 'nullable|numeric|min:0',
 
