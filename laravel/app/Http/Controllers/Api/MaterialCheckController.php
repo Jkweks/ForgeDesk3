@@ -383,9 +383,19 @@ class MaterialCheckController extends Controller
                 $partNumberCell = $sheet->getCell("B{$row}");
                 $finishCell = $sheet->getCell("C{$row}");
 
-                $qtyPacks = floatval($qtyCell->getValue()); // Qty is in packs (can be decimal like 0.86)
-                $partNumber = trim((string)$partNumberCell->getValue());
-                $finish = trim((string)$finishCell->getValue());
+                // For formula cells, getValue() returns the raw formula string (e.g. "=IF(...)").
+                // getOldCalculatedValue() returns the last saved cached result without recalculating,
+                // which avoids the xlsm hang while still using the correct computed value.
+                $getCellValue = function($cell) {
+                    if ($cell->getDataType() === DataType::TYPE_FORMULA) {
+                        return $cell->getOldCalculatedValue();
+                    }
+                    return $cell->getValue();
+                };
+
+                $qtyPacks = floatval($getCellValue($qtyCell)); // Qty is in packs (can be decimal like 0.86)
+                $partNumber = trim((string)$getCellValue($partNumberCell));
+                $finish = trim((string)$getCellValue($finishCell));
 
                 // Debug logging for first few rows
                 if ($debugCounter < $debugSampleRows) {
@@ -404,9 +414,6 @@ class MaterialCheckController extends Controller
                 if (empty($partNumber)) {
                     continue;
                 }
-
-                // Note: formula cells are fine — getValue() already returns the cached/last-saved
-                // result without triggering recalculation, so $partNumber above is correct.
 
                 // Default null/empty finish to "0R" (Mill/Unfinished)
                 if (empty($finish)) {
