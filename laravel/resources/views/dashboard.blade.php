@@ -3469,6 +3469,8 @@
     }
 
     // Auto-generate SKU preview
+    let skuManuallyEdited = false;
+
     function updateSkuPreview() {
       const partNumber = document.getElementById('productPartNumber').value.trim().toUpperCase();
       const finish = document.getElementById('productFinish').value;
@@ -3480,8 +3482,8 @@
         skuPreview.textContent = `Will generate: ${generatedSku}`;
         skuPreview.classList.add('text-primary');
 
-        // Auto-fill SKU if empty
-        if (!skuField.value) {
+        // Keep SKU in sync unless user has manually edited it
+        if (!skuManuallyEdited) {
           skuField.value = generatedSku;
         }
       } else {
@@ -3516,6 +3518,7 @@
     // Add event listeners for auto-calculations
     document.getElementById('productPartNumber').addEventListener('input', updateSkuPreview);
     document.getElementById('productFinish').addEventListener('change', updateSkuPreview);
+    document.getElementById('productSku').addEventListener('input', () => { skuManuallyEdited = true; });
     document.getElementById('productAvgDailyUse').addEventListener('input', updateReorderPointPreview);
     document.getElementById('productLeadTime').addEventListener('input', updateReorderPointPreview);
     document.getElementById('productSafetyStock').addEventListener('input', updateReorderPointPreview);
@@ -3526,6 +3529,7 @@
       document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
       document.getElementById('skuPreview').textContent = '';
       document.getElementById('reorderPreview').textContent = '';
+      skuManuallyEdited = false;
       showModal(document.getElementById('addProductModal'));
     }
 
