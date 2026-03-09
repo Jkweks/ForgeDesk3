@@ -405,10 +405,8 @@ class MaterialCheckController extends Controller
                     continue;
                 }
 
-                // Skip rows where part number is a formula (not user input)
-                if ($partNumberCell->getDataType() === DataType::TYPE_FORMULA) {
-                    continue;
-                }
+                // Note: formula cells are fine — getValue() already returns the cached/last-saved
+                // result without triggering recalculation, so $partNumber above is correct.
 
                 // Default null/empty finish to "0R" (Mill/Unfinished)
                 if (empty($finish)) {
