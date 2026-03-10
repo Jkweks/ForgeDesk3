@@ -1283,6 +1283,7 @@
                 } else if (item.status === 'unavailable') {
                     statusBadge = '<span class="badge bg-danger">Out of Stock</span>';
                     statusClass = 'table-danger';
+                    canCommit = true; // Allow committing out-of-stock items to push negative for restock validation
                 } else if (item.status === 'not_found') {
                     statusBadge = '<span class="badge bg-secondary">Not Found</span>';
                     statusClass = 'table-secondary';
