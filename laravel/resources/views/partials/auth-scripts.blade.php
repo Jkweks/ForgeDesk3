@@ -225,40 +225,39 @@
       return;
     }
 
-    // Create a MutationObserver to watch for DOM changes
+    // Debounce permission reapplication to avoid running it dozens of times
+    // when a large table (50+ rows) is injected into the DOM at once
+    let permissionDebounceTimer = null;
+
     const observer = new MutationObserver((mutations) => {
       let shouldReapply = false;
 
-      mutations.forEach((mutation) => {
-        // Check if nodes were added
-        if (mutation.addedNodes.length > 0) {
-          mutation.addedNodes.forEach((node) => {
-            // Check if the added node or its children have permission attributes
-            if (node.nodeType === 1) { // Element node
-              if (node.hasAttribute && (
-                  node.hasAttribute('data-permission') ||
-                  node.hasAttribute('data-permission-any') ||
-                  node.hasAttribute('data-permission-all')
-                )) {
-                shouldReapply = true;
-              } else if (node.querySelector) {
-                const hasPermissionElements = node.querySelector('[data-permission], [data-permission-any], [data-permission-all]');
-                if (hasPermissionElements) {
-                  shouldReapply = true;
-                }
-              }
-            }
-          });
+      for (const mutation of mutations) {
+        if (mutation.addedNodes.length === 0) continue;
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== 1) continue; // Element nodes only
+          if (
+            (node.hasAttribute && (
+              node.hasAttribute('data-permission') ||
+              node.hasAttribute('data-permission-any') ||
+              node.hasAttribute('data-permission-all')
+            )) ||
+            (node.querySelector && node.querySelector('[data-permission], [data-permission-any], [data-permission-all]'))
+          ) {
+            shouldReapply = true;
+            break;
+          }
         }
-      });
+        if (shouldReapply) break;
+      }
 
-      // Reapply permissions if needed
       if (shouldReapply) {
-        applyActionPermissions();
+        // Debounce: coalesce rapid batches (e.g. 50-row table render) into one call
+        clearTimeout(permissionDebounceTimer);
+        permissionDebounceTimer = setTimeout(applyActionPermissions, 50);
       }
     });
 
-    // Start observing the document body for changes
     observer.observe(document.body, {
       childList: true,
       subtree: true
