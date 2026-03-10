@@ -1417,7 +1417,7 @@
                     items.push({
                         product_id: item.product_id,
                         requested_qty: requiredEaches,
-                        committed_qty: Math.min(requiredEaches, availableEaches)
+                        committed_qty: requiredEaches  // Always commit full amount; allows negative availability for restock validation
                     });
                 }
             });
