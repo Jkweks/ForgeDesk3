@@ -1203,14 +1203,7 @@
                 return;
             }
 
-            if (field === 'committed_qty' && numValue > item.committed_qty) {
-                const increase = numValue - item.committed_qty;
-                if (increase > item.product.quantity_available) {
-                    alert(`Only ${item.product.quantity_available} available. Cannot increase by ${increase}.`);
-                    renderEditItems();
-                    return;
-                }
-            }
+            // Allow over-commitment - inventory may go negative to reflect what must be ordered
 
             item[field] = numValue;
         }

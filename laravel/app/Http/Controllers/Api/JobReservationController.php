@@ -1134,9 +1134,9 @@ class JobReservationController extends Controller
                 foreach ($request->items as $itemData) {
                     $product = Product::find($itemData['product_id']);
 
-                    // If committed_qty not provided, default to min(requested_qty, available)
+                    // If committed_qty not provided, default to full requested qty (allow overdraw)
                     $requestedQty = $itemData['requested_qty'];
-                    $committedQty = $itemData['committed_qty'] ?? min($requestedQty, $product->quantity_available);
+                    $committedQty = $itemData['committed_qty'] ?? $requestedQty;
 
                     // Check if committed exceeds available (allow but warn)
                     if ($committedQty > $product->quantity_available) {
@@ -1303,18 +1303,7 @@ class JobReservationController extends Controller
                 ], 400);
             }
 
-            // Check availability of new product for the committed quantity
-            if ($newProduct->quantity_available < $item->committed_qty) {
-                return response()->json([
-                    'error' => 'Insufficient availability for new product',
-                    'details' => [
-                        'new_sku' => $newProduct->sku,
-                        'required_qty' => $item->committed_qty,
-                        'available_qty' => $newProduct->quantity_available,
-                        'shortage' => $item->committed_qty - $newProduct->quantity_available,
-                    ],
-                ], 400);
-            }
+            // Allow over-commitment on product swap - inventory may go negative to reflect what must be ordered
 
             DB::beginTransaction();
 
