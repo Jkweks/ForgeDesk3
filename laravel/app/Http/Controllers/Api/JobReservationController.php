@@ -838,51 +838,62 @@ class JobReservationController extends Controller
     }
 
     /**
-     * Search for products by SKU (case-insensitive) - DEPRECATED, use searchProducts instead
+     * Search for a product by partial SKU, part number, or description (case-insensitive).
+     * Returns the first match wrapped in {product:...} for backwards compatibility,
+     * plus a {data:[...]} array of all matches for callers that want multiple results.
      */
     public function searchProduct(Request $request)
     {
         try {
-            $sku = $request->get('sku');
+            $term = $request->get('sku') ?: $request->get('q');
 
-            if (!$sku) {
-                return response()->json([
-                    'error' => 'SKU parameter required',
-                ], 400);
+            if (!$term) {
+                return response()->json(['error' => 'Search term required'], 400);
             }
 
-            // Case-insensitive search - get all products and filter in PHP for compatibility
-            $product = Product::all()->first(function ($p) use ($sku) {
-                return strcasecmp($p->sku, $sku) === 0;
-            });
+            $searchTerm = '%' . strtolower($term) . '%';
 
-            if (!$product) {
+            $products = Product::where(function ($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(sku) LIKE ?', [$searchTerm])
+                  ->orWhere(function ($sub) use ($searchTerm) {
+                      $sub->whereNotNull('part_number')
+                          ->whereRaw('LOWER(part_number) LIKE ?', [$searchTerm]);
+                  })
+                  ->orWhere(function ($sub) use ($searchTerm) {
+                      $sub->whereNotNull('description')
+                          ->whereRaw('LOWER(description) LIKE ?', [$searchTerm]);
+                  });
+            })->orderBy('sku')->limit(20)->get();
+
+            if ($products->isEmpty()) {
                 return response()->json([
                     'error' => 'Product not found',
-                    'message' => "No product found with SKU: {$sku}",
+                    'message' => "No product found matching: {$term}",
                 ], 404);
             }
 
+            $mapped = $products->map(fn($p) => [
+                'id'                 => $p->id,
+                'sku'                => $p->sku,
+                'part_number'        => $p->part_number,
+                'finish'             => $p->finish,
+                'description'        => $p->description,
+                'quantity_on_hand'   => $p->quantity_on_hand,
+                'quantity_available' => $p->quantity_available,
+            ])->values();
+
             return response()->json([
-                'product' => [
-                    'id' => $product->id,
-                    'sku' => $product->sku,
-                    'part_number' => $product->part_number,
-                    'finish' => $product->finish,
-                    'description' => $product->description,
-                    'quantity_on_hand' => $product->quantity_on_hand,
-                    'quantity_available' => $product->quantity_available,
-                ],
+                'product' => $mapped->first(), // backwards compat for single-result callers
+                'data'    => $mapped,
             ]);
         } catch (\Exception $e) {
             Log::error('Product search failed', [
-                'sku' => $request->get('sku'),
+                'term'    => $request->get('sku') ?: $request->get('q'),
                 'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
-                'error' => 'Search failed',
+                'error'   => 'Search failed',
                 'message' => $e->getMessage(),
             ], 500);
         }
