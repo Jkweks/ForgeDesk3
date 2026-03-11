@@ -121,35 +121,18 @@
       }
     }
 
-    /* Dark mode badge improvements - better contrast and visibility */
-    [data-bs-theme="dark"] .badge.bg-primary {
-      background-color: #4299e1 !important;
-      color: #1a202c !important;
-    }
-    [data-bs-theme="dark"] .badge.bg-success {
-      background-color: #48bb78 !important;
-      color: #1a202c !important;
-    }
-    [data-bs-theme="dark"] .badge.bg-info {
-      background-color: #4299e1 !important;
-      color: #1a202c !important;
-    }
-    [data-bs-theme="dark"] .badge.bg-warning {
-      background-color: #ed8936 !important;
-      color: #1a202c !important;
-    }
-    [data-bs-theme="dark"] .badge.bg-danger {
-      background-color: #f56565 !important;
+    /* Force white text on all solid badges regardless of theme */
+    .badge:not([class*="-lt"]):not(.badge-outline) {
       color: #fff !important;
     }
-    [data-bs-theme="dark"] .badge.bg-secondary {
-      background-color: #718096 !important;
-      color: #fff !important;
-    }
-    [data-bs-theme="dark"] .badge.bg-dark {
-      background-color: #4a5568 !important;
-      color: #fff !important;
-    }
+    /* Dark mode badge background improvements */
+    [data-bs-theme="dark"] .badge.bg-primary  { background-color: #4299e1 !important; }
+    [data-bs-theme="dark"] .badge.bg-success  { background-color: #48bb78 !important; }
+    [data-bs-theme="dark"] .badge.bg-info     { background-color: #4299e1 !important; }
+    [data-bs-theme="dark"] .badge.bg-warning  { background-color: #ed8936 !important; }
+    [data-bs-theme="dark"] .badge.bg-danger   { background-color: #f56565 !important; }
+    [data-bs-theme="dark"] .badge.bg-secondary{ background-color: #718096 !important; }
+    [data-bs-theme="dark"] .badge.bg-dark     { background-color: #4a5568 !important; }
 
     /* Dark mode table row improvements - better visibility for shaded rows */
     [data-bs-theme="dark"] .table-success {
