@@ -425,16 +425,36 @@
               <div class="card">
                 <div class="card-header">
                   <h3 class="card-title">Items to Reserve</h3>
-                  <div class="card-actions">
-                    <button type="button" class="btn btn-sm btn-primary" onclick="showAddItemToReservation()">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
-                      Add Item
-                    </button>
-                  </div>
                 </div>
                 <div class="card-body">
+                  <!-- Inline product search for adding items -->
+                  <div class="mb-3">
+                    <div class="row g-2 align-items-end">
+                      <div class="col">
+                        <label class="form-label">Search product</label>
+                        <div class="position-relative">
+                          <input type="text" class="form-control" id="jobItemSearch"
+                                 placeholder="Search by SKU, part number, or description..."
+                                 oninput="searchJobItem(this.value)" autocomplete="off">
+                          <input type="hidden" id="jobItemProductId">
+                          <div id="jobItemSearchResults" class="list-group position-absolute w-100"
+                               style="display:none; z-index:1000; max-height:250px; overflow-y:auto;"></div>
+                        </div>
+                      </div>
+                      <div class="col-auto">
+                        <label class="form-label">Qty</label>
+                        <input type="number" class="form-control" id="jobItemQty" min="1" value="1" style="width:80px;">
+                      </div>
+                      <div class="col-auto">
+                        <button type="button" class="btn btn-primary" onclick="addJobItem()">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-sm"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14" /><path d="M5 12l14 0" /></svg>
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                   <div id="reservationItemsContainer">
-                    <p class="text-muted">No items added yet. Click "Add Item" to begin.</p>
+                    <p class="text-muted">No items added yet. Search and add products above.</p>
                   </div>
                 </div>
               </div>
@@ -993,56 +1013,92 @@
             document.getElementById('reservationRequestedBy').value = '';
             document.getElementById('reservationNeededBy').value = '';
             document.getElementById('reservationNotes').value = '';
+            document.getElementById('jobItemSearch').value = '';
+            document.getElementById('jobItemProductId').value = '';
+            document.getElementById('jobItemQty').value = 1;
+            document.getElementById('jobItemSearchResults').style.display = 'none';
+            window.tempJobItem = null;
             reservationItems = [];
             updateReservationItemsDisplay();
 
             showModal(document.getElementById('addReservationModal'));
         }
 
-        function showAddItemToReservation() {
-            const sku = prompt('Enter product SKU:');
-            if (!sku) return;
+        let jobItemSearchTimeout = null;
 
-            // Search for product by SKU
-            fetch(`/api/v1/job-reservations/search-product?sku=${encodeURIComponent(sku)}`, {
-                headers: {
-                    'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                },
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.product) {
-                    alert('Product not found with SKU: ' + sku);
-                    return;
-                }
+        async function searchJobItem(query) {
+            clearTimeout(jobItemSearchTimeout);
+            document.getElementById('jobItemProductId').value = '';
+            window.tempJobItem = null;
+            const resultsDiv = document.getElementById('jobItemSearchResults');
+            if (query.length < 2) { resultsDiv.style.display = 'none'; return; }
+            jobItemSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/v1/job-reservations/search-products?q=${encodeURIComponent(query)}&per_page=15`, {
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('authToken'),
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        }
+                    });
+                    if (!response.ok) { resultsDiv.style.display = 'none'; return; }
+                    const data = await response.json();
+                    if (data.data && data.data.length > 0) {
+                        resultsDiv.innerHTML = data.data.map(p => `
+                            <button type="button" class="list-group-item list-group-item-action"
+                                    onclick="selectJobItem(${p.id}, '${p.sku.replace(/'/g,"\\'")}', '${(p.part_number||'').replace(/'/g,"\\'")}', '${(p.finish||'').replace(/'/g,"\\'")}', '${p.description.replace(/'/g,"\\'")}', ${p.quantity_on_hand ?? 0}, ${p.quantity_available ?? 0})">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong>${p.sku}</strong>
+                                    <span class="badge bg-${p.quantity_available > 0 ? 'success' : 'warning'}">${p.quantity_available} avail</span>
+                                </div>
+                                <small>${p.part_number || ''} ${p.finish || ''} — ${p.description}</small>
+                            </button>`).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted">No products found</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                } catch (e) { resultsDiv.style.display = 'none'; }
+            }, 300);
+        }
 
-                const product = data.product;
-                const requestedQty = parseInt(prompt('Enter quantity needed:', '1')) || 1;
+        function selectJobItem(id, sku, partNumber, finish, description, onHand, available) {
+            document.getElementById('jobItemProductId').value = id;
+            document.getElementById('jobItemSearch').value = `${sku} — ${partNumber} ${finish} ${description}`.trim();
+            document.getElementById('jobItemSearchResults').style.display = 'none';
+            window.tempJobItem = { id, sku, partNumber, finish, description, onHand, available };
+        }
 
-                // Check if already added
-                if (reservationItems.some(item => item.product_id === product.id)) {
-                    alert('This product is already in the reservation');
-                    return;
-                }
+        function addJobItem() {
+            if (!window.tempJobItem) {
+                alert('Please search and select a product first');
+                return;
+            }
+            const p = window.tempJobItem;
+            const requestedQty = parseInt(document.getElementById('jobItemQty').value) || 1;
 
-                reservationItems.push({
-                    product_id: product.id,
-                    sku: product.sku,
-                    part_number: product.part_number,
-                    finish: product.finish,
-                    description: product.description,
-                    requested_qty: requestedQty,
-                    committed_qty: Math.min(requestedQty, product.quantity_available),
-                    available: product.quantity_available,
-                });
+            if (reservationItems.some(item => item.product_id == p.id)) {
+                alert('This product is already in the reservation');
+                return;
+            }
 
-                updateReservationItemsDisplay();
-            })
-            .catch(error => {
-                console.error('Error finding product:', error);
-                alert('Error finding product');
+            reservationItems.push({
+                product_id: p.id,
+                sku: p.sku,
+                part_number: p.partNumber,
+                finish: p.finish,
+                description: p.description,
+                requested_qty: requestedQty,
+                committed_qty: requestedQty, // Allow overdraw
+                available: p.available,
             });
+
+            // Reset search fields
+            document.getElementById('jobItemSearch').value = '';
+            document.getElementById('jobItemProductId').value = '';
+            document.getElementById('jobItemQty').value = 1;
+            window.tempJobItem = null;
+
+            updateReservationItemsDisplay();
         }
 
         function updateReservationItemsDisplay() {
@@ -1283,6 +1339,7 @@
                 } else if (item.status === 'unavailable') {
                     statusBadge = '<span class="badge bg-danger">Out of Stock</span>';
                     statusClass = 'table-danger';
+                    canCommit = true; // Allow committing out-of-stock items to push negative for restock validation
                 } else if (item.status === 'not_found') {
                     statusBadge = '<span class="badge bg-secondary">Not Found</span>';
                     statusClass = 'table-secondary';
@@ -1416,7 +1473,7 @@
                     items.push({
                         product_id: item.product_id,
                         requested_qty: requiredEaches,
-                        committed_qty: Math.min(requiredEaches, availableEaches)
+                        committed_qty: requiredEaches  // Always commit full amount; allows negative availability for restock validation
                     });
                 }
             });

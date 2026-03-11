@@ -183,7 +183,7 @@ class ProductController extends Controller
             'location' => 'nullable|max:255',
 
             // Pricing
-            'unit_cost' => 'required|numeric|min:0',
+            'unit_cost' => 'nullable|numeric|min:0',
             'unit_price' => 'nullable|numeric|min:0',
             'net_cost' => 'nullable|numeric|min:0',
 
@@ -584,14 +584,20 @@ class ProductController extends Controller
             $query->where('supplier_id', $validated['supplier_id']);
         }
 
-        // Search by SKU, description, or part number (case-insensitive)
+        // Search by SKU, description, or part number (case-insensitive, cross-DB)
         if (!empty($validated['q'])) {
-            $search = $validated['q'];
-            $query->where(function($q) use ($search) {
-                $q->where('sku', 'ilike', "%{$search}%")
-                  ->orWhere('description', 'ilike', "%{$search}%")
-                  ->orWhere('part_number', 'ilike', "%{$search}%")
-                  ->orWhere('supplier_sku', 'ilike', "%{$search}%");
+            $searchTerm = '%' . strtolower($validated['q']) . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereRaw('LOWER(sku) LIKE ?', [$searchTerm])
+                  ->orWhereRaw('LOWER(description) LIKE ?', [$searchTerm])
+                  ->orWhere(function ($sub) use ($searchTerm) {
+                      $sub->whereNotNull('part_number')
+                          ->whereRaw('LOWER(part_number) LIKE ?', [$searchTerm]);
+                  })
+                  ->orWhere(function ($sub) use ($searchTerm) {
+                      $sub->whereNotNull('supplier_sku')
+                          ->whereRaw('LOWER(supplier_sku) LIKE ?', [$searchTerm]);
+                  });
             });
         }
 

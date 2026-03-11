@@ -829,25 +829,40 @@ async function searchProducts(itemId) {
     clearTimeout(productSearchTimeouts[itemId]);
   }
 
-  // If search is empty, hide results
-  if (searchQuery.length < 2) {
+  // Guard: need a supplier selected to search
+  if (!supplierId) {
+    resultsDiv.innerHTML = '<div class="p-2 text-muted">Please select a supplier first</div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+
+  // Single char — hide and wait for more input
+  if (searchQuery.length === 1) {
     resultsDiv.style.display = 'none';
     return;
   }
 
-  // Debounce search
+  const debounceMs = searchQuery.length === 0 ? 0 : 300;
+
   productSearchTimeouts[itemId] = setTimeout(async () => {
     try {
-      const params = new URLSearchParams({
-        q: searchQuery,
-        supplier_id: supplierId,
-        limit: 20
-      });
-
-      const products = await authenticatedFetch(`/products-search?${params.toString()}`);
+      let products;
+      if (searchQuery.length === 0) {
+        // For empty query on focus, use the supplier's products endpoint
+        // (/products-search without q param returns 404; supplier endpoint is reliable)
+        const response = await authenticatedFetch(`/suppliers/${supplierId}/products`);
+        // Supplier endpoint returns paginated response; extract data array
+        products = Array.isArray(response) ? response : (response.data || []);
+      } else {
+        // For typed queries, use products-search with q param
+        const params = new URLSearchParams({ q: searchQuery, supplier_id: supplierId, limit: 20 });
+        products = await authenticatedFetch(`/products-search?${params.toString()}`);
+      }
 
       if (products.length === 0) {
-        resultsDiv.innerHTML = '<div class="p-2 text-muted">No products found from this supplier</div>';
+        resultsDiv.innerHTML = searchQuery.length >= 2
+          ? '<div class="p-2 text-muted">No products found matching your search for this supplier</div>'
+          : '<div class="p-2 text-muted">No products found for this supplier</div>';
         resultsDiv.style.display = 'block';
         return;
       }
@@ -858,10 +873,10 @@ async function searchProducts(itemId) {
              data-product-id="${product.id}"
              data-sku="${escapeHtml(product.sku)}"
              data-description="${escapeHtml(product.description)}"
-             data-net-cost="${product.net_cost}"
+             data-net-cost="${product.net_cost || 0}"
              style="cursor: pointer;">
           <strong>${escapeHtml(product.sku)}</strong> - ${escapeHtml(product.description)}<br>
-          <small class="text-muted">Cost: ${formatCurrency(product.net_cost)}</small>
+          <small class="text-muted">Cost: ${formatCurrency(product.net_cost || 0)}</small>
         </div>
       `).join('');
       resultsDiv.style.display = 'block';
@@ -870,7 +885,7 @@ async function searchProducts(itemId) {
       resultsDiv.innerHTML = '<div class="p-2 text-danger">Error loading products</div>';
       resultsDiv.style.display = 'block';
     }
-  }, 300);
+  }, debounceMs);
 }
 
 // Select a product from search results

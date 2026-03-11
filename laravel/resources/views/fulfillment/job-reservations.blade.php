@@ -295,9 +295,13 @@
                       <div class="row">
                         <div class="col-md-6">
                           <div class="mb-3">
-                            <label class="form-label">Product SKU</label>
-                            <input type="text" class="form-control" id="newItemSKU" placeholder="Search by SKU...">
+                            <label class="form-label">Product Search</label>
+                            <input type="text" class="form-control" id="newItemSKU"
+                                   placeholder="Search by SKU, part number, or description..."
+                                   oninput="searchNewItem(this.value)"
+                                   autocomplete="off">
                             <input type="hidden" id="newItemProductId">
+                            <div id="newItemSearchResults" class="list-group position-absolute w-100" style="display:none; z-index:1000; max-height:250px; overflow-y:auto;"></div>
                           </div>
                         </div>
                         <div class="col-md-3">
@@ -1203,16 +1207,49 @@
                 return;
             }
 
-            if (field === 'committed_qty' && numValue > item.committed_qty) {
-                const increase = numValue - item.committed_qty;
-                if (increase > item.product.quantity_available) {
-                    alert(`Only ${item.product.quantity_available} available. Cannot increase by ${increase}.`);
-                    renderEditItems();
-                    return;
-                }
-            }
+            // Allow over-commitment - inventory may go negative to reflect what must be ordered
 
             item[field] = numValue;
+        }
+
+        let newItemSearchTimeout = null;
+
+        async function searchNewItem(query) {
+            clearTimeout(newItemSearchTimeout);
+            document.getElementById('newItemProductId').value = '';
+            const resultsDiv = document.getElementById('newItemSearchResults');
+            if (query.length < 2) { resultsDiv.style.display = 'none'; return; }
+            newItemSearchTimeout = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/v1/job-reservations/search-products?q=${encodeURIComponent(query)}&per_page=15`, {
+                        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
+                    });
+                    if (!response.ok) { resultsDiv.style.display = 'none'; return; }
+                    const data = await response.json();
+                    if (data.data && data.data.length > 0) {
+                        resultsDiv.innerHTML = data.data.map(p => `
+                            <button type="button" class="list-group-item list-group-item-action"
+                                    onclick="selectNewItem(${p.id}, '${p.sku.replace(/'/g,"\\'")}', '${(p.part_number||'').replace(/'/g,"\\'")}', '${(p.finish||'').replace(/'/g,"\\'")}', '${p.description.replace(/'/g,"\\'")}', ${p.quantity_on_hand}, ${p.quantity_available})">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <strong>${p.sku}</strong>
+                                    <span class="badge bg-${p.quantity_available > 0 ? 'success' : 'warning'}">${p.quantity_available} avail</span>
+                                </div>
+                                <small>${p.part_number || ''} ${p.finish || ''} — ${p.description}</small>
+                            </button>`).join('');
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div class="list-group-item text-muted">No products found</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                } catch (e) { resultsDiv.style.display = 'none'; }
+            }, 300);
+        }
+
+        function selectNewItem(id, sku, partNumber, finish, description, onHand, available) {
+            document.getElementById('newItemProductId').value = id;
+            document.getElementById('newItemSKU').value = `${sku} — ${partNumber} ${finish} ${description}`.trim();
+            document.getElementById('newItemSearchResults').style.display = 'none';
+            window.tempNewItem = { id, sku, partNumber, finish, description, onHand, available };
         }
 
         function showAddItemForm() {
@@ -1220,6 +1257,7 @@
             document.getElementById('addItemBtn').style.display = 'none';
             document.getElementById('newItemSKU').value = '';
             document.getElementById('newItemProductId').value = '';
+            document.getElementById('newItemSearchResults').style.display = 'none';
             document.getElementById('newItemRequestedQty').value = 1;
             document.getElementById('newItemCommittedQty').value = 0;
         }
@@ -1227,41 +1265,30 @@
         function hideAddItemForm() {
             document.getElementById('addItemForm').style.display = 'none';
             document.getElementById('addItemBtn').style.display = 'block';
+            document.getElementById('newItemSearchResults').style.display = 'none';
         }
 
         async function addNewItem() {
-            const sku = document.getElementById('newItemSKU').value.trim();
+            const productId = document.getElementById('newItemProductId').value;
             const requestedQty = parseInt(document.getElementById('newItemRequestedQty').value);
             const committedQty = parseInt(document.getElementById('newItemCommittedQty').value);
 
-            if (!sku) {
-                alert('Please enter a product SKU');
+            if (!productId || !window.tempNewItem) {
+                alert('Please search and select a product from the dropdown first');
                 return;
             }
 
-            // Find product by SKU using dedicated search endpoint
             try {
-                const response = await fetch(`/api/v1/job-reservations/search-product?sku=${encodeURIComponent(sku)}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    alert(error.message || 'Product not found');
-                    return;
-                }
-
-                const data = await response.json();
-                const product = data.product;
-
-                if (!product) {
-                    alert('Product not found with SKU: ' + sku);
-                    return;
-                }
+                const p = window.tempNewItem;
+                const product = {
+                    id: p.id,
+                    sku: p.sku,
+                    part_number: p.partNumber,
+                    finish: p.finish,
+                    description: p.description,
+                    quantity_on_hand: p.onHand,
+                    quantity_available: p.available,
+                };
 
                 // Check if already in list
                 if (editingItems.some(item => item.product_id === product.id)) {
